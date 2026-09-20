@@ -1,0 +1,48 @@
+# The compiler gate: Java 21 language level, and -Werror
+#
+# Machine: Linux aarch64
+# Maven:   Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+# JDK:     openjdk version "21.0.12" 2026-07-21 LTS
+# Run at:  2026-09-20T14:39:09+08:00
+#
+# Neither probe below is committed. No module has any src/ yet, so these
+# two gates have never fired during an ordinary build; this file is the
+# only record that they work. First real code: stage 2.
+
+=== A record pattern compiles, so release 21 is really in effect ===
+
+
+  record Pair(int left, int right) {}
+
+  static int sum(Object o) {
+    return switch (o) {
+      case Pair(int left, int right) -> left + right;
+      default -> 0;
+    };
+  }
+
+$ ./mvnw -pl domain clean compile
+[INFO] Compiling 1 source file with javac [debug release 21] to target/classes
+[INFO] BUILD SUCCESS
+
+$ ls domain/target/classes/com/jerome/slledger/domain/
+LanguageLevelProbe$Pair.class
+LanguageLevelProbe.class
+
+=== One lint warning is enough to fail the build ===
+
+# Added to the same class: a raw java.util.List, which -Xlint:all reports
+# as a rawtypes warning. Note the @SuppressWarnings("unused") above it does
+# not silence that one.
+
+  static int rawType(java.util.List list) {
+    return list.size();
+  }
+
+$ ./mvnw -pl domain clean compile
+[ERROR] COMPILATION ERROR : 
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/main/java/com/jerome/slledger/domain/LanguageLevelProbe.java: warnings found and -Werror specified
+[INFO] BUILD FAILURE
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project domain: Compilation failure
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/main/java/com/jerome/slledger/domain/LanguageLevelProbe.java: warnings found and -Werror specified
+exit=1

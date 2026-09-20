@@ -70,3 +70,24 @@
 [INFO] Total time:  1.283 s
 [INFO] Finished at: 2026-09-20T14:01:57+08:00
 [INFO] ------------------------------------------------------------------------
+
+=== The JDK gate: requireJavaVersion [21,22) ===
+
+# Re-run 2026-09-20T14:40:04+08:00
+
+$ JAVA_HOME=<jdk 25> ./mvnw clean validate
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.RequirePluginVersions passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.dependency.RequireReleaseDeps passed
+[INFO] Rule 4: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 5: org.apache.maven.enforcer.rules.BanDuplicatePomDependencyVersions passed
+[INFO] BUILD FAILURE
+[ERROR] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion failed with message:
+[ERROR] Build with JDK 21. A newer JDK is not a drop-in here:
+exit=1
+
+$ JAVA_HOME=<jdk 21> ./mvnw clean validate
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies passed
+[INFO] BUILD SUCCESS
+exit=0

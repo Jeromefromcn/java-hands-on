@@ -1,0 +1,52 @@
+# The formatting gate: Spotless bound to validate
+#
+# Machine: Linux aarch64
+# Maven:   Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+# JDK:     openjdk version "21.0.12" 2026-07-21 LTS
+# Run at:  2026-09-20T14:39:43+08:00
+#
+# The probe file is not committed. Spotless is bound to the validate phase,
+# so the command below is an ordinary build, not spotless:check.
+
+=== The file, as written ===
+
+package com.jerome.slledger.domain;
+import java.util.List;
+final class FormatProbe {
+    static int  size( List<String> xs ){
+return xs.size();
+  }
+}
+
+=== ./mvnw -pl domain clean validate ===
+
+[ERROR] Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:3.10.2:check (spotless-check) on project domain: The following files had format violations:
+[ERROR]     src/main/java/com/jerome/slledger/domain/FormatProbe.java
+[ERROR]         @@ -1,7 +1,9 @@
+[ERROR]          package·com.jerome.slledger.domain;
+[ERROR]         +
+[ERROR]          import·java.util.List;
+[ERROR]         +
+[ERROR]          final·class·FormatProbe·{
+[ERROR]         -····static·int··size(·List<String>·xs·){
+[ERROR]         -return·xs.size();
+[ERROR]         +··static·int·size(List<String>·xs)·{
+[ERROR]         +····return·xs.size();
+[ERROR]          ··}
+[ERROR]          }
+exit=1
+
+=== ./mvnw -pl domain spotless:apply, then the same build ===
+
+package com.jerome.slledger.domain;
+
+import java.util.List;
+
+final class FormatProbe {
+  static int size(List<String> xs) {
+    return xs.size();
+  }
+}
+
+[INFO] BUILD SUCCESS
+exit=0

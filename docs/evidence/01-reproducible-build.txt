@@ -3,53 +3,60 @@
 # Machine: Linux aarch64
 # Maven:   Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
 # JDK:     openjdk version "21.0.12" 2026-07-21 LTS
+# Run at:  2026-09-20T14:40:59+08:00
+#
+# Re-measured after plugin versions were pinned: the earlier numbers were
+# taken while maven-jar-plugin resolved RELEASE from central, so they
+# described a build that could change without anyone touching this repo.
 
 === Profile activation ===
 
-$ ./mvnw help:active-profiles -pl .
- - local (source: com.jerome.slledger:sl-ledger-parent:0.1.0-SNAPSHOT)
+$                      ./mvnw help:active-profiles -pl .
+    -> local 
+$ CI=false             ./mvnw help:active-profiles -pl .
+    -> local 
+$ CI=true              ./mvnw help:active-profiles -pl .
+    -> ci 
+$                      ./mvnw help:active-profiles -pl . -Pci
+    -> local ci 
 
-$ ./mvnw help:active-profiles -pl . -Pci
- - ci (source: com.jerome.slledger:sl-ledger-parent:0.1.0-SNAPSHOT)
+# local activates on env.CI != true, which includes CI being unset.
+# It deliberately does not use activeByDefault: Maven switches that off as
+# soon as any other profile in the same POM activates, so the default
+# profile would vanish exactly when a second profile appears.
+# Explicit -Pci therefore leaves local active too. Harmless while local is
+# empty, and honest: -P adds a profile, it does not replace the default.
 
-$ CI=true ./mvnw help:active-profiles -pl .
- - ci (source: com.jerome.slledger:sl-ledger-parent:0.1.0-SNAPSHOT)
+=== Reproducible build ===
 
-# Note: activating ci removes local. activeByDefault is switched off as
-# soon as any other profile in the same POM activates, so the two are
-# mutually exclusive without anything saying so.
+# project.build.outputTimestamp = 2026-09-20T00:00:00Z
+$ ./mvnw clean package  (twice, 4.08s then 4.19s)
 
-=== Reproducible build: two consecutive clean packages ===
+ddfff3bd270e6932110986e89d620a1536b95193dbc5c07c23aa41bf7faa16b2  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
+818ec3c45c46ed0499e9fa943ca8322e2fa77e9f8c266679588e72d72fe350e8  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
+c6684f64f724c303276c1fa6505d87ab2469295b630735c48c2dd8cccb373e73  application/target/application-0.1.0-SNAPSHOT.jar
+26e29196794838f78ab6295c541e4e9cd8bea7d86e5c7e82e58c9b9936684711  batch/target/batch-0.1.0-SNAPSHOT.jar
+41380da4bba4835ffef9a37738e453b4c7343165971d9963ff0e7a6c9512591d  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
+23770d7223d9b791dccbca21e52accab83a99f9ef79cd9038f0d839ab9d9eb58  domain/target/domain-0.1.0-SNAPSHOT.jar
 
-# with project.build.outputTimestamp = 2026-09-20T00:00:00Z
+# Second run: every checksum identical.
 
-5df50ed5a260ce7e11106ca7f8822d81a328282b18f52ed454e15c787ac73454  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
-fb5d73afa20412ebcf179f81197f353358be8f494caf2b41a451a868b582c8bf  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
-e81dafb8277eee1854e40f8c8f80d8eddc7aa652aa34cf3597e40c42b0eb4c86  application/target/application-0.1.0-SNAPSHOT.jar
-39d2b05d0cd1c308f823dcd7c1627c713a84a513ef5b4daa2ace5b255e4f2281  batch/target/batch-0.1.0-SNAPSHOT.jar
-fceeda4261996052eb2e4b4dc7b6028803b1904dee31282b745ca7b14ac5c4dc  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
-81f7c9a05192eb4a15dd8c21da676ee318054a082170eeb6095977014738b6a6  domain/target/domain-0.1.0-SNAPSHOT.jar
+=== Control: the same two runs with that property removed ===
 
-# second run: byte-identical (diff empty)
-# wall clock: 6.35s then 5.08s
+7ecdbe7896d797fe8a7dd159f1cad57e9250493633111045b60c6d40da848298  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
+f8e848f932526579f08ae576ba2f1b98cbe136a30de9dd00cf64aaf35544b9ad  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
+8fbce2f5e553ce0b4547c3b0dc53d8c10eddea339131fc618bcdd531a518b18c  application/target/application-0.1.0-SNAPSHOT.jar
+81d5b000a8cc7d6c50503740eb8850f1cff5d29df29f9bd3b59b282971b5e3a8  batch/target/batch-0.1.0-SNAPSHOT.jar
+689a800fa1142d5afcabaf1a4c0910653fa93cc81f36998da702550d1149da5a  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
+23e9ea03948405f251c6c6117ca17e8fc69152000398f0a10eae6d77b32cb4ee  domain/target/domain-0.1.0-SNAPSHOT.jar
 
-=== Control: same two runs with the timestamp removed ===
+fbba877f03f37030adfb25875d1e7be5cdf54a66bf043e4ea325ec5878f02ea0  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
+614b8a28901b1ec0c95d2e1cbeb7885a5b4a92353f66ad42942d37ed681e0693  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
+a85e5fff513df95fca6027089479668ffccfec76b87a1a2c6dfa360109e05e9a  application/target/application-0.1.0-SNAPSHOT.jar
+0e9786af30f9950a952154f279a232ff598b803e53192fddcfd941cf2219534f  batch/target/batch-0.1.0-SNAPSHOT.jar
+672685c540834126caf544f5bd1e7999ce62ec4b959e2ec787987a2dc7cd44b4  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
+20a20aad136b6f03796171bb5729fad560f7d1b6fac052c0ad3fbe839e469388  domain/target/domain-0.1.0-SNAPSHOT.jar
 
-# first run
-78e8f9d0da3cb638dd32f6257e85ccbfadc8f213fa75b797328e8b56489fbd20  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
-ff9aec1f9aab1cf0ab09c00c3fbf4d58464422d5ad7cf7adec7f4cefdb3b01b1  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
-93cdbde578c4e842c83038e41ea59511ecf01d99ab5f83d1430598bf90cc27d2  application/target/application-0.1.0-SNAPSHOT.jar
-531da88f3a0661653e4bed002e13f8045ece430231040d5d3ef6c4a693a9e5ce  batch/target/batch-0.1.0-SNAPSHOT.jar
-ba979f6a035d4f6bb20f5af6aec8a057edf301ee92111c4b1b39e43a476223f4  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
-e04c8b6fe5dc4cdb69f7d483d1067f4c275e6cc9210c2bb93c5400115d205ef9  domain/target/domain-0.1.0-SNAPSHOT.jar
-
-# second run, two seconds later
-e5deb9628e8072723a7293500c1a549dace8d7b7110231e6c4bef55c58e12acf  adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
-04c64814d0c9b4fa3a391ab64bddf3e74747d244ca34074d2891bae29d04965d  adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
-72885c7e30450a1282d3e35d8bc855d4e3aa0a07f70b8d0800f425e276fde186  application/target/application-0.1.0-SNAPSHOT.jar
-277ab45af0bab111930b108dd8d12425833bfb1519d27a6685f68bd4242d842c  batch/target/batch-0.1.0-SNAPSHOT.jar
-5a965bc882407f5b9b012a26cd4e217232b753a8d0aea2a9d19d322ab4215bd0  bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
-40ba708e38e3ad8e6b69fb98682fcd6f12055836f9467e64a953a11a81288f6c  domain/target/domain-0.1.0-SNAPSHOT.jar
-
-# Every checksum differs. Without the property the jars carry the build
-# time, so identical inputs produce different artifacts.
+# All six differ. Without the fixed timestamp the jars carry build time,
+# so identical inputs produce different artifacts. That is the control
+# that makes the result above mean something.

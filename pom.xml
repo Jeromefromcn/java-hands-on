@@ -38,7 +38,18 @@
          so importing is the only shape that survives contact with reality. -->
     <spring-boot.version>4.1.1</spring-boot.version>
 
+    <!-- Every plugin version is pinned here. An unpinned plugin resolves
+         RELEASE from central, so the build changes when someone else ships,
+         and the recorded jar checksums stop meaning anything. -->
+    <maven-clean-plugin.version>3.4.1</maven-clean-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
     <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+    <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+    <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
+    <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
     <spotless.version>3.10.2</spotless.version>
     <google-java-format.version>1.36.1</google-java-format.version>
 
@@ -97,7 +108,50 @@
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>${maven-clean-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven-deploy-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${maven-install-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${maven-resources-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>${maven-site-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
           <configuration>
             <compilerArgs>
               <!-- Every warning the compiler has, and no warning survives a
@@ -130,8 +184,16 @@
                     </message>
                   </requireJavaVersion>
                   <requireMavenVersion>
-                    <version>[3.9.0,)</version>
+                    <!-- Upper bound on purpose: Maven 4 changes the default
+                         lifecycle plugin versions, which moves the artifacts
+                         this stage measured. -->
+                    <version>[3.9.0,4.0.0)</version>
                   </requireMavenVersion>
+                  <requirePluginVersions>
+                    <banLatest>true</banLatest>
+                    <banRelease>true</banRelease>
+                    <banSnapshots>true</banSnapshots>
+                  </requirePluginVersions>
                   <requireReleaseDeps>
                     <message>No SNAPSHOT dependencies.</message>
                     <!-- This project's own modules are a SNAPSHOT until it
@@ -205,7 +267,14 @@
            local-only conveniences have somewhere to land later. -->
       <id>local</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <!-- Not activeByDefault: Maven switches that off the moment any other
+             profile in this POM activates, which would make this profile
+             disappear exactly when someone finally puts something in it. -->
+        <property>
+          <name>env.CI</name>
+          <!-- Anything that is not exactly true, including CI being unset. -->
+          <value>!true</value>
+        </property>
       </activation>
     </profile>
 
@@ -216,6 +285,8 @@
       <activation>
         <property>
           <name>env.CI</name>
+          <!-- On the value, not the presence: CI=false must not activate it. -->
+          <value>true</value>
         </property>
       </activation>
       <build>

@@ -90,3 +90,38 @@ the decision record.
 `docs/decisions/01-project-skeleton.md` — chose / rejected / observed / where
 it breaks at 100x, carrying the measured checksums, the arbitration output and
 the enforcer messages from sections 6–8.
+
+---
+
+## [x] 9 · Review fixes and the missing evidence
+
+Added after a review of the stage found seven defects, and after noticing that
+sections 1–5 demonstrated their gates without committing the output.
+
+Fixes:
+
+- Pin `maven-compiler-plugin` (and whatever else is unpinned), and add
+  `requirePluginVersions` so an unpinned plugin fails the build rather than
+  resolving RELEASE from central
+- `ci` activates on `env.CI` *value* `true`, not on the property existing,
+  so `CI=false` no longer turns it on
+- `local` stops relying on `activeByDefault`, which Maven switches off as soon
+  as another profile activates
+- `distributionSha256Sum` in the wrapper properties: the Maven distribution is
+  currently downloaded and executed unverified
+- `.gitignore`: two negations that cannot work, because the directory above
+  them is excluded
+- `requireMavenVersion` gets an upper bound, since Maven 4 changes default
+  lifecycle plugin versions and would invalidate the recorded checksums
+
+Evidence, re-run rather than copied out of a chat log:
+
+- `01-build-structure.txt` — the six jars, and slf4j resolving through the BOM
+- `01-compiler-gate.txt` — a record pattern compiling, `-Werror` failing
+- `01-format-gate.txt` — Spotless failing then passing
+- the JDK gate rejecting a newer JDK, appended to the convergence evidence
+- `01-reproducible-build.txt` — re-measured after the plugin versions change
+
+**Acceptance** — `./mvnw -Pci clean verify` green; `CI=false` no longer
+activates `ci`; removing a plugin version fails the build; every evidence file
+carries output from a command run after these fixes.

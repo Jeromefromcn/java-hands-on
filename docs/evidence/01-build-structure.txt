@@ -1,0 +1,45 @@
+# Module structure and BOM-governed versions
+#
+# Machine: Linux aarch64
+# Maven:   Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+# JDK:     openjdk version "21.0.12" 2026-07-21 LTS
+# Run at:  2026-09-20T14:38:57+08:00
+
+=== ./mvnw clean package: six jars ===
+
+adapter-persistence/target/adapter-persistence-0.1.0-SNAPSHOT.jar
+adapter-web/target/adapter-web-0.1.0-SNAPSHOT.jar
+application/target/application-0.1.0-SNAPSHOT.jar
+batch/target/batch-0.1.0-SNAPSHOT.jar
+bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar
+domain/target/domain-0.1.0-SNAPSHOT.jar
+
+=== Dependency direction, from ./mvnw clean package dependency:tree ===
+
+# bootstrap sees everything, transitively down to domain
+[INFO] com.jerome.slledger:bootstrap:jar:0.1.0-SNAPSHOT
+[INFO] +- com.jerome.slledger:adapter-persistence:jar:0.1.0-SNAPSHOT:compile
+[INFO] |  \- com.jerome.slledger:application:jar:0.1.0-SNAPSHOT:compile
+[INFO] |     \- com.jerome.slledger:domain:jar:0.1.0-SNAPSHOT:compile
+[INFO] +- com.jerome.slledger:adapter-web:jar:0.1.0-SNAPSHOT:compile
+[INFO] |  \- org.slf4j:slf4j-api:jar:2.0.18:compile
+[INFO] \- com.jerome.slledger:batch:jar:0.1.0-SNAPSHOT:compile
+
+# domain depends on nothing at all
+[INFO] com.jerome.slledger:domain:jar:0.1.0-SNAPSHOT
+
+# application sees domain only
+[INFO] com.jerome.slledger:application:jar:0.1.0-SNAPSHOT
+[INFO] \- com.jerome.slledger:domain:jar:0.1.0-SNAPSHOT:compile
+
+=== A dependency declared without a <version> ===
+
+# adapter-web/pom.xml names org.slf4j:slf4j-api with groupId and artifactId
+# only. The 2.0.18 below comes from the imported Spring Boot BOM.
+[INFO] com.jerome.slledger:adapter-web:jar:0.1.0-SNAPSHOT
+[INFO] +- com.jerome.slledger:application:jar:0.1.0-SNAPSHOT:compile
+[INFO] |  \- com.jerome.slledger:domain:jar:0.1.0-SNAPSHOT:compile
+[INFO] \- org.slf4j:slf4j-api:jar:2.0.18:compile
+
+$ grep -rn '2.0.18' --include=pom.xml .
+(no match: that version is written down nowhere in this repository)

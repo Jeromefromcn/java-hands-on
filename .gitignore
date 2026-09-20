@@ -5,11 +5,6 @@ target/
 pom.xml.versionsBackup
 dependency-reduced-pom.xml
 
-# --- Gradle (stage 1 comparison exercise only) ---
-.gradle/
-build/
-!src/**/build/
-
 # --- JVM crash / dump artefacts ---
 # Heap dumps are large binaries. Reference them from the decision record;
 # the text output (jstack, GC logs, JMH) IS a deliverable and is committed.
@@ -34,7 +29,7 @@ logs/
 *.iml
 *.ipr
 *.iws
-.vscode/
+.vscode/*
 !.vscode/settings.json
 .classpath
 .project
