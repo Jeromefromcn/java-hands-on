@@ -197,4 +197,60 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <!-- The default. It carries nothing yet on purpose: a profile that
+           exists to look symmetrical is a place for differences to hide.
+           It is here so that `local` is a name the build knows, and so
+           local-only conveniences have somewhere to land later. -->
+      <id>local</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+
+    <profile>
+      <!-- Activated by the CI environment itself, not by remembering -Pci.
+           Explicit -Pci still works and is what the acceptance check uses. -->
+      <id>ci</id>
+      <activation>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-ci-rules</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <!-- A <repositories> block in a POM means artifacts can
+                         arrive from somewhere the organisation's mirror never
+                         saw. Tolerable on a laptop, not in a build whose
+                         inputs have to be auditable. -->
+                    <requireNoRepositories>
+                      <message>
+                        Declare no repositories in a POM. CI resolves through
+                        the configured mirror so that every input is
+                        accounted for.
+                      </message>
+                    </requireNoRepositories>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

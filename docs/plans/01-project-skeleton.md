@@ -73,7 +73,7 @@ dependencies, ban everything else. This is the gate the spec exists for.
 with the enforcer's message; the demonstration lives in `labs/`, and the
 message text goes to `docs/evidence/`.
 
-## [ ] 8 · Profiles and reproducible build
+## [x] 8 · Profiles and reproducible build
 
 `local` and `ci` profiles. Verify `project.build.outputTimestamp` actually
 produces byte-identical jars.
