@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DELIBERATELY BROKEN. Not a module of the main build, not listed in the
+  aggregator's <modules>, and not on any path `./mvnw verify` walks.
+
+  It exists to show what the dependencyConvergence rule catches: guice pulls
+  one version of guava transitively, this POM declares another directly.
+
+  Run it:
+    ./mvnw -f labs/01-project-skeleton/convergence/pom.xml validate
+    ./mvnw -f labs/01-project-skeleton/convergence/pom.xml dependency:tree -Dverbose
+
+  Observed output: docs/evidence/01-dependency-convergence.txt
+  Decision record:  docs/decisions/01-project-skeleton.md
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.jerome.slledger.labs</groupId>
+  <artifactId>convergence-lab</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>21</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <!-- Pulls guava transitively at its own version. -->
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>5.1.0</version>
+    </dependency>
+
+    <!-- And here is a second version of the same artifact, declared directly. -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>33.0.0-jre</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.6.3</version>
+        <executions>
+          <execution>
+            <id>enforce-build-rules</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <dependencyConvergence />
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

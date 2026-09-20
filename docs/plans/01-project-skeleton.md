@@ -53,7 +53,7 @@ an explicit `spotless:check`.
 **Acceptance** — misformat a file, `./mvnw spotless:check` fails naming it;
 `./mvnw spotless:apply` then makes it pass. The violation is not committed.
 
-## [ ] 6 · Enforcer: versions, SNAPSHOTs, convergence
+## [x] 6 · Enforcer: versions, SNAPSHOTs, convergence
 
 `maven-enforcer-plugin` with `requireJavaVersion`, `requireMavenVersion`,
 `requireReleaseDeps`, `dependencyConvergence`.
