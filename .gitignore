@@ -1,0 +1,46 @@
+# --- Maven ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+pom.xml.versionsBackup
+dependency-reduced-pom.xml
+
+# --- Gradle (stage 1 comparison exercise only) ---
+.gradle/
+build/
+!src/**/build/
+
+# --- JVM crash / dump artefacts ---
+# Heap dumps are large binaries. Reference them from the decision record;
+# the text output (jstack, GC logs, JMH) IS a deliverable and is committed.
+*.hprof
+*.hprof.gz
+hs_err_pid*.log
+replay_pid*.log
+core.*
+*.jfr
+
+# --- Local ---
+*.log
+!docs/evidence/**
+logs/
+/tmp/
+.env
+.env.*
+!.env.example
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/settings.json
+.classpath
+.project
+.settings/
+bin/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
