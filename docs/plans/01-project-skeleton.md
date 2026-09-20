@@ -27,7 +27,7 @@ direction from the spec's table. No code.
 **Acceptance** — `./mvnw clean package` is green and produces six jars under
 `*/target/`.
 
-## [ ] 3 · Spring Boot BOM imported
+## [x] 3 · Spring Boot BOM imported
 
 `spring-boot-dependencies` in the parent's `dependencyManagement` with
 `<scope>import</scope>` and `<type>pom</type>`. The parent does **not** inherit

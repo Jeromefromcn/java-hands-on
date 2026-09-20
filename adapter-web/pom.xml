@@ -20,6 +20,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>application</artifactId>
     </dependency>
+
+    <!-- No <version>: proves the imported BOM governs third-party versions. -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
   </dependencies>
 
 </project>
