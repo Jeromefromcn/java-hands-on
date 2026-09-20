@@ -38,6 +38,9 @@
          so importing is the only shape that survives contact with reality. -->
     <spring-boot.version>4.1.1</spring-boot.version>
 
+    <spotless.version>3.10.2</spotless.version>
+    <google-java-format.version>1.36.1</google-java-format.version>
+
     <!-- Fixed timestamp for reproducible builds: two clean packages must
          produce byte-identical jars. Verified in section 8. -->
     <project.build.outputTimestamp>2026-09-20T00:00:00Z</project.build.outputTimestamp>
@@ -103,6 +106,33 @@
             </compilerArgs>
           </configuration>
         </plugin>
+
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>${spotless.version}</version>
+          <configuration>
+            <java>
+              <googleJavaFormat>
+                <version>${google-java-format.version}</version>
+              </googleJavaFormat>
+              <removeUnusedImports />
+              <importOrder />
+            </java>
+          </configuration>
+          <executions>
+            <execution>
+              <!-- Bound to validate, not left as a goal someone remembers to
+                   run: a formatting rule that only fires on request is a
+                   suggestion. -->
+              <id>spotless-check</id>
+              <phase>validate</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -110,6 +140,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

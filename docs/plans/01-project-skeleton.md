@@ -45,7 +45,7 @@ practical. `.editorconfig`.
 **Acceptance** — `./mvnw clean compile` is green; a throwaway class using a
 record pattern compiles, and is removed before the commit.
 
-## [ ] 5 · Spotless with google-java-format
+## [x] 5 · Spotless with google-java-format
 
 Bound to `validate` so a misformatted file fails an ordinary build, not only
 an explicit `spotless:check`.
