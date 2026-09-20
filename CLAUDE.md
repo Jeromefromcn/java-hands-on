@@ -30,11 +30,13 @@ code cannot replace; writing it after the fact defeats the point.
 
 ## Working rhythm
 
-The plan's sections are the commits, in order. Implement one section, tick its
-checkbox in the same commit, then **stop** and wait — each commit is reviewed
-as a diff before the next one starts. A section is sized to be read in one
-sitting: one rule, one boundary, or one type plus its tests, with an acceptance
-check that names a command and what it prints.
+The plan's sections are the commits, in order. A section is one sitting's
+reading: one rule, one boundary, or one type plus its tests.
+
+Implement a section, tick its checkbox, then **stop** — leave it uncommitted
+and review it as a working-tree diff. Commit it at the *start* of the next
+section, naming each path explicitly; never `git add -A`, because the working
+tree may hold changes that are not yours.
 
 ## Deliberate breakage
 
@@ -75,8 +77,9 @@ started.
 ## Git
 
 - English only in anything committed — messages, comments, docs under `docs/`.
-- One logical change per commit. Spec, implementation and decision record are
-  three commits, in that order.
+- One logical change per commit. Spec, plan, implementation and decision
+  record are separate commits, in that order; the implementation is one
+  commit per plan section.
 - Commit message: `<stage-nn>: <what changed>`, e.g. `stage-05: reproduce
   self-invocation transaction failure`.
 - Commit the text evidence: jstack output, GC logs, JMH results, `EXPLAIN`
