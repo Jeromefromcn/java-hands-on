@@ -13,6 +13,11 @@ each a runnable increment. Read the stage before touching its code.
 - No secrets, ever — env vars only, and verify they stay out of
   `/actuator/env` and logs.
 
+## Language
+
+Reply in Traditional Chinese, Mandarin written style, keeping technical terms
+in English. Anything committed stays English.
+
 ## Definition of done
 
 A stage is done when all four exist:
