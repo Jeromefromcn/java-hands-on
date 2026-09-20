@@ -16,6 +16,15 @@
     Spring and the JVM. Aggregator and single source of dependency versions.
   </description>
 
+  <modules>
+    <module>domain</module>
+    <module>application</module>
+    <module>adapter-persistence</module>
+    <module>adapter-web</module>
+    <module>batch</module>
+    <module>bootstrap</module>
+  </modules>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -28,5 +37,42 @@
          produce byte-identical jars. Verified in section 8. -->
     <project.build.outputTimestamp>2026-09-20T00:00:00Z</project.build.outputTimestamp>
   </properties>
+
+  <!-- The single source of every version, internal and third-party alike.
+       Child POMs declare dependencies without a <version>. -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>domain</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>application</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>adapter-persistence</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>adapter-web</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>batch</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>bootstrap</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
 </project>

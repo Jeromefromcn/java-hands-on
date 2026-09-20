@@ -18,7 +18,7 @@ Java 21 properties, `project.build.outputTimestamp`. Maven Wrapper checked in
 **Acceptance** — `./mvnw -v` prints the pinned Maven version and Java 21;
 `./mvnw validate` is green.
 
-## [ ] 2 · Six empty modules
+## [x] 2 · Six empty modules
 
 `domain`, `application`, `adapter-persistence`, `adapter-web`, `batch`,
 `bootstrap` listed in `<modules>`, each with a minimal POM and the dependency
