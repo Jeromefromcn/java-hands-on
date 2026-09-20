@@ -1,0 +1,5 @@
+# Pins the JDK for this repository. Run `sdk env install` once, then
+# `sdk env` (or enable sdkman_auto_env) to select it.
+# Java 21 LTS: the machine default may be newer, and stage 8 needs a clean
+# 21 baseline to compare a newer JVM against.
+java=21.0.12-tem

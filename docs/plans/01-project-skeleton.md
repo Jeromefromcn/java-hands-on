@@ -37,7 +37,7 @@ direction from the spec's table. No code.
 **Acceptance** — `./mvnw dependency:tree -pl adapter-web` shows that
 dependency resolved to the BOM's version.
 
-## [ ] 4 · Compiler settings and editor config
+## [x] 4 · Compiler settings and editor config
 
 `maven-compiler-plugin` on release 21, `-Xlint:all`, warnings as errors where
 practical. `.editorconfig`.
