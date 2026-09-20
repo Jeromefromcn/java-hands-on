@@ -8,7 +8,7 @@ what it must print.
 
 ---
 
-## [ ] 1 · Maven Wrapper and parent POM
+## [x] 1 · Maven Wrapper and parent POM
 
 Aggregator POM only, no modules yet: `groupId`, `artifactId`, `pom` packaging,
 Java 21 properties, `project.build.outputTimestamp`. Maven Wrapper checked in

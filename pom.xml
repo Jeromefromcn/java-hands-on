@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.jerome.slledger</groupId>
+  <artifactId>sl-ledger-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>Securities Lending Ledger</name>
+  <description>
+    A securities-lending ledger, built one stage at a time to exercise Java,
+    Spring and the JVM. Aggregator and single source of dependency versions.
+  </description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Java 21 LTS. Virtual threads and pattern matching are stable here;
+         Java 25 features are exercised separately in stage 8. -->
+    <maven.compiler.release>21</maven.compiler.release>
+
+    <!-- Fixed timestamp for reproducible builds: two clean packages must
+         produce byte-identical jars. Verified in section 8. -->
+    <project.build.outputTimestamp>2026-09-20T00:00:00Z</project.build.outputTimestamp>
+  </properties>
+
+</project>
