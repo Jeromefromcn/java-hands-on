@@ -64,7 +64,7 @@ introducing two versions of one library; building it fails with a
 nearest-wins arbitration. Both outputs go to `docs/evidence/`. `main` stays
 green.
 
-## [ ] 7 · Enforcer: the `domain` boundary
+## [x] 7 · Enforcer: the `domain` boundary
 
 `bannedDependencies` on `domain` — allow only the JDK and test-scoped
 dependencies, ban everything else. This is the gate the spec exists for.

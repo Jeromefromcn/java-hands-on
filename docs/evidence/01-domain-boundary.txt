@@ -1,0 +1,67 @@
+# The domain module boundary, as an enforcer rule
+#
+# Machine: Linux aarch64
+# Maven:   Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+# JDK:     openjdk version "21.0.12" 2026-07-21 LTS
+#
+# Both runs below add com.google.guava:guava:33.0.0-jre to domain/pom.xml.
+# Neither version of that POM is committed: the rule is the deliverable,
+# the violation is evidence. See docs/decisions/01-project-skeleton.md.
+
+=== compile scope (the default) -> build fails ===
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.jerome.slledger:domain >---------------------
+[INFO] Building Domain 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-build-rules) @ domain ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.dependency.RequireReleaseDeps passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 4: org.apache.maven.enforcer.rules.BanDuplicatePomDependencyVersions passed
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-domain-has-no-third-party-dependencies) @ domain ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.751 s
+[INFO] Finished at: 2026-09-20T14:05:13+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-enforcer-plugin:3.6.3:enforce (enforce-domain-has-no-third-party-dependencies) on project domain: 
+[ERROR] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies failed with message:
+[ERROR] domain takes no third-party dependency outside test scope.
+[ERROR]                     If a domain type needs one, the need belongs in
+[ERROR]                     application or an adapter instead.
+[ERROR] com.jerome.slledger:domain:jar:0.1.0-SNAPSHOT
+[ERROR]    com.google.guava:guava:jar:33.0.0-jre <--- banned via the exclude/include list
+[ERROR]       com.google.guava:failureaccess:jar:1.0.2 <--- banned via the exclude/include list
+[ERROR]       com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava <--- banned via the exclude/include list
+[ERROR]       com.google.code.findbugs:jsr305:jar:3.0.2 <--- banned via the exclude/include list
+[ERROR]       org.checkerframework:checker-qual:jar:3.41.0 <--- banned via the exclude/include list
+[ERROR]       com.google.errorprone:error_prone_annotations:jar:2.23.0 <--- banned via the exclude/include list
+[ERROR]       com.google.j2objc:j2objc-annotations:jar:2.8 <--- banned via the exclude/include list
+[ERROR] 
+[ERROR] 
+[ERROR] 
+
+=== test scope -> build passes ===
+
+[INFO] ---------------------< com.jerome.slledger:domain >---------------------
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] --- enforcer:3.6.3:enforce (enforce-build-rules) @ domain ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.dependency.RequireReleaseDeps passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed
+[INFO] Rule 4: org.apache.maven.enforcer.rules.BanDuplicatePomDependencyVersions passed
+[INFO] --- enforcer:3.6.3:enforce (enforce-domain-has-no-third-party-dependencies) @ domain ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies passed
+[INFO] --- spotless:3.10.2:check (spotless-check) @ domain ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------

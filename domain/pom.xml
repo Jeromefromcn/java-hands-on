@@ -15,4 +15,47 @@
   <name>Domain</name>
   <description>Entities, value objects and domain services. No third-party dependencies, ever.</description>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- The rule this whole stage exists for. domain holds the money
+                 arithmetic and the invariants; a framework annotation on a
+                 domain type is how those invariants start depending on a
+                 release cycle that is not ours. Stated in prose it survives
+                 about three stages, so it is stated as a build failure. -->
+            <id>enforce-domain-has-no-third-party-dependencies</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>true</searchTransitive>
+                  <excludes>
+                    <exclude>*</exclude>
+                  </excludes>
+                  <includes>
+                    <!-- Test-scoped only: the tests may use a framework,
+                         the production code may not. -->
+                    <include>*:*:*:*:test</include>
+                  </includes>
+                  <message>
+                    domain takes no third-party dependency outside test scope.
+                    If a domain type needs one, the need belongs in
+                    application or an adapter instead.
+                  </message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>
