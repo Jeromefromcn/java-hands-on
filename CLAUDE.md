@@ -15,15 +15,26 @@ each a runnable increment. Read the stage before touching its code.
 
 ## Definition of done
 
-A stage is done when all three exist:
+A stage is done when all four exist:
 
-1. `docs/specs/<nn>-<slug>.md` — committed **before** the code
-2. working code, TDD, tests green
-3. `docs/decisions/<nn>-<slug>.md` — chose / rejected / observed / where it
+1. `docs/specs/<nn>-<slug>.md` — what it solves, boundaries, acceptance.
+   Committed **before** the plan
+2. `docs/plans/<nn>-<slug>.md` — one section per commit, each with its own
+   acceptance check and a checkbox. Committed **before** the code
+3. working code, TDD, tests green
+4. `docs/decisions/<nn>-<slug>.md` — chose / rejected / observed / where it
    breaks at 100x
 
 **Code alone is not done.** The decision record is the deliverable that the
 code cannot replace; writing it after the fact defeats the point.
+
+## Working rhythm
+
+The plan's sections are the commits, in order. Implement one section, tick its
+checkbox in the same commit, then **stop** and wait — each commit is reviewed
+as a diff before the next one starts. A section is sized to be read in one
+sitting: one rule, one boundary, or one type plus its tests, with an acceptance
+check that names a command and what it prints.
 
 ## Deliberate breakage
 
