@@ -26,7 +26,7 @@ the implementation makes them look obvious.
 
 ---
 
-## [ ] 1 · Test dependencies and `Money`
+## [x] 1 · Test dependencies and `Money`
 
 `domain/pom.xml` gains exactly two dependencies, both `test` scope, both
 without a `<version>` so the BOM governs them:
@@ -34,8 +34,10 @@ without a `<version>` so the BOM governs them:
 `spring-boot-starter-test`: it drags Spring onto the test classpath of the one
 module whose entire premise is that Spring is not there.
 
-Add `maven-surefire-plugin` to the parent's `<build><plugins>` so tests
-actually run.
+No `maven-surefire-plugin` entry is needed in `<build><plugins>`: the default
+lifecycle for `jar` packaging already binds `surefire:test`, and stage 1's
+`pluginManagement` already pins its version, which is what
+`requirePluginVersions` checks.
 
 Then `money/Money.java`:
 

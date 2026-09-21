@@ -15,6 +15,26 @@
   <name>Domain</name>
   <description>Entities, value objects and domain services. No third-party dependencies, ever.</description>
 
+  <dependencies>
+    <!-- Test scope only. The enforcer rule below permits exactly this and
+         nothing else: the tests may use a framework, the production code
+         may not. Versions come from the imported Spring Boot BOM.
+
+         Deliberately not spring-boot-starter-test: it puts Spring on the
+         test classpath of the one module whose premise is that Spring is
+         not there. -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <plugin>
