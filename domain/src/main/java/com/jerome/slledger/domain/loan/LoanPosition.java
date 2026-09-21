@@ -4,9 +4,14 @@ import com.jerome.slledger.domain.accrual.AccrualRule;
 import com.jerome.slledger.domain.error.ExcessiveReturnException;
 import com.jerome.slledger.domain.error.IllegalTransitionException;
 import com.jerome.slledger.domain.instrument.Isin;
+import com.jerome.slledger.domain.margin.MarginCall;
 import com.jerome.slledger.domain.money.Money;
 import com.jerome.slledger.domain.party.CounterpartyId;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A counterparty's outstanding borrowing of one security: the aggregate this ledger is built
@@ -113,6 +118,38 @@ public final class LoanPosition {
 
     outstandingQuantity -= quantity;
     status = outstandingQuantity == 0 ? LoanStatus.CLOSED : LoanStatus.PARTIALLY_RETURNED;
+  }
+
+  /**
+   * Marks the position to market and asks whether the collateral still covers it.
+   *
+   * <p>Market value is the unit price times the <strong>outstanding</strong> quantity, not the
+   * original: collateral posted for ten thousand shares does not have to cover ten thousand once
+   * six thousand have come back.
+   *
+   * <p>Returns an {@code Optional} because "no call" is a real and common answer, not a failure.
+   * This is the one place in the domain where {@code Optional} is used, and it is a return type,
+   * which is the rule the serialization reproduction later in this stage shows the cost of
+   * breaking.
+   *
+   * <p>A price in a currency other than the collateral's is refused by {@link Money#minus} rather
+   * than converted. There is no FX in this domain, and a margin call is not the place to invent a
+   * rate nobody recorded.
+   */
+  public Optional<MarginCall> revalue(Money unitMarketPrice, LocalDate on) {
+    Objects.requireNonNull(unitMarketPrice, "unitMarketPrice");
+    Objects.requireNonNull(on, "on");
+
+    // Multiplying an amount already at currency scale by a whole number is exact, so the
+    // RoundingMode cannot change the result here. It is still named, because Money.multiply
+    // refuses to pick one and that refusal is the point.
+    Money marketValue =
+        unitMarketPrice.multiply(BigDecimal.valueOf(outstandingQuantity), RoundingMode.HALF_UP);
+    Money shortfall = marketValue.minus(collateral);
+
+    return shortfall.isNegative() || shortfall.equals(Money.zero(shortfall.currency()))
+        ? Optional.empty()
+        : Optional.of(new MarginCall(id, on, shortfall));
   }
 
   public LoanPositionId id() {

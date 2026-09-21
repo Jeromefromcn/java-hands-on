@@ -333,7 +333,7 @@ closes; returning one more than outstanding throws; returning against a
 **Acceptance** — `./mvnw -pl domain verify` green; every arrow and every
 refused arrow has its own named test.
 
-## [ ] 10 · Revaluation and `MarginCall`
+## [x] 10 · Revaluation and `MarginCall`
 
 `margin/MarginCall.java` — `record MarginCall(LoanPositionId position,
 LocalDate calledOn, Money shortfall)`, rejecting a non-positive shortfall: a
