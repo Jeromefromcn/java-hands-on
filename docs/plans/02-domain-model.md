@@ -245,7 +245,7 @@ boundary is the test that matters.
 **Acceptance** — `./mvnw -pl domain verify` green; the at-the-ceiling and
 one-cent-over cases are separate named tests.
 
-## [ ] 7 · `java.time`: the calendar and T+2
+## [x] 7 · `java.time`: the calendar and T+2
 
 `calendar/HolidayCalendar.java` — `boolean isBusinessDay(LocalDate)`, default
 method excluding Saturday and Sunday and delegating a `boolean
