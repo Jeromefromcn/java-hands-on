@@ -219,7 +219,7 @@ the test, not by hand.
 and the evidence file holds the two figures with the inputs that produced
 them (value, rate, day count) so they can be recomputed.
 
-## [ ] 6 · `Security`, `Counterparty`, `CreditLimit`
+## [x] 6 · `Security`, `Counterparty`, `CreditLimit`
 
 `instrument/Security.java` — `record Security(Isin isin, String name, Currency
 currency, Money marketPrice)`. The price is a `Money`, and its currency must
