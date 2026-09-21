@@ -88,6 +88,21 @@ class SettlementDatesTest {
   }
 
   @Test
+  void aCalendarWithNoBusinessDaysAtAllIsRefusedRatherThanLoopedOn() {
+    // HolidayCalendar is an extension point: stage 6 replaces HongKongHolidays with something
+    // loaded from a real source, and a misconfigured one that closes every day would otherwise
+    // spin here forever holding whatever thread called it.
+    // The trade date itself has to be open, or the refusal would be the ordinary
+    // NotABusinessDayException and this test would pass without exercising the loop at all.
+    LocalDate tradeDate = LocalDate.of(2026, 3, 2);
+    HolidayCalendar closedFromTomorrow = date -> date.isAfter(tradeDate);
+
+    assertThatExceptionOfType(IllegalStateException.class)
+        .isThrownBy(() -> SettlementDates.settlementDate(tradeDate, closedFromTomorrow))
+        .withMessageContaining("business day");
+  }
+
+  @Test
   void theHolidaySetCoversExactlyTheSeventeenGeneralHolidaysOfTwentyTwentySix() {
     assertThat(new HongKongHolidays().dates()).hasSize(17);
   }

@@ -3,7 +3,9 @@ Stage 02 — "the K positions maturing soonest", three structures
 
 Machine: linux aarch64, Temurin 21.0.12.
 Harness: labs/02-domain-model/NearestMaturities.java, self-contained, not part
-of the Maven build. Run with `java NearestMaturities.java`.
+of the Maven build.
+
+  java labs/02-domain-model/NearestMaturities.java [warmup] [queries]
 
 N = 1,000,000 positions, maturities spread over ten years from a fixed seed.
 K = 20. The harness asserts the three structures return the same maturities
@@ -14,42 +16,64 @@ Wall clock on a warm JVM. No JMH. THE RANKING IS THE CLAIM; the absolute
 numbers are indicative. JMH arrives in stage 16.
 
 
-Run A — 5 warmup rounds, 1,000 queries
---------------------------------------
-
-structure                        build (ms)   queries (ms)   per query (ms)
-TreeMap<LocalDate, List<>>           227.92           0.40          0.0004
-PriorityQueue (bounded K)              0.00       24100.17         24.1000
-sorted ArrayList                    1096.77           0.17          0.0002
+Run A
+-----
+$ java labs/02-domain-model/NearestMaturities.java 3 500
 
 
-Run B — 1 warmup round, 200 queries
------------------------------------
+structure                        build (ms)   queries (ms)
+----------------------------------------------------------
+TreeMap<LocalDate, List<>>           277.39           0.32
+PriorityQueue (bounded K)              0.00       11268.30
+sorted ArrayList                     633.84           0.11
 
-structure                        build (ms)   queries (ms)   per query (ms)
-TreeMap<LocalDate, List<>>           605.73           3.12          0.0156
-PriorityQueue (bounded K)              0.00        3752.60         18.7630
-sorted ArrayList                     619.95           0.32          0.0016
+Crossover: the heap keeps nothing, so it wins until the build cost is amortised.
+  TreeMap build 277.39 ms / heap 22.537 ms per query  -> 12.3 queries
+  sorted  build 633.84 ms / heap 22.537 ms per query  -> 28.1 queries
 
+N = 1,000,000 positions   K = 20   500 queries   JVM 21.0.12   Linux aarch64
+
+Run B
+-----
+$ java labs/02-domain-model/NearestMaturities.java 1 200
+
+
+structure                        build (ms)   queries (ms)
+----------------------------------------------------------
+TreeMap<LocalDate, List<>>           268.34           2.37
+PriorityQueue (bounded K)              0.00        3371.96
+sorted ArrayList                     646.94           0.35
+
+Crossover: the heap keeps nothing, so it wins until the build cost is amortised.
+  TreeMap build 268.34 ms / heap 16.860 ms per query  -> 15.9 queries
+  sorted  build 646.94 ms / heap 16.860 ms per query  -> 38.4 queries
+
+N = 1,000,000 positions   K = 20   200 queries   JVM 21.0.12   Linux aarch64
 
 On the difference between the two runs
 --------------------------------------
 
-The build figures move by a factor of two to five between A and B, and they
-move in opposite directions: TreeMap's build got slower with less warmup
-(228 -> 606) while the sorted list's got faster (1097 -> 620). Query costs
-differ by an order of magnitude.
+Build costs are stable between these two (TreeMap 277 / 268 ms, sorted list
+634 / 647 ms). Query costs are not: the TreeMap query total moves by a factor
+of seven per query and the heap by a third, purely on how much warmup the JVM
+was given.
 
-That instability is the finding, not noise to be smoothed away. Wall-clock
+That instability is a finding, not noise to be smoothed away. Wall-clock
 timing of a JIT-compiled workload with allocation in the loop measures the
 compilation state and the GC's mood as much as the algorithm. Both runs are
 printed here rather than one, so that nothing on this page can be quoted as a
 number when it is only a ranking.
 
+An earlier version of this file reported a third run and named a warmup and
+query count the committed harness could not produce, because the constants
+were edited after the run. That is why the counts are arguments now: a figure
+nobody can reproduce is not evidence. Both runs above were produced by the
+commands shown, against the harness as committed.
+
 What survives both runs, and is therefore the claim:
 
   - query:  sorted list < TreeMap  <<<  PriorityQueue   (4-5 orders apart)
-  - build:  PriorityQueue (free) < TreeMap <= sorted list
+  - build:  PriorityQueue (free) < TreeMap < sorted list
 
 
 Crossover
@@ -58,11 +82,12 @@ Crossover
 The heap keeps no structure between queries, so it wins until the others have
 amortised their build.
 
-  Run A:  TreeMap pays for itself after  9.5 queries;  sorted list after 45.5
-  Run B:  TreeMap pays for itself after 32.3 queries;  sorted list after 33.0
+  Run A:  TreeMap pays for itself after 12.3 queries;  sorted list after 28.1
+  Run B:  TreeMap pays for itself after 15.9 queries;  sorted list after 38.4
 
 So the answer to "which one" is not a property of the structures. It is a
-property of how many times the question gets asked between rebuilds.
+property of how many times the question gets asked between rebuilds, and the
+answer is somewhere between a dozen and forty.
 
 
 Where each one breaks
@@ -80,7 +105,7 @@ TreeMap<LocalDate, List<Position>>
 PriorityQueue, bounded at K
   Best when the question is asked ONCE per data set, or when the data set is
   too large to keep. One pass, O(N log K), nothing retained.
-  Breaks at: repetition. 24 ms per query here, and it is a full scan every
+  Breaks at: repetition. 17-23 ms per query here, and it is a full scan every
   time. Ask it in a loop, as a web endpoint would, and it is four orders of
   magnitude behind the alternatives.
 
@@ -96,8 +121,8 @@ At 100x
 -------
 
 N = 100,000,000 does not change the ranking, and changes which line is
-affordable at all: the heap's full scan goes from 24 ms to roughly 2.4 s per
-query, and the two build costs go from under a second to tens of seconds.
+affordable at all: the heap's full scan goes from about 20 ms to roughly 2 s
+per query, and the two build costs go from under a second to tens of seconds.
 At that size the question stops being "which structure" and becomes "why is
 this in application memory" -- which is what an index on a maturity column is
 for, and is stage 6.

@@ -21,23 +21,27 @@ public final class NearestMaturities {
 
   private static final int N = 1_000_000;
   private static final int K = 20;
-  private static final int QUERIES = 200;
-  private static final int WARMUP = 1;
+  private static final int DEFAULT_WARMUP = 1;
+  private static final int DEFAULT_QUERIES = 200;
   private static final LocalDate TODAY = LocalDate.of(2026, 3, 2);
 
   record Position(String id, LocalDate maturity) {}
 
+  /** Usage: {@code java NearestMaturities.java [warmup] [queries]}. */
   public static void main(String[] args) {
+    int warmup = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_WARMUP;
+    int queries = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_QUERIES;
     List<Position> positions = generate(N);
 
-    for (int i = 0; i < WARMUP; i++) {
-      measure(positions, false);
+    for (int i = 0; i < warmup; i++) {
+      measure(positions, queries, false);
     }
+    System.out.printf("warmup rounds = %d   queries per round = %d%n%n", warmup, queries);
     System.out.println(header());
-    measure(positions, true);
+    measure(positions, queries, true);
   }
 
-  private static void measure(List<Position> positions, boolean report) {
+  private static void measure(List<Position> positions, int queries, boolean report) {
     // --- 1. TreeMap keyed by maturity ---------------------------------------------------
     long t0 = System.nanoTime();
     NavigableMap<LocalDate, List<Position>> byMaturity = new TreeMap<>();
@@ -48,7 +52,7 @@ public final class NearestMaturities {
 
     t0 = System.nanoTime();
     List<Position> treeResult = List.of();
-    for (int q = 0; q < QUERIES; q++) {
+    for (int q = 0; q < queries; q++) {
       treeResult = nearestFromTreeMap(byMaturity, K);
     }
     long treeQuery = System.nanoTime() - t0;
@@ -59,7 +63,7 @@ public final class NearestMaturities {
 
     t0 = System.nanoTime();
     List<Position> heapResult = List.of();
-    for (int q = 0; q < QUERIES; q++) {
+    for (int q = 0; q < queries; q++) {
       heapResult = nearestFromHeap(positions, K);
     }
     long heapQuery = System.nanoTime() - t0;
@@ -72,7 +76,7 @@ public final class NearestMaturities {
 
     t0 = System.nanoTime();
     List<Position> listResult = List.of();
-    for (int q = 0; q < QUERIES; q++) {
+    for (int q = 0; q < queries; q++) {
       listResult = List.copyOf(sorted.subList(0, K));
     }
     long listQuery = System.nanoTime() - t0;
@@ -91,16 +95,16 @@ public final class NearestMaturities {
               + "  TreeMap build %.2f ms / heap %.3f ms per query  -> %.1f queries%n"
               + "  sorted  build %.2f ms / heap %.3f ms per query  -> %.1f queries%n%n",
           treeBuild / 1e6,
-          heapQuery / 1e6 / QUERIES,
-          treeBuild / (double) (heapQuery / QUERIES),
+          heapQuery / 1e6 / queries,
+          treeBuild / (double) (heapQuery / queries),
           listBuild / 1e6,
-          heapQuery / 1e6 / QUERIES,
-          listBuild / (double) (heapQuery / QUERIES));
+          heapQuery / 1e6 / queries,
+          listBuild / (double) (heapQuery / queries));
       System.out.printf(
           "N = %,d positions   K = %d   %,d queries   JVM %s   %s %s%n",
           N,
           K,
-          QUERIES,
+          queries,
           System.getProperty("java.version"),
           System.getProperty("os.name"),
           System.getProperty("os.arch"));

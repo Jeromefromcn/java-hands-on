@@ -23,6 +23,16 @@ public final class SettlementDates {
    */
   private static final int SETTLEMENT_LAG_IN_BUSINESS_DAYS = 2;
 
+  /**
+   * How far the search will walk before giving up.
+   *
+   * <p>{@link HolidayCalendar} is an extension point — stage 6 replaces the hand-entered set with
+   * something loaded from a real source — and a calendar that reports no business day at all would
+   * otherwise spin here forever, holding whichever thread asked. A year of closures is not a market
+   * this ledger can settle in.
+   */
+  private static final int GIVE_UP_AFTER_CALENDAR_DAYS = 365;
+
   private SettlementDates() {}
 
   /**
@@ -38,7 +48,16 @@ public final class SettlementDates {
     }
 
     LocalDate date = tradeDate;
-    for (int counted = 0; counted < SETTLEMENT_LAG_IN_BUSINESS_DAYS; ) {
+    int counted = 0;
+    for (int walked = 0; counted < SETTLEMENT_LAG_IN_BUSINESS_DAYS; walked++) {
+      if (walked >= GIVE_UP_AFTER_CALENDAR_DAYS) {
+        // Not a DomainException: nothing about the trade is wrong. The calendar is, and that is
+        // a configuration fault, not a business outcome a caller could have anticipated.
+        throw new IllegalStateException(
+            "No %d business day(s) found within %d days of %s: the calendar reports no business day"
+                .formatted(
+                    SETTLEMENT_LAG_IN_BUSINESS_DAYS, GIVE_UP_AFTER_CALENDAR_DAYS, tradeDate));
+      }
       date = date.plusDays(1);
       if (calendar.isBusinessDay(date)) {
         counted++;

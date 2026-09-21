@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import com.jerome.slledger.domain.money.Rate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeMap;
 import org.junit.jupiter.api.Test;
 
@@ -87,6 +89,31 @@ class AccrualRuleTest {
 
     assertThat(rule.dailyFee(ONE_MILLION, ANY_DAY)).isEqualByComparingTo(new BigDecimal("200"));
     assertThat(rule.dailyFee(ONE_MILLION, secondDay)).isEqualByComparingTo(new BigDecimal("100"));
+  }
+
+  @Test
+  void twoRateCardsThatDifferOnlyInTrailingZeroesAreTheSameRule() {
+    // TreeMap compares BigDecimal keys with compareTo, so 1000000 and 1000000.00 are the same
+    // key and the two maps are equal. BigDecimal.hashCode is scale-sensitive, so without
+    // canonicalising the keys the record's generated hashCode disagrees with its own equals,
+    // and a rule put in a HashSet cannot be found again. The same contract this stage
+    // reproduces breaking in IdentityContractTest.
+    TreeMap<BigDecimal, Rate> plain = new TreeMap<>();
+    plain.put(BigDecimal.ZERO, Rate.of("0.0365"));
+    plain.put(new BigDecimal("1000000"), Rate.of("0.0730"));
+
+    TreeMap<BigDecimal, Rate> withTrailingZeroes = new TreeMap<>();
+    withTrailingZeroes.put(new BigDecimal("0.00"), Rate.of("0.0365"));
+    withTrailingZeroes.put(new BigDecimal("1000000.00"), Rate.of("0.0730"));
+
+    MarginalTieredRate one = new MarginalTieredRate(plain);
+    MarginalTieredRate other = new MarginalTieredRate(withTrailingZeroes);
+
+    assertThat(one).isEqualTo(other);
+    assertThat(one.hashCode()).isEqualTo(other.hashCode());
+    assertThat(new HashSet<>(Set.of(one))).contains(other);
+    assertThat(one.dailyFee(new BigDecimal("2000000.00"), ANY_DAY))
+        .isEqualByComparingTo(other.dailyFee(new BigDecimal("2000000.00"), ANY_DAY));
   }
 
   private static MarginalTieredRate twoTierRule() {

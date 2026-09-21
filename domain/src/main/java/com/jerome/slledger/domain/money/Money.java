@@ -1,6 +1,7 @@
 package com.jerome.slledger.domain.money;
 
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
+import com.jerome.slledger.domain.error.UnsupportedCurrencyException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Currency;
@@ -30,7 +31,22 @@ public record Money(BigDecimal amount, Currency currency) {
   public Money {
     Objects.requireNonNull(amount, "amount");
     Objects.requireNonNull(currency, "currency");
-    amount = amount.setScale(currency.getDefaultFractionDigits(), BOOKING);
+    amount = amount.setScale(minorUnitDigitsOf(currency), BOOKING);
+  }
+
+  /**
+   * The currency's minor-unit digits, having refused the currencies that do not have any.
+   *
+   * <p>{@code getDefaultFractionDigits()} answers {@code -1} for the pseudo-currencies, and {@code
+   * setScale(-1, ...)} rounds to the nearest ten rather than failing. Every path into this record
+   * goes through the compact constructor, so checking here covers all of them.
+   */
+  private static int minorUnitDigitsOf(Currency currency) {
+    int digits = currency.getDefaultFractionDigits();
+    if (digits < 0) {
+      throw new UnsupportedCurrencyException(currency);
+    }
+    return digits;
   }
 
   public static Money of(BigDecimal amount, Currency currency) {
@@ -66,7 +82,7 @@ public record Money(BigDecimal amount, Currency currency) {
     Objects.requireNonNull(factor, "factor");
     Objects.requireNonNull(rounding, "rounding");
     return new Money(
-        amount.multiply(factor).setScale(currency.getDefaultFractionDigits(), rounding), currency);
+        amount.multiply(factor).setScale(minorUnitDigitsOf(currency), rounding), currency);
   }
 
   public boolean isNegative() {

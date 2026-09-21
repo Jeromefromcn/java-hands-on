@@ -33,9 +33,18 @@ public record MarginalTieredRate(NavigableMap<BigDecimal, Rate> tiers) implement
           "The lowest tier must start at zero, or values below %s would be unpriced"
               .formatted(tiers.firstKey().toPlainString()));
     }
-    // Defensive copy: a NavigableMap the caller still holds is a rate card someone can edit
-    // after the position was opened against it.
-    tiers = Collections.unmodifiableNavigableMap(new TreeMap<>(tiers));
+    // Two jobs in one line. The defensive copy, because a NavigableMap the caller still holds is
+    // a rate card someone can edit after a position was opened against it. And the key
+    // canonicalisation, because TreeMap compares BigDecimal keys with compareTo while
+    // BigDecimal.hashCode is scale-sensitive: without stripping, a card written with 1000000 and
+    // one written with 1000000.00 are equal maps with different hash codes, so this record's
+    // generated equals and hashCode would disagree and a rule put in a HashSet could not be found
+    // again. Exactly the contract IdentityContractTest reproduces breaking.
+    TreeMap<BigDecimal, Rate> canonical = new TreeMap<>();
+    for (Map.Entry<BigDecimal, Rate> tier : tiers.entrySet()) {
+      canonical.put(tier.getKey().stripTrailingZeros(), tier.getValue());
+    }
+    tiers = Collections.unmodifiableNavigableMap(canonical);
   }
 
   @Override
