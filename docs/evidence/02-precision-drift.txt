@@ -1,0 +1,93 @@
+Stage 02 — precision, measured
+==============================
+
+Machine: linux aarch64, Temurin 21.0.12, Maven 3.9.11 through the wrapper.
+Source: domain/src/test/java/com/jerome/slledger/domain/accrual/AccrualPrecisionTest.java
+Every figure below is asserted by that test. IEEE 754 is deterministic, so
+these are measurements, not estimates.
+
+Scenario throughout: one position, outstanding market value 1,000,000.00 HKD,
+flat rate 3.50% a year, ACT/365, accrued daily for 365 days.
+
+  daily fee, unrounded   95.89041095890411        (DECIMAL64)
+  daily fee, booked      95.89                    (HALF_UP, 2dp)
+
+
+1. The number the roadmap expected — and it is not there
+-------------------------------------------------------
+
+  BigDecimal, 365 booked entries summed   34,999.85
+  double,     365 booked entries summed   34999.8499999998530256561934947967529296875
+  difference                              -1.469743438065052032470703125E-10 HKD
+
+  Rounded to cents, the double total is also 34,999.85.
+
+A ledger that booked the double figure for this position would look correct.
+The 365-day single-position accumulation does NOT produce a visible error, and
+"double is wrong because error accumulates over a year" is not a claim this
+measurement supports.
+
+
+2. Where double does reach the cent: portfolio scale
+----------------------------------------------------
+
+100,000 positions, each carrying the year's fee of 34,999.85 above.
+
+  BigDecimal sum                          3,499,985,000.00
+  double     sum                          3499984999.993905544281005859375
+  difference                              -0.006094455718994140625 HKD
+  double sum rounded to cents             3,499,984,999.99
+
+One cent short on the portfolio total, and no single entry is wrong. Nothing
+in a reconciliation will find it, because reconciliation compares entries.
+
+
+3. Where double is wrong with no accumulation at all
+-----------------------------------------------------
+
+One value, one rounding operation, one cent wrong:
+
+  BigDecimal("1.005").setScale(2, HALF_UP)  ->  1.01
+  Math.round(1.005 * 100) / 100.0           ->  1.00
+
+  double cannot hold 1.005. It holds
+      1.00499999999999989341858963598497211933135986328125
+  so the value being rounded is already below the midpoint.
+
+The part that makes this undebuggable rather than merely wrong is that the
+neighbours disagree:
+
+  1.005 -> 1.00   (wrong)
+  1.015 -> 1.01   (wrong)
+  1.025 -> 1.02   (wrong)
+  2.005 -> 2.01   (right)
+  8.005 -> 8.01   (right)
+  1.045 -> 1.05   (right)
+
+Whether a given half-cent rounds correctly depends on which side of its
+decimal value the nearest double happens to fall. There is no rule a reviewer
+can apply by eye, and a test suite that happened to use 2.005 would pass.
+
+
+4. The cost of this domain's own rounding policy
+-------------------------------------------------
+
+Not a defect. The price of the decision recorded in the spec: an accrual entry
+is the smallest auditable unit, so it is rounded when booked and never
+recomputed.
+
+  exact year's fee, one multiplication    1,000,000.00 x 0.0350 = 35,000.00
+  sum of 365 booked entries                                       34,999.85
+  difference                                                           0.15 HKD
+
+0.15 HKD per position per year. Nine orders of magnitude larger than the
+double drift on the same position (item 1), and the only one of the four
+numbers on this page that was chosen on purpose.
+
+
+$ ./mvnw -pl domain clean verify -Dtest=AccrualPrecisionTest
+
+[INFO] Running com.jerome.slledger.domain.accrual.AccrualPrecisionTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.242 s -- in com.jerome.slledger.domain.accrual.AccrualPrecisionTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

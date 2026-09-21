@@ -197,7 +197,7 @@ date reaches the rule.
 these tests is hand-computed and shown in a comment, not copied from a first
 run of the implementation.
 
-## [ ] 5 · The `double` drift, measured
+## [x] 5 · The `double` drift, measured
 
 `reproducesDoubleDrift` in `AccrualPrecisionTest`, with a comment pointing at
 `docs/decisions/02-domain-model.md`.
