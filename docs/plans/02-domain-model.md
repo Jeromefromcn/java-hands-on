@@ -275,7 +275,7 @@ normalised — pick one, write down which in the decision record, and test it.
 asserts an explicit date literal, not an arithmetic expression that could
 repeat the implementation's own bug.
 
-## [ ] 8 · `LoanTrade`, its builder, and the idempotency key
+## [x] 8 · `LoanTrade`, its builder, and the idempotency key
 
 `loan/IdempotencyKey.java` — `record IdempotencyKey(String value)`, rejecting
 blank.
