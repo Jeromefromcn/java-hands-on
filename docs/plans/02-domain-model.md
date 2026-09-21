@@ -410,7 +410,7 @@ A second test shows the same class with a nullable field and an
 **Acceptance** — `./mvnw -pl domain verify` green; the exception message in
 `docs/evidence/02-optional-serialization.txt`.
 
-## [ ] 13 · `groupingBy` + `teeing`, against the loop
+## [x] 13 · `groupingBy` + `teeing`, against the loop
 
 `party/ExposureSummary.java` — `record ExposureSummary(long positionCount,
 Money totalCollateral)`.
