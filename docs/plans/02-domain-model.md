@@ -297,7 +297,7 @@ identical trade through both routes and asserts equality, and two tests show
 `build()` rejecting a settlement date before the trade date and a
 non-positive quantity.
 
-## [ ] 9 · `LoanPosition` and the state machine
+## [x] 9 · `LoanPosition` and the state machine
 
 `loan/LoanStatus.java` — enum `OPEN`, `PARTIALLY_RETURNED`, `CLOSED`.
 
