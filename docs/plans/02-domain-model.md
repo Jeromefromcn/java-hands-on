@@ -433,7 +433,7 @@ runs both over the same fixtures and asserts equal maps.
 **Acceptance** — `./mvnw -pl domain verify` green; one test asserts the two
 implementations agree, and a second asserts mixed currencies throw.
 
-## [ ] 14 · Data-structure selection, measured
+## [x] 14 · Data-structure selection, measured
 
 `labs/02-domain-model/` — self-contained, **not** a module of the main build
 and not listed in the parent's `<modules>`. A `main` that builds N positions

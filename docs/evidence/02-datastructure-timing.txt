@@ -1,0 +1,103 @@
+Stage 02 — "the K positions maturing soonest", three structures
+===============================================================
+
+Machine: linux aarch64, Temurin 21.0.12.
+Harness: labs/02-domain-model/NearestMaturities.java, self-contained, not part
+of the Maven build. Run with `java NearestMaturities.java`.
+
+N = 1,000,000 positions, maturities spread over ten years from a fixed seed.
+K = 20. The harness asserts the three structures return the same maturities
+before it reports anything; if they disagree it throws, because timings that
+compare different answers compare nothing.
+
+Wall clock on a warm JVM. No JMH. THE RANKING IS THE CLAIM; the absolute
+numbers are indicative. JMH arrives in stage 16.
+
+
+Run A — 5 warmup rounds, 1,000 queries
+--------------------------------------
+
+structure                        build (ms)   queries (ms)   per query (ms)
+TreeMap<LocalDate, List<>>           227.92           0.40          0.0004
+PriorityQueue (bounded K)              0.00       24100.17         24.1000
+sorted ArrayList                    1096.77           0.17          0.0002
+
+
+Run B — 1 warmup round, 200 queries
+-----------------------------------
+
+structure                        build (ms)   queries (ms)   per query (ms)
+TreeMap<LocalDate, List<>>           605.73           3.12          0.0156
+PriorityQueue (bounded K)              0.00        3752.60         18.7630
+sorted ArrayList                     619.95           0.32          0.0016
+
+
+On the difference between the two runs
+--------------------------------------
+
+The build figures move by a factor of two to five between A and B, and they
+move in opposite directions: TreeMap's build got slower with less warmup
+(228 -> 606) while the sorted list's got faster (1097 -> 620). Query costs
+differ by an order of magnitude.
+
+That instability is the finding, not noise to be smoothed away. Wall-clock
+timing of a JIT-compiled workload with allocation in the loop measures the
+compilation state and the GC's mood as much as the algorithm. Both runs are
+printed here rather than one, so that nothing on this page can be quoted as a
+number when it is only a ranking.
+
+What survives both runs, and is therefore the claim:
+
+  - query:  sorted list < TreeMap  <<<  PriorityQueue   (4-5 orders apart)
+  - build:  PriorityQueue (free) < TreeMap <= sorted list
+
+
+Crossover
+---------
+
+The heap keeps no structure between queries, so it wins until the others have
+amortised their build.
+
+  Run A:  TreeMap pays for itself after  9.5 queries;  sorted list after 45.5
+  Run B:  TreeMap pays for itself after 32.3 queries;  sorted list after 33.0
+
+So the answer to "which one" is not a property of the structures. It is a
+property of how many times the question gets asked between rebuilds.
+
+
+Where each one breaks
+---------------------
+
+TreeMap<LocalDate, List<Position>>
+  Best when the set CHANGES between queries. Insert and remove are O(log N)
+  each and the order is maintained, so a position opened at 10:03 is in the
+  right place at 10:04 with no rebuild. That is the real securities-lending
+  shape: positions open and close all day.
+  Breaks at: memory. A node per distinct date plus a list per node, and every
+  key is a boxed LocalDate. At 100x this is the first structure to matter to
+  the heap profile, which is stage 15's problem.
+
+PriorityQueue, bounded at K
+  Best when the question is asked ONCE per data set, or when the data set is
+  too large to keep. One pass, O(N log K), nothing retained.
+  Breaks at: repetition. 24 ms per query here, and it is a full scan every
+  time. Ask it in a loop, as a web endpoint would, and it is four orders of
+  magnitude behind the alternatives.
+
+sorted ArrayList + subList
+  Best when the set is STATIC and read constantly. Cheapest query of the three
+  and contiguous memory.
+  Breaks at: any mutation. One insertion is O(N) to shift, or a re-sort at
+  O(N log N). A ledger that opens positions during the day cannot use this
+  without rebuilding, and the rebuild is the most expensive build of the three.
+
+
+At 100x
+-------
+
+N = 100,000,000 does not change the ranking, and changes which line is
+affordable at all: the heap's full scan goes from 24 ms to roughly 2.4 s per
+query, and the two build costs go from under a second to tens of seconds.
+At that size the question stops being "which structure" and becomes "why is
+this in application memory" -- which is what an index on a maturity column is
+for, and is stage 6.
