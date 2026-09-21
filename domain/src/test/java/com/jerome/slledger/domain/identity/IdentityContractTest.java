@@ -121,7 +121,15 @@ class IdentityContractTest {
     }
   }
 
-  /** equals overridden, hashCode inherited from Object. */
+  /**
+   * equals overridden, hashCode inherited from Object.
+   *
+   * <p>The suppression is the finding. javac under {@code -Xlint:all -Werror} refuses to compile
+   * this class — "overrides equals, but neither it nor any superclass overrides hashCode" — so on
+   * this build the most common way an identity type is wrong is a build failure, not a code review.
+   * Reproducing it at all requires opting out by name.
+   */
+  @SuppressWarnings("overrides")
   private static final class EqualsWithoutHashCodeKey {
     private final String counterparty;
 
@@ -134,8 +142,7 @@ class IdentityContractTest {
       return o instanceof EqualsWithoutHashCodeKey other && counterparty.equals(other.counterparty);
     }
 
-    // No hashCode. That omission is the bug being reproduced, and javac does not warn about
-    // it even under -Xlint:all -Werror — which is the second half of the lesson.
+    // No hashCode. That omission is the bug being reproduced.
   }
 
   /** A field inside hashCode that can change after the key is in the map. */

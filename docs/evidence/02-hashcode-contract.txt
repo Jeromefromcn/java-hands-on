@@ -20,15 +20,43 @@ This file records what each of the three key types actually does.
         key carrying the original value. The entry is stranded in the bucket
         its old hash chose. Map size is still 1 and containsValue finds it.
 
-Note on 2: javac emits NO warning for an overridden equals with no hashCode,
-even under -Xlint:all -Werror, which this build uses. The compiler gate that
-catches everything else in this repository does not catch this one.
+The compiler gate on case 2
+---------------------------
 
-$ ./mvnw -pl domain test -Dtest=IdentityContractTest
+CORRECTION. An earlier version of this file, and the commit message that
+introduced it, claimed javac does not warn about case 2 under -Xlint:all
+-Werror. That was wrong, and it was wrong because it was measured on an
+incremental build that did not recompile the file. On a clean build javac
+does catch it, and the build fails:
 
-[INFO] Running com.jerome.slledger.domain.identity.IdentityContractTest
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.178 s -- in com.jerome.slledger.domain.identity.IdentityContractTest
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[WARNING] COMPILATION WARNING : 
+[WARNING] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/identity/IdentityContractTest.java:[132,24] Class com.jerome.slledger.domain.identity.IdentityContractTest.EqualsWithoutHashCodeKey overrides equals, but neither it nor any superclass overrides hashCode method
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/identity/IdentityContractTest.java: warnings found and -Werror specified
+[INFO] BUILD FAILURE
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/identity/IdentityContractTest.java: warnings found and -Werror specified
+
+So case 2 cannot be reproduced on this build without opting out by name. The
+test class carries @SuppressWarnings("overrides") with a comment saying why.
+The suppression is itself the finding: on this build, the most common way an
+identity type is wrong is a build failure rather than a code review.
+
+Cases 1 and 3 draw no warning. javac has nothing to say about a hashCode that
+uses fewer fields than equals, nor about a mutable field inside hashCode --
+the second of which is the one that loses entries silently in production.
+
+Process note: `./mvnw -pl domain verify` reused an already-compiled test class
+and reported BUILD SUCCESS. Acceptance for every section from here on runs
+`clean verify`.
+
+$ ./mvnw -pl domain clean verify
+
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.214 s -- in com.jerome.slledger.domain.identity.IdentityContractTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.120 s -- in com.jerome.slledger.domain.accrual.AccrualRuleTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.080 s -- in com.jerome.slledger.domain.accrual.AccrualEntryTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.037 s -- in com.jerome.slledger.domain.money.RateTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s -- in com.jerome.slledger.domain.money.MoneyArithmeticTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.116 s -- in com.jerome.slledger.domain.money.MoneyTest
+[INFO] Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 
 JDK: openjdk version "21.0.12" 2026-07-21 LTS

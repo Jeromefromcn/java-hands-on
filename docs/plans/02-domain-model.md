@@ -21,8 +21,11 @@ the implementation makes them look obvious.
   `AccrualRule` implementation, where the value is deliberately unrounded.
 - `Optional` in return types only. Never a field, never a parameter.
 - `-Xlint:all -Werror` is on. A warning is a build failure.
-- Run `./mvnw -pl domain verify` before every commit, not `test` — `verify`
-  is what the gate runs.
+- Run `./mvnw -pl domain clean verify` before every commit. Not `test`,
+  because `verify` is what the gate runs; and not without `clean`, because an
+  incremental build skips recompiling an unchanged file and therefore skips
+  its compiler warnings. Section 3 recorded a wrong finding for exactly that
+  reason.
 
 ---
 
@@ -135,7 +138,7 @@ inside the test. Nothing broken reaches `src/main`.
 passing, including the one asserting the roadmap's version *works*. The three
 outcomes go to `docs/evidence/02-hashcode-contract.txt`.
 
-## [ ] 4 · `Rate`, `AccrualRule` and `AccrualEntry`
+## [x] 4 · `Rate`, `AccrualRule` and `AccrualEntry`
 
 This is the stage's one real calculation. Review it line by line.
 
