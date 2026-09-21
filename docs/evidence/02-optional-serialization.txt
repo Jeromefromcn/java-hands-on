@@ -1,0 +1,70 @@
+Stage 02 — Optional as a field: two gates, not one
+===================================================
+
+Machine: linux aarch64, Temurin 21.0.12, Maven 3.9.11 through the wrapper.
+Source: domain/src/test/java/com/jerome/slledger/domain/OptionalDisciplineTest.java
+
+The rule is that Optional appears in return types only. The usual argument for
+it is a style opinion. This is not: Optional does not implement Serializable,
+deliberately, so a field of that type breaks any mechanism that walks an
+object's fields.
+
+  Serializable.class.isAssignableFrom(Optional.class)  ->  false
+
+Leaving Serializable off is how the JDK expressed "this is a return type" in
+the type system rather than in the javadoc.
+
+
+Gate 1 — the compiler, on this build
+------------------------------------
+
+javac's -Xlint:serial catches the declaration, and -Werror turns it into a
+build failure. The runtime failure below is unreachable without opting out:
+
+[WARNING] COMPILATION WARNING : 
+[WARNING] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/OptionalDisciplineTest.java:[88,36] non-transient instance field of a serializable class declared with a non-serializable type
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/OptionalDisciplineTest.java: warnings found and -Werror specified
+[INFO] BUILD FAILURE
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/OptionalDisciplineTest.java: warnings found and -Werror specified
+
+The test class therefore carries @SuppressWarnings("serial") with a comment
+saying why. The suppression is the finding: on a build configured like this
+one, Optional-as-a-field never ships.
+
+
+Gate 2 — the runtime, on a build without -Werror
+-------------------------------------------------
+
+Most projects do not run -Xlint:all -Werror. There, the declaration compiles
+and the failure arrives when something serializes the object:
+
+  java.io.NotSerializableException: java.util.Optional
+
+Asserted by reproducesOptionalFieldSerialization. Two further facts from the
+same test:
+
+  - It fails when the field holds an empty Optional too. The failure is about
+    the declared field type, not its contents, so a test suite that only ever
+    left the field empty would still have found it -- but a codebase where
+    the field is usually null finds it in production.
+
+  - The shape this domain uses round-trips fine: a nullable field, and an
+    accessor returning Optional.ofNullable(...). Nothing that walks fields
+    ever sees an Optional. LoanPosition.revalue is the one place in the
+    domain that returns one.
+
+
+Why both are recorded
+---------------------
+
+Only one of them travels. This repository's compiler settings are not a
+property of Java; they are a choice made in stage 1. The same mistake in a
+project without -Werror produces gate 2 and nothing else, and the same class
+of mechanism -- a framework walking declared fields -- reappears in stage 6's
+persistence mapping and stage 10's message payloads, where there is no javac
+lint at all.
+
+$ ./mvnw -pl domain clean verify
+
+[INFO] Tests run: 90, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

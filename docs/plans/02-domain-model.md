@@ -388,7 +388,7 @@ same procedure as stage 1's `01-compiler-gate.txt`.
 compiler's exhaustiveness error is in `docs/evidence/02-sealed-exhaustive.txt`
 with the command that produced it, and `git status` is clean of the deletion.
 
-## [ ] 12 · The cost of `Optional` in the wrong place
+## [x] 12 · The cost of `Optional` in the wrong place
 
 `reproducesOptionalFieldSerialization` in `OptionalDisciplineTest`, comment
 pointing at the decision record.
