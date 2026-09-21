@@ -1,5 +1,6 @@
 package com.jerome.slledger.domain.money;
 
+import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Currency;
@@ -42,5 +43,45 @@ public record Money(BigDecimal amount, Currency currency) {
 
   public static Money zero(Currency currency) {
     return new Money(BigDecimal.ZERO, currency);
+  }
+
+  public Money plus(Money other) {
+    requireSameCurrency(other);
+    return new Money(amount.add(other.amount), currency);
+  }
+
+  public Money minus(Money other) {
+    requireSameCurrency(other);
+    return new Money(amount.subtract(other.amount), currency);
+  }
+
+  /**
+   * Scales this amount by a factor, rounding to the currency's scale in the mode the caller names.
+   *
+   * <p>There is deliberately no single-argument overload. A convenience method that picks a
+   * rounding mode moves the rounding decision out of the call site and into this file, where the
+   * next reader of the call site will not look for it.
+   */
+  public Money multiply(BigDecimal factor, RoundingMode rounding) {
+    Objects.requireNonNull(factor, "factor");
+    Objects.requireNonNull(rounding, "rounding");
+    return new Money(
+        amount.multiply(factor).setScale(currency.getDefaultFractionDigits(), rounding), currency);
+  }
+
+  public boolean isNegative() {
+    return amount.signum() < 0;
+  }
+
+  public boolean isGreaterThan(Money other) {
+    requireSameCurrency(other);
+    return amount.compareTo(other.amount) > 0;
+  }
+
+  private void requireSameCurrency(Money other) {
+    Objects.requireNonNull(other, "other");
+    if (!currency.equals(other.currency)) {
+      throw new CurrencyMismatchException(currency, other.currency);
+    }
   }
 }

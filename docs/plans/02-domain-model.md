@@ -72,7 +72,7 @@ Tests, written first:
 domain` shows junit-jupiter and assertj-core at `test` scope and nothing at
 `compile`. Paste that tree into `docs/evidence/02-domain-test-scope.txt`.
 
-## [ ] 2 · `Money` arithmetic and the exception hierarchy
+## [x] 2 · `Money` arithmetic and the exception hierarchy
 
 `error/DomainException.java`:
 
