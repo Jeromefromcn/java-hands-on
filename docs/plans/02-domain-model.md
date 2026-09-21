@@ -108,7 +108,7 @@ comparison across currencies throws.
 **Acceptance** — `./mvnw -pl domain verify` green. The cross-currency test
 asserts on the message text, not only the exception type.
 
-## [ ] 3 · Identity value objects, `equals` and `hashCode`
+## [x] 3 · Identity value objects, `equals` and `hashCode`
 
 `instrument/Isin.java`, `party/CounterpartyId.java`, `loan/LoanPositionId.java`
 — records wrapping a validated `String`. `Isin` validates the 12-character

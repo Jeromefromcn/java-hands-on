@@ -1,0 +1,34 @@
+Stage 02 — the equals/hashCode contract, three outcomes
+=======================================================
+
+ROADMAP stage 2 asks for a hashCode built from only some of the fields, put
+into a HashMap, and the entry then failing to come back. It does not fail.
+This file records what each of the three key types actually does.
+
+  1. hashCode from one of two fields, equals from both
+     -> the entry IS retrieved. Equal objects still hash equally, so the
+        contract holds. Two keys differing only in the ignored field share a
+        bucket and are separated by equals. Cost: collisions, not entries.
+
+  2. equals overridden, hashCode NOT overridden
+     -> map.get(equalKey) returns null. Object.hashCode is identity-based, so
+        the lookup picks the wrong bucket and never reaches equals.
+        The value is still in the map: containsValue finds it.
+
+  3. a mutable field inside hashCode, mutated after put
+     -> map.get(theSameObject) returns null, and so does a lookup with a fresh
+        key carrying the original value. The entry is stranded in the bucket
+        its old hash chose. Map size is still 1 and containsValue finds it.
+
+Note on 2: javac emits NO warning for an overridden equals with no hashCode,
+even under -Xlint:all -Werror, which this build uses. The compiler gate that
+catches everything else in this repository does not catch this one.
+
+$ ./mvnw -pl domain test -Dtest=IdentityContractTest
+
+[INFO] Running com.jerome.slledger.domain.identity.IdentityContractTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.178 s -- in com.jerome.slledger.domain.identity.IdentityContractTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+JDK: openjdk version "21.0.12" 2026-07-21 LTS
