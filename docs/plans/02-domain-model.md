@@ -360,7 +360,7 @@ produces empty; a price in the wrong currency throws.
 **Acceptance** — `./mvnw -pl domain verify` green; the exactly-collateralised
 boundary is its own test.
 
-## [ ] 11 · `sealed interface LoanEvent` and exhaustiveness
+## [x] 11 · `sealed interface LoanEvent` and exhaustiveness
 
 `event/LoanEvent.java`:
 

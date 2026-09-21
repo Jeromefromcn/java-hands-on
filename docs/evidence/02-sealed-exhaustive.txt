@@ -1,0 +1,55 @@
+Stage 02 — sealed LoanEvent and the exhaustiveness gate
+========================================================
+
+Machine: linux aarch64, Temurin 21.0.12, Maven 3.9.11 through the wrapper.
+
+LoanEvent is a sealed interface permitting exactly four records: Opened,
+Returned, Accrued, MarginCalled. LoanEventTest.describe switches over them
+with NO default branch. Two demonstrations of what that buys, both run against
+a deliberately broken tree that was restored immediately afterwards. Neither
+violation is committed.
+
+
+1. A case is deleted
+--------------------
+
+Removing `case MarginCalled called ->` from the switch:
+
+[ERROR] COMPILATION ERROR : 
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/event/LoanEventTest.java:[78,12] the switch expression does not cover all possible input values
+[INFO] BUILD FAILURE
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/event/LoanEventTest.java:[78,12] the switch expression does not cover all possible input values
+
+2. A fifth event type is permitted
+-----------------------------------
+
+Nothing removed from the switch. A fifth record, CollateralReturned, added to
+the sealed interface — the realistic version of this failure, where somebody
+extends the model and does not know which switches exist:
+
+[ERROR] COMPILATION ERROR : 
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/event/LoanEventTest.java:[78,12] the switch expression does not cover all possible input values
+[INFO] BUILD FAILURE
+[ERROR] /home/ubuntu/jerome/java-hands-on/domain/src/test/java/com/jerome/slledger/domain/event/LoanEventTest.java:[78,12] the switch expression does not cover all possible input values
+
+Same error, same line, and it fires at EVERY site that switches on LoanEvent.
+That is the property being bought: adding an event is a build failure at each
+place that has to care, rather than a silent fall-through at each place that
+forgot.
+
+Why no default branch
+---------------------
+
+A `default` always matches, so it would have absorbed both cases above and the
+build would have stayed green. `default -> throw new IllegalStateException(...)`
+gives the same guarantee, but at run time, on someone else's machine, at the
+moment the fifth event first appears in production.
+
+The compiler check is only available because the interface is sealed. On an
+open interface javac cannot know the list is complete, and the switch would
+require a default to compile at all.
+
+$ ./mvnw -pl domain clean verify   (tree restored)
+
+[INFO] Tests run: 86, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
