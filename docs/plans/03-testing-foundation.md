@@ -103,7 +103,7 @@ test reports 2 invocations in the surefire output; the total assertion count
 for `AccrualRuleTest` is unchanged from before the collapse (two tests
 removed, one parameterized test with two invocations added).
 
-## [ ] 4 · `MoneyAssert`
+## [x] 4 · `MoneyAssert`
 
 `domain/src/test/java/.../money/MoneyAssertions.java` (entry point) and
 `MoneyAssert.java` (`extends AbstractAssert<MoneyAssert, Money>`):
@@ -129,14 +129,18 @@ Then retrofit: in `AccrualEntryTest`, every
 `assertThat(entry.fee()).isEqualTo(Money.of("X", CCY))` becomes
 `MoneyAssertions.assertThat(entry.fee()).isEqualTo("X CCY")`. In
 `AccrualPrecisionTest`, the `bigDecimalTotal` assertion in
-`reproducesDoubleDrift` does the same. Both files statically import
-`MoneyAssertions.assertThat` alongside AssertJ's `Assertions.assertThat` —
-the two coexist under different static-import names, which is the reason the
-entry point isn't itself named `assertThat` inside `Assertions`.
+`reproducesDoubleDrift` does the same. `MoneyAssertions.assertThat` is called
+fully qualified in both, **not** statically imported alongside AssertJ's own
+`Assertions.assertThat` — a single unqualified `assertThat` imported from both
+classes is ambiguous to javac (an exact-match `assertThat(Money)` competes
+with AssertJ's generic `<T> assertThat(T)`, and neither is more specific by
+the overload-resolution rules), caught by a compile error on the first
+attempt. `MoneyAssertTest` itself has no such conflict — it only needs
+`MoneyAssertions.assertThat` — so it statically imports that one alone.
 
 **Acceptance** — `./mvnw -pl domain clean verify` green; `git diff` on
 `AccrualEntryTest` and `AccrualPrecisionTest` shows only assertion-line
-changes, no behavioural change; `MoneyAssertTest` passes with all three
+changes, no behavioural change; `MoneyAssertTest` passes with all four
 cases.
 
 ## [ ] 5 · Mockito: over-mock, then the boundary

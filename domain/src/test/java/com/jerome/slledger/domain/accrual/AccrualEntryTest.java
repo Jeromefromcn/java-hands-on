@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import com.jerome.slledger.domain.error.NegativeOutstandingValueException;
 import com.jerome.slledger.domain.loan.LoanPositionId;
 import com.jerome.slledger.domain.money.Money;
+import com.jerome.slledger.domain.money.MoneyAssertions;
 import com.jerome.slledger.domain.money.Rate;
 import java.time.LocalDate;
 import java.util.Currency;
@@ -27,7 +28,7 @@ class AccrualEntryTest {
         AccrualEntry.accrue(
             POSITION, Money.of("1000000.00", HKD), new FlatRate(Rate.of("0.0365")), DAY);
 
-    assertThat(entry.fee()).isEqualTo(Money.of("100.00", HKD));
+    MoneyAssertions.assertThat(entry.fee()).isEqualTo("100.00 HKD");
     assertThat(entry.accruedOn()).isEqualTo(DAY);
     assertThat(entry.position()).isEqualTo(POSITION);
   }
@@ -39,7 +40,7 @@ class AccrualEntryTest {
         AccrualEntry.accrue(
             POSITION, Money.of("1000000.00", HKD), new FlatRate(Rate.of("0.0350")), DAY);
 
-    assertThat(entry.fee()).isEqualTo(Money.of("95.89", HKD));
+    MoneyAssertions.assertThat(entry.fee()).isEqualTo("95.89 HKD");
   }
 
   @Test
@@ -51,7 +52,7 @@ class AccrualEntryTest {
             POSITION, Money.of("1000000", jpy), new FlatRate(Rate.of("0.0365")), DAY);
 
     // JPY has no fraction digits, so the same rate books a whole-yen fee.
-    assertThat(entry.fee()).isEqualTo(Money.of("100", jpy));
+    MoneyAssertions.assertThat(entry.fee()).isEqualTo("100 JPY");
     assertThat(entry.fee().amount().scale()).isZero();
   }
 
@@ -63,7 +64,7 @@ class AccrualEntryTest {
     AccrualEntry entry =
         AccrualEntry.accrue(POSITION, Money.of("1.00", HKD), new FlatRate(Rate.of("0.0001")), DAY);
 
-    assertThat(entry.fee()).isEqualTo(Money.zero(HKD));
+    MoneyAssertions.assertThat(entry.fee()).isEqualTo("0.00 HKD");
   }
 
   @Test

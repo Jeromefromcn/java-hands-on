@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.domain.loan.LoanPositionId;
 import com.jerome.slledger.domain.money.Money;
+import com.jerome.slledger.domain.money.MoneyAssertions;
 import com.jerome.slledger.domain.money.Rate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -39,7 +40,7 @@ class AccrualPrecisionTest {
     double doubleTotal = accrueForAYearInDouble();
 
     // 34,999.85 exactly, reproducible by adding 365 booked entries of 95.89.
-    assertThat(bigDecimalTotal).isEqualTo(Money.of("34999.85", HKD));
+    MoneyAssertions.assertThat(bigDecimalTotal).isEqualTo("34999.85 HKD");
 
     // 34999.8499999998530256561934947967529296875 — the value double actually holds.
     assertThat(doubleTotal).isNotEqualTo(bigDecimalTotal.amount().doubleValue());
