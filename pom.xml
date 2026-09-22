@@ -50,8 +50,17 @@
     <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
     <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
     <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+    <!-- Failsafe and Surefire ship from the same Maven Surefire project, in
+         lockstep. -->
+    <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
+    <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <spotless.version>3.10.2</spotless.version>
     <google-java-format.version>1.36.1</google-java-format.version>
+
+    <!-- Not managed by the imported Spring Boot BOM, so pinned here like
+         every other version in this file. -->
+    <archunit.version>1.5.0</archunit.version>
+    <cucumber.version>7.20.1</cucumber.version>
 
     <!-- Fixed timestamp for reproducible builds: two clean packages must
          produce byte-identical jars. Verified in section 8. -->
@@ -100,6 +109,26 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <!-- Mockito comes in through mockito-bom, transitively imported by
+           spring-boot-dependencies above; junit-platform-suite comes in the
+           same way via junit-bom. Neither needs an entry here. ArchUnit and
+           Cucumber are not managed by either BOM. -->
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-java</artifactId>
+        <version>${cucumber.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-junit-platform-engine</artifactId>
+        <version>${cucumber.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -146,6 +175,46 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <!-- Architecture rules, not unit tests: bound to the
+               integration-test/verify phases, not surefire's test phase, so
+               they stay out of the fast inner loop. Classes must be named
+               *IT for Failsafe's default inclusion pattern to pick them up. -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven-failsafe-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco-maven-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>jacoco-prepare-agent</id>
+              <phase>initialize</phase>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>jacoco-report</id>
+              <phase>test</phase>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
 
         <plugin>

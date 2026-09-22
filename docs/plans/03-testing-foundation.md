@@ -21,15 +21,17 @@ the failsafe-bound ArchUnit rules run under.
 
 ---
 
-## [ ] 1 · Dependencies and plugins, no code yet
+## [x] 1 · Dependencies and plugins, no code yet
 
 Parent `pom.xml`:
 
-- New properties: `archunit.version` (1.3.0), `cucumber.version` (7.20.1),
+- New properties: `archunit.version` (1.5.0 — `com.tngtech.archunit`, not
+  `org.archunit`; the plan's first draft had the wrong groupId, caught by
+  dependency resolution failing on `bootstrap`), `cucumber.version` (7.20.1),
   `jacoco-maven-plugin.version` (0.8.12), `maven-failsafe-plugin.version`
   (matching the pinned `maven-surefire-plugin.version`, 3.5.2 — failsafe and
   surefire ship in lockstep from the same Maven Surefire project).
-- `dependencyManagement`: `org.archunit:archunit-junit5:${archunit.version}`,
+- `dependencyManagement`: `com.tngtech.archunit:archunit-junit5:${archunit.version}`,
   `io.cucumber:cucumber-java:${cucumber.version}`,
   `io.cucumber:cucumber-junit-platform-engine:${cucumber.version}`. Mockito
   needs no entry — `mockito-bom` arrives transitively through
@@ -45,7 +47,7 @@ Parent `pom.xml`:
 `org.mockito:mockito-junit-jupiter`, `org.junit.platform:junit-platform-suite`,
 `io.cucumber:cucumber-java`, `io.cucumber:cucumber-junit-platform-engine`.
 
-`bootstrap/pom.xml` gains `org.archunit:archunit-junit5` at `test` scope, and
+`bootstrap/pom.xml` gains `com.tngtech.archunit:archunit-junit5` at `test` scope, and
 adopts the `maven-failsafe-plugin` execution from `pluginManagement` in its
 own `<build><plugins>` — the only module that does, since it is the only
 module with a rule to run in this stage.

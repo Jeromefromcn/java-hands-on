@@ -28,6 +28,31 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>batch</artifactId>
     </dependency>
+
+    <!-- The one module with every other module on its compile classpath
+         (transitively, via adapter-persistence -> application -> domain,
+         plus adapter-web and batch directly), so it is where a rule about
+         the whole package tree can be checked. -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- The only module with a Failsafe-bound rule in this stage. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
