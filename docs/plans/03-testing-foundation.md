@@ -80,7 +80,7 @@ classes unchanged from before the move (assert by reading the surefire
 summary before and after); running `./mvnw -pl domain test -Dtest=MoneyTest`
 prints the nested class names in the output.
 
-## [ ] 3 · `@ParameterizedTest` on the tiered-rate boundary
+## [x] 3 · `@ParameterizedTest` on the tiered-rate boundary
 
 In `AccrualRuleTest`, `aTieredRateChargesEachSliceAtItsOwnRateNotTheWholeValueAtTheTopRate`
 and `atTheThresholdNothingHasCrossedIntoTheUpperTier` collapse into one

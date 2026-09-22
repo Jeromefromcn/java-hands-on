@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The three accrual strategies, on unrounded figures.
@@ -42,22 +44,21 @@ class AccrualRuleTest {
         .isEqualByComparingTo(new BigDecimal("95.89041095890411"));
   }
 
-  @Test
-  void aTieredRateChargesEachSliceAtItsOwnRateNotTheWholeValueAtTheTopRate() {
+  @ParameterizedTest(name = "{0} outstanding -> daily fee {1}")
+  @CsvSource({
     // Tiers: 0 -> 3.65%, 1,000,000 -> 7.30%. On 2,000,000:
     //   first  1,000,000 x 0.0365 =  36,500
     //   second 1,000,000 x 0.0730 =  73,000
     //                     annual  = 109,500 ; 109,500 / 365 = 300 a day, exactly.
     // A cliff implementation would charge 2,000,000 x 0.0730 = 146,000, or 400 a day.
-    assertThat(twoTierRule().dailyFee(new BigDecimal("2000000.00"), ANY_DAY))
-        .isEqualByComparingTo(new BigDecimal("300"));
-  }
-
-  @Test
-  void atTheThresholdNothingHasCrossedIntoTheUpperTier() {
+    "2000000.00, 300",
     // Exactly 1,000,000 is entirely in the first tier: 36,500 / 365 = 100.
-    assertThat(twoTierRule().dailyFee(ONE_MILLION, ANY_DAY))
-        .isEqualByComparingTo(new BigDecimal("100"));
+    "1000000.00, 100"
+  })
+  void aTieredRateChargesEachSliceAtItsOwnRateNotTheWholeValueAtTheTopRate(
+      BigDecimal outstandingValue, BigDecimal expectedDailyFee) {
+    assertThat(twoTierRule().dailyFee(outstandingValue, ANY_DAY))
+        .isEqualByComparingTo(expectedDailyFee);
   }
 
   @Test
