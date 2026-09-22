@@ -75,7 +75,10 @@ holds across all 16 stages.
 
 ## Build
 
-Maven multi-module, Java 21. Modules: `domain` (no third-party dependencies at
+Maven multi-module, Java 21. The machine default JDK may be newer — build
+with the JDK `.sdkmanrc` pins (`sdk env` if not auto-set), not the default.
+
+Modules: `domain` (no third-party dependencies at
 all), `application`, `adapter-persistence`, `adapter-web`, `batch`, `bootstrap`.
 Versions live only in the parent `dependencyManagement`; child POMs carry no
 `<version>`. `./mvnw` is checked in — use it, not a system `mvn`.
