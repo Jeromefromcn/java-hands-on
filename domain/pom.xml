@@ -95,6 +95,44 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- Floor set at 94% line coverage: the measured figure the day this was written was
+                 96.68% (320/331 lines), with no framework plumbing in this module to inflate or
+                 deflate the number. The gap below the measured figure is there to survive a small,
+                 honest addition (a new branch not yet exercised) without failing the build for
+                 something that isn't a regression; a large drop still fails it. Not 100%: a
+                 domain type can legitimately carry a defensive branch that is expensive to trigger
+                 from a test (LoanPosition's un-thread-safe-usage guards are the bulk of the 11
+                 missed lines here) without that branch being untested code worth blocking the
+                 build over. See docs/decisions/03-testing-foundation.md and
+                 docs/evidence/03-jacoco-coverage.txt. -->
+            <id>jacoco-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.94</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

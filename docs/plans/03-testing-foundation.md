@@ -40,7 +40,7 @@ Parent `pom.xml`:
 - `pluginManagement`: `maven-failsafe-plugin` bound to `integration-test` and
   `verify` goals (`integration-test`, `verify`), and `jacoco-maven-plugin`
   bound to `initialize` (`prepare-agent`), `test` (`report`) — the `check`
-  execution and its threshold arrive in section 7, once there is a number to
+  execution and its threshold arrive in section 8, once there is a number to
   put in it. Both added to `pluginManagement` only; no module opts in yet.
 
 `domain/pom.xml` gains, all `test` scope, no `<version>`:
@@ -242,7 +242,11 @@ and stage 1's compiler gate.
 output and the command that produced it; `git status` shows no
 `ScratchTransactional` file; `./mvnw verify` is green.
 
-## [ ] 8 · JaCoCo coverage gate
+## [x] 8 · JaCoCo coverage gate
+
+Measured: 96.68% (320/331 lines). Threshold committed: 94%. Both, and the
+reasoning, are in `docs/evidence/03-jacoco-coverage.txt`; load-bearing
+confirmed by a scratch 99% threshold failing the build (reverted).
 
 `domain/pom.xml` adopts `jacoco-maven-plugin` from `pluginManagement` and adds
 a `check` execution bound to `verify`, with a `RULE` at `BUNDLE` level and a

@@ -31,4 +31,17 @@ class CounterpartyTest {
                 new Counterparty(
                     new CounterpartyId("CP-0001"), "", new CreditLimit(Money.of("1.00", HKD))));
   }
+
+  /**
+   * The named counter-example to coverage-as-verification, for {@code
+   * docs/decisions/03-testing-foundation.md}. This test walks every line of the canonical
+   * constructor's happy path — the exact lines {@code aCounterpartyCarriesItsOwnLimit} above
+   * already walks — but checks nothing about the object it built. JaCoCo's line counter cannot tell
+   * this test apart from one that verifies something; only reading it can.
+   */
+  @Test
+  void constructionCoversEveryLineOfTheConstructorButAssertsNothingAboutTheResult() {
+    new Counterparty(
+        new CounterpartyId("CP-0002"), "Anything At All", new CreditLimit(Money.of("1.00", HKD)));
+  }
 }
