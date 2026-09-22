@@ -192,36 +192,34 @@ on the fee-value assertion, confirming the test as a whole is load-bearing —
 see the verification note above for why `verify(...)` specifically could not
 be isolated from that failure.
 
-## [ ] 6 · `ArchitectureTest`, three rules, failsafe
+## [x] 6 · `ArchitectureIT`, three rules, failsafe
 
-`bootstrap/src/test/java/com/jerome/slledger/bootstrap/ArchitectureTest.java`
-(plain JUnit 5 + ArchUnit, no Spring):
+`bootstrap/src/test/java/com/jerome/slledger/bootstrap/ArchitectureIT.java`
+(plain JUnit 5 + ArchUnit, no Spring), named `ArchitectureIT` directly —
+Failsafe's default inclusion pattern is `**/*IT.java`, `**/IT*.java`,
+`**/*ITCase.java`; matching it is simpler than reconfiguring the pattern.
 
-```java
-class ArchitectureTest {
-  private static final JavaClasses CLASSES =
-      new ClassFileImporter().importPackages("com.jerome.slledger");
+Three rules via ArchUnit's fluent API (`classes()`/`noClasses()` from
+`ArchRuleDefinition`), each its own `@Test`. Rule 3 matches the annotation by
+its fully-qualified name (`"org.springframework.transaction.annotation.Transactional"`
+as a `String`, not the annotation class) — ArchUnit checks annotations by
+bytecode inspection, so this compiles and runs correctly before Spring is a
+dependency anywhere in the tree.
 
-  @Test @DisplayName("domain does not depend on any adapter (vacuous: no adapter classes exist yet)")
-  void domainDoesNotDependOnAdapters() { ... }
-
-  @Test @DisplayName("adapter-web does not depend on adapter-persistence (vacuous: neither has classes yet)")
-  void webDoesNotDependOnPersistence() { ... }
-
-  @Test @DisplayName("@Transactional lives only in application (vacuous: no @Transactional class exists yet)")
-  void transactionalOnlyInApplication() { ... }
-}
-```
-
-Named `ArchitectureTest`, not `ArchitectureIT` — Failsafe's default inclusion
-pattern is `**/*IT.java`, `**/IT*.java`, `**/*ITCase.java`; renaming to match
-is simpler than reconfiguring the pattern, so the class is renamed to
-`ArchitectureIT` before the acceptance check, not left relying on a custom
-`<includes>`.
+**Correction against the plan's original assumption**: ArchUnit fails a rule
+by default when its `that()` selection is empty (`archRule.failOnEmptyShould`,
+default `true`) — an empty selection is usually a typo'd package name, so
+ArchUnit treats it as a failure rather than a silent pass. Rule 1's `that()`
+selects `domain` classes, which exist, so it is unaffected. Rules 2 and 3
+select `adapter.web` classes and `@Transactional`-annotated classes
+respectively, both empty today — both needed `.allowEmptyShould(true)`
+called explicitly, or the "vacuous today" rules would have failed the build
+immediately, which is the opposite of the point.
 
 **Acceptance** — `./mvnw verify` at the repository root runs `ArchitectureIT`
 in the `integration-test` phase (visible in the Failsafe log block, separate
-from the Surefire block) and is green.
+from the Surefire block) and is green; all three `@DisplayName`s print in the
+Failsafe test output.
 
 ## [ ] 7 · The ArchUnit violation, reproduced and reverted
 
