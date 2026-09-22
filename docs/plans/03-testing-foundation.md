@@ -271,7 +271,7 @@ the `pom.xml` is temporarily raised above the measured figure (a scratch
 edit, reverted) and passes at the committed threshold;
 `docs/evidence/03-jacoco-coverage.txt` states both numbers.
 
-## [ ] 9 · `docs/decisions/test-doubles.md`
+## [x] 9 · `docs/decisions/test-doubles.md`
 
 Stub, mock, fake, spy, each against a named class already in this test suite:
 
