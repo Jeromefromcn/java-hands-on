@@ -143,31 +143,54 @@ attempt. `MoneyAssertTest` itself has no such conflict — it only needs
 changes, no behavioural change; `MoneyAssertTest` passes with all four
 cases.
 
-## [ ] 5 · Mockito: over-mock, then the boundary
+## [x] 5 · Mockito: over-mock, then the boundary
+
+**Correction against the spec's original framing**: `FloatingRate.dailyFee`
+itself takes a bare `BigDecimal` and never touches `Money` — mocking `Money`
+against that method alone would have nothing to stand in for. Both test
+classes instead exercise `AccrualEntry.accrue(position, outstandingValue,
+rule, on)` with a `FloatingRate` as the rule, which is where `Money` legitimately
+enters (as `outstandingValue`, and as `entry.fee()`'s type) and is exactly the
+path stage 2's `AccrualEntryTest` and `AccrualRuleTest` both partially cover
+on their own.
 
 `FloatingRateOverMockedTest`, `@ExtendWith(MockitoExtension.class)`: mocks
-`ReferenceRates`, `Rate`, and `Money`, stubs `Rate`'s and `Money`'s trivial
-accessors with `when(...)`, asserts the same outcome
-`AccrualRuleTest.aFloatingRateTakesTheReferenceOfTheDayAndAddsItsSpread`
-already covers. A comment at the top states this class exists as the
-negative example and points at the decision record.
+`ReferenceRates`, three `Rate`s (the reference rate, the spread, and the
+`plus`-combined effective rate — `Rate.plus` itself has to be stubbed, since
+the real method no longer runs on a mock), and `Money` (`amount()`,
+`isNegative()` and `currency()` all stubbed, since `AccrualEntry.accrue` calls
+all three). Six `when(...)` lines to reach the same one assertion
+`FloatingRateTest` reaches with one. A comment at the top states this class
+exists as the negative example and points at the decision record.
 
-`FloatingRateTest`, same `@ExtendWith(MockitoExtension.class)`: mocks only
-`ReferenceRates` via `@Mock`, constructs real `Rate` values, computes on a
-real `BigDecimal`, and additionally verifies the interaction —
-`verify(reference).on(ANY_DAY)` — which `AccrualRuleTest`'s lambda-based stub
-could not do, since a lambda isn't spied on. That verification is the
-concrete thing Mockito buys here that a hand-written stub does not.
+`FloatingRateTest`, same extension: mocks only `ReferenceRates` via `@Mock`,
+constructs real `Rate` and `Money` values, and additionally verifies the
+interaction — `verify(reference).on(DAY)` — which `AccrualRuleTest`'s
+lambda-based stub cannot do, since a lambda isn't spied on.
+
+**Verification note, not a full isolation**: a scratch edit to
+`FloatingRate.dailyFee` (bypassing `reference.on(on)` entirely, restored
+immediately, not committed) fails `FloatingRateTest` — but on the *value*
+assertion, before execution reaches `verify(reference).on(DAY)`, because the
+wrong rate also produces the wrong fee. The interaction and the outcome are
+causally linked here, so `verify(...)` could not be isolated as the sole
+line catching this particular regression; it stands as a direct assertion of
+the mechanism (the day was actually looked up) rather than as insurance
+against a scenario the value assertion misses. That distinction — value
+assertions and interaction verification often overlap rather than being
+strictly additive — goes in the decision record instead of a claim this
+stage's evidence doesn't support.
 
 Both classes pass. Neither replaces `AccrualRuleTest`'s existing floating-rate
 test, which stays as the plain-stub baseline for the decision record's
 stub-vs-mock comparison.
 
 **Acceptance** — `./mvnw -pl domain clean verify` green with both new classes
-passing; `FloatingRateTest` fails if the `verify(reference).on(...)` line is
-temporarily deleted and `FloatingRate` is changed to never call `reference`
-(a scratch edit, reverted, not committed) — confirming the verification is
-load-bearing and not decorative.
+passing (104 tests total, up from 102); `FloatingRate` changed to never call
+`reference` (a scratch edit, reverted, not committed) fails `FloatingRateTest`
+on the fee-value assertion, confirming the test as a whole is load-bearing —
+see the verification note above for why `verify(...)` specifically could not
+be isolated from that failure.
 
 ## [ ] 6 · `ArchitectureTest`, three rules, failsafe
 
