@@ -1,0 +1,48 @@
+Stage 03 — Cucumber scenario, run via the JUnit Platform Suite Engine
+=======================================================================
+
+Machine: linux aarch64, Temurin 21.0.12, Maven 3.9.11 through the wrapper.
+
+$ ./mvnw -pl domain clean test -Dcucumber.plugin=pretty
+
+[INFO] Running com.jerome.slledger.domain.cucumber.CucumberSuiteTest
+
+Scenario: Partial return after a multi-day loan # features/loan-repayment.feature:3
+  Given a counterparty borrows 1000 shares      # com.jerome.slledger.domain.cucumber.LoanRepaymentSteps.aCounterpartyBorrowsShares(long)
+  And 3 days pass                               # com.jerome.slledger.domain.cucumber.LoanRepaymentSteps.daysPass(int)
+  When the counterparty returns 400 shares      # com.jerome.slledger.domain.cucumber.LoanRepaymentSteps.theCounterpartyReturnsShares(long)
+  Then the outstanding balance is 600 shares    # com.jerome.slledger.domain.cucumber.LoanRepaymentSteps.theOutstandingBalanceIsShares(long)
+  And accrual has been booked for 3 days        # com.jerome.slledger.domain.cucumber.LoanRepaymentSteps.accrualHasBeenBookedForDays(int)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.421 s -- in com.jerome.slledger.domain.cucumber.CucumberSuiteTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 106, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] BUILD SUCCESS
+
+No -Dtest filter: this is the module's full, ordinary test run, 106 tests
+total. The class had to be named CucumberSuiteTest, not the plan's original
+CucumberSuite, to be picked up at all — Surefire's default include pattern
+(**/Test*.java, **/*Test.java, **/*Tests.java, **/*TestCase.java) does not
+match "CucumberSuite", so under that name the scenario silently never ran
+except when named explicitly with -Dtest=CucumberSuite. Caught by re-running
+without the filter, per docs/plans/03-testing-foundation.md section 10.
+
+Every step calls the same LoanPosition and AccrualEntry types the equivalent
+@Test methods in LoanPositionTest and AccrualEntryTest already call. The one
+JUnit Platform test JUnit itself sees (CucumberSuiteTest) fans out into the
+five Given/When/Then steps of the one scenario, visible in the Cucumber
+plugin output above but reported to Surefire as a single test.
+
+What this buys over the equivalent @Test method: a scenario a non-engineer
+reader can follow — "borrows 1000, three days pass, returns 400, outstanding
+is 600" reads as a sentence rather than as assertion calls. The cost: an
+indirection layer between the sentence and the assertion (a step definition
+class that has to exist and stay in sync with the wording), and a business
+scenario that only has one variation gets the same machinery as one that
+needs a table of examples. For this suite's other ~35 behavioural test
+methods, where the reader is another engineer, the plain @Test with a
+@DisplayName (stage 3 section 2) already reads as a sentence without that
+indirection — which is the argument for keeping this to the one scenario the
+spec asked for, not spreading Cucumber across the suite.

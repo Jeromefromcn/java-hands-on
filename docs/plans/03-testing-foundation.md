@@ -294,7 +294,7 @@ Stub, mock, fake, spy, each against a named class already in this test suite:
 **Acceptance** — the document names a concrete class or file for stub and
 mock, and is explicit about fake and spy rather than padding.
 
-## [ ] 10 · One Cucumber scenario
+## [x] 10 · One Cucumber scenario
 
 `domain/src/test/resources/features/loan-repayment.feature`:
 
@@ -314,19 +314,31 @@ definitions driving `LoanPosition.open`, `LoanPosition.returnQuantity`, and
 `LoanPosition` instance, an accrual entry list) as instance fields the way
 Cucumber's per-scenario object lifecycle expects.
 
-`domain/src/test/java/.../cucumber/CucumberSuite.java`:
+`domain/src/test/java/.../cucumber/CucumberSuiteTest.java`, named
+`CucumberSuiteTest` rather than the plan's original `CucumberSuite`:
 
 ```java
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
-class CucumberSuite {}
+class CucumberSuiteTest {}
 ```
 
-**Acceptance** — `./mvnw -pl domain test` runs the scenario through the
-JUnit Platform Suite Engine (visible as `CucumberSuite` in the Surefire
-summary) and it passes; console output saved to
-`docs/evidence/03-cucumber-run.txt`.
+**Correction, caught by running `./mvnw -pl domain clean verify` (not just
+`-Dtest=CucumberSuite`)**: Surefire's default include pattern is
+`**/Test*.java`, `**/*Test.java`, `**/*Tests.java`, `**/*TestCase.java` — a
+class named `CucumberSuite` matches none of them, so it silently never ran
+as part of the ordinary build and was only reachable by naming it explicitly
+on the command line. Total test count stayed at 105 (the count from section
+8) with the plan's original name; renaming to `CucumberSuiteTest` brought it
+into the default run and the count became 106. The lesson generalises: an
+acceptance check run with a narrowing `-Dtest=...` filter can pass while the
+same class is invisible to the build's actual gate.
+
+**Acceptance** — `./mvnw -pl domain clean verify` (no `-Dtest` filter) runs
+the scenario through the JUnit Platform Suite Engine (visible as
+`CucumberSuiteTest` in the Surefire summary, 106 tests total) and it passes;
+console output saved to `docs/evidence/03-cucumber-run.txt`.
 
 ---
 
