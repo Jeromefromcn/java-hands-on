@@ -343,6 +343,11 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 ### 階段 11 · 批處理
 
+> **未驗證的判斷待覆核**：`docs/decisions/02-domain-model.md` 的「Unverified,
+> carried to stage 11」一節，對日切計息與市值重估這兩個批次的共同骨架，暫定
+> 用組合策略而非模板方法繼承。寫這個 Job/Step/Chunk 時回頭對照，看暫定判斷
+> 站不站得住，並把結論寫回該決策記錄。
+
 **做什麼** — 日切計息 + 市值重估，用 Spring Batch 正式化。
 
 **實操練習**
