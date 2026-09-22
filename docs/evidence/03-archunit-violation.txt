@@ -1,0 +1,58 @@
+Stage 03 — ArchitectureIT.transactionalOnlyInApplication, reproduced
+======================================================================
+
+Machine: linux aarch64, Temurin 21.0.12, Maven 3.9.11 through the wrapper.
+
+Two scratch files, neither committed:
+
+  bootstrap/src/main/java/org/springframework/transaction/annotation/Transactional.java
+    A local stand-in with Spring's real annotation's fully-qualified name.
+    Spring is not a dependency anywhere in this tree yet (stage 4 adds it),
+    so the real annotation class does not exist to import. ArchUnit matches
+    annotations by their fully-qualified name via bytecode inspection
+    (`.areAnnotatedWith("org.springframework.transaction.annotation.Transactional")`
+    in ArchitectureIT), so a class with that exact name, defined locally,
+    triggers the same rule the real annotation would.
+
+  bootstrap/src/main/java/com/jerome/slledger/bootstrap/ScratchTransactional.java
+    package com.jerome.slledger.bootstrap;
+
+    import org.springframework.transaction.annotation.Transactional;
+
+    @Transactional
+    class ScratchTransactional {}
+
+$ ./mvnw verify
+
+[INFO] Running com.jerome.slledger.bootstrap.ArchitectureIT
+[ERROR] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.645 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.ArchitectureIT
+[ERROR] com.jerome.slledger.bootstrap.ArchitectureIT.transactionalOnlyInApplication -- Time elapsed: 0.080 s <<< FAILURE!
+java.lang.AssertionError:
+Architecture Violation [Priority: MEDIUM] - Rule 'classes that are annotated with @Transactional should reside in a package 'com.jerome.slledger.application..'' was violated (1 times):
+Class <com.jerome.slledger.bootstrap.ScratchTransactional> does not reside in a package 'com.jerome.slledger.application..' in (ScratchTransactional.java:0)
+	at com.tngtech.archunit.lang.ArchRule$Assertions.assertNoViolation(ArchRule.java:94)
+	at com.tngtech.archunit.lang.ArchRule$Assertions.check(ArchRule.java:86)
+	at com.tngtech.archunit.lang.ArchRule$Factory$SimpleArchRule.check(ArchRule.java:165)
+	at com.jerome.slledger.bootstrap.ArchitectureIT.transactionalOnlyInApplication(ArchitectureIT.java:87)
+
+Reactor: Bootstrap FAILURE, whole build FAILURE.
+
+Both scratch files were deleted immediately after this run. `git status` was
+clean of them before the section's commit; `./mvnw verify` was run again
+afterwards and is green (see docs/plans/03-testing-foundation.md, section 7's
+acceptance).
+
+What this demonstrates
+-----------------------
+
+The other two rules (domain-no-adapter-dependency, adapter-web-no-
+persistence-dependency) were not separately reproduced here: both are
+enforced structurally by Maven already (domain and adapter-web do not
+declare adapter/adapter-persistence as dependencies, so a violating import
+would not compile in the first place), so an ArchUnit violation for them is
+only reachable once a later stage adds those modules' first real classes and
+genuinely wires a wrong dependency between them — which is exactly why those
+two rules stay vacuous today rather than demonstrable now. The
+@Transactional rule is the only one of the three checkable without a
+compile-time module boundary already doing the same job, since annotating a
+class is legal anywhere in the tree right now.

@@ -221,19 +221,22 @@ in the `integration-test` phase (visible in the Failsafe log block, separate
 from the Surefire block) and is green; all three `@DisplayName`s print in the
 Failsafe test output.
 
-## [ ] 7 · The ArchUnit violation, reproduced and reverted
+## [x] 7 · The ArchUnit violation, reproduced and reverted
 
-Scratch edit, not committed: add a throwaway class
-`bootstrap/src/main/java/.../ScratchTransactional.java` annotated
-`@Transactional` (a hand-rolled no-op annotation if Spring's isn't on the
-classpath yet — check first; if only Jakarta's or Spring's is resolvable
-already via a transitive dependency, use that one and say which in the
-evidence file). Run `./mvnw verify`, capture the ArchUnit failure message
-naming the offending class, save to
-`docs/evidence/03-archunit-violation.txt`. Delete the scratch class. Run
-`./mvnw verify` again to confirm green. `git status` clean of the deletion
-before committing this section — same procedure as stage 2's sealed-interface
-gate and stage 1's compiler gate.
+Two scratch files, neither committed: Spring is not a dependency anywhere in
+this tree yet (confirmed before writing them — `dependency:tree` on every
+module shows no `org.springframework` or `jakarta.transaction` artifact), so
+a local `org.springframework.transaction.annotation.Transactional`
+stand-in annotation was defined at that exact fully-qualified path, and a
+throwaway `com.jerome.slledger.bootstrap.ScratchTransactional` class
+annotated with it. ArchUnit matches by fully-qualified name via bytecode
+inspection, so the rule cannot tell the stand-in from the real thing. Ran
+`./mvnw verify`, captured the failure naming `ScratchTransactional`, saved to
+`docs/evidence/03-archunit-violation.txt`. Deleted both scratch files
+(including the now-empty `org/springframework/...` directory tree). Ran
+`./mvnw verify` again — green. `git status` was clean of both files before
+committing this section — same procedure as stage 2's sealed-interface gate
+and stage 1's compiler gate.
 
 **Acceptance** — `docs/evidence/03-archunit-violation.txt` holds the failure
 output and the command that produced it; `git status` shows no
