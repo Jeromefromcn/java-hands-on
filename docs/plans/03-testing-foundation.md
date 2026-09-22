@@ -59,7 +59,7 @@ No test class exists yet. This section only has to compile.
 scope; `./mvnw dependency:tree -pl bootstrap` shows `archunit-junit5` at
 `test` scope.
 
-## [ ] 2 · `@Nested` and `@DisplayName` on `Money`'s tests
+## [x] 2 · `@Nested` and `@DisplayName` on `Money`'s tests
 
 `MoneyTest` becomes two `@Nested` classes: `Construction` (normalisation,
 rounding, the fraction-digit edge cases, null rejection) and
