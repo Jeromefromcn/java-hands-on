@@ -62,6 +62,13 @@
     <archunit.version>1.5.0</archunit.version>
     <cucumber.version>7.20.1</cucumber.version>
 
+    <!-- spring-boot-dependencies (the import-scope BOM above) manages
+         dependency versions only, not plugin versions — that pluginManagement
+         block lives in spring-boot-starter-parent, which this project
+         deliberately does not inherit. So the plugin gets its own pin, kept
+         equal to spring-boot.version since they ship together. -->
+    <spring-boot-maven-plugin.version>${spring-boot.version}</spring-boot-maven-plugin.version>
+
     <!-- Fixed timestamp for reproducible builds: two clean packages must
          produce byte-identical jars. Verified in section 8. -->
     <project.build.outputTimestamp>2026-09-20T00:00:00Z</project.build.outputTimestamp>
@@ -279,6 +286,12 @@
               </configuration>
             </execution>
           </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot-maven-plugin.version}</version>
         </plugin>
 
         <plugin>

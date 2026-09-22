@@ -29,13 +29,24 @@
       <artifactId>batch</artifactId>
     </dependency>
 
+    <!-- The container itself, stage 4. spring-boot-starter-validation adds
+         Bean Validation for @ConfigurationProperties + @Validated. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
     <!-- The one module with every other module on its compile classpath
          (transitively, via adapter-persistence -> application -> domain,
          plus adapter-web and batch directly), so it is where a rule about
          the whole package tree can be checked. -->
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -51,6 +62,12 @@
         <!-- The only module with a Failsafe-bound rule in this stage. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <!-- Default repackage goal only; not invoked by verify in stage 4,
+             used ad hoc via spring-boot:run and wired for real in stage 14. -->
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
