@@ -38,6 +38,11 @@ code cannot replace; writing it after the fact defeats the point.
 The plan's sections are the commits, in order. A section is one sitting's
 reading: one rule, one boundary, or one type plus its tests.
 
+**Spec, plan, and each implementation section wait for review before they're
+committed.** Draft it, flag any judgment call it made, wait for a go-ahead,
+then commit. "Committed before the plan" orders the artifacts — it's not
+permission to commit either one unreviewed.
+
 Implement a section, tick its checkbox, then **stop** — leave it uncommitted
 and review it as a working-tree diff. Commit it at the *start* of the next
 section, naming each path explicitly; never `git add -A`, because the working
