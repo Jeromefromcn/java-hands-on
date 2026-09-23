@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
 /**
- * Replaces each {@link Timed} bean with a JDK proxy that logs how long every
- * call took. Hand-rolled
+ * Replaces each {@link Timed} bean with a JDK proxy that logs how long every call took. Hand-rolled
  * on purpose, ahead of Spring AOP in stage 5.
  */
 @Component
@@ -26,8 +25,7 @@ public class TimingBeanPostProcessor implements BeanPostProcessor {
     }
     Class<?>[] interfaces = ClassUtils.getAllInterfaces(bean);
     if (interfaces.length == 0) {
-      // A JDK proxy can only stand in for interfaces; silently skipping would mean
-      // @Timed does
+      // A JDK proxy can only stand in for interfaces; silently skipping would mean @Timed does
       // nothing and nobody notices.
       throw new IllegalStateException(
           "@Timed bean '" + beanName + "' implements no interface, so it cannot be JDK-proxied");
