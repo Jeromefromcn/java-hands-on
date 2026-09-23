@@ -23,7 +23,7 @@ failsafe-bound `ArchitectureTest` from stage 3 has to stay green throughout.
 
 ---
 
-## [ ] 1 · Dependencies, plugin, and the runnable entry point
+## [x] 1 · Dependencies, plugin, and the runnable entry point
 
 Parent `pom.xml`: no new property needed — `spring-boot-starter`,
 `spring-boot-starter-validation`, `spring-boot-starter-test`, and
@@ -52,24 +52,62 @@ Spring Boot banner and "Started SlLedgerApplication"; stopped manually
 
 ---
 
-## [ ] 2 · Bean lifecycle order
+## [ ] 2 · Bean lifecycle order, creation to destruction
 
 `com.jerome.slledger.bootstrap.demo.lifecycle` (test-only package,
-`bootstrap/src/test/java`): `CallOrderRecorder` (a plain `List<String>`
-wrapper bean), `LifecycleLoggingBean` (implements `BeanNameAware`,
-`InitializingBean`, has `@PostConstruct init()`, all three append to the
-injected recorder), `AllBeansReadyMarker` (implements
-`SmartInitializingSingleton`, appends on `afterSingletonsInstantiated`).
+`bootstrap/src/test/java`). Every class appends to one shared
+`CallOrderRecorder` bean (a `List<String>` wrapper that logs the full list,
+one entry per line, when read):
 
-`LifecycleLoggingBeanTest` builds an `ApplicationContextRunner` with all
-three beans plus the recorder, refreshes, and asserts the recorded list
-equals the exact expected order
-(`setBeanName`, `@PostConstruct`, `afterPropertiesSet`,
-`afterSingletonsInstantiated`) — `@PostConstruct` before
-`afterPropertiesSet` is the detail worth asserting explicitly, since it's
-the one most people get backwards from memory.
+- `LifecycleLoggingBean` — the observed bean. Constructor, an `@Autowired`
+  setter, `BeanNameAware`, `@PostConstruct`, `InitializingBean`, a custom
+  init method, `@PreDestroy`, `DisposableBean`, a custom destroy method. The
+  custom init/destroy methods are registered through the
+  `ApplicationContextRunner.withBean` customizer
+  (`setInitMethodName`/`setDestroyMethodName`) — the equivalent of
+  `@Bean(initMethod = ..., destroyMethod = ...)` without a `@Configuration`.
+- `RecordingBeanFactoryPostProcessor` — `BeanFactoryPostProcessor`. Runs
+  before any bean exists, so it cannot be injected with the recorder; it
+  fetches it with `beanFactory.getBean`, which instantiates the recorder
+  early. That early instantiation is the phase's main hazard and is noted
+  in the decision record, not hidden.
+- `RecordingBeanPostProcessor` — `InstantiationAwareBeanPostProcessor`,
+  recording its four hooks (before/after instantiation, before/after
+  initialization) for `LifecycleLoggingBean` only, ignoring every other
+  bean.
+- `AllBeansReadyMarker` — `SmartInitializingSingleton`.
+- `ContainerPhaseBean` — `SmartLifecycle` (`start`/`stop`) and
+  `ApplicationListener<ContextRefreshedEvent>`.
 
-**Acceptance** — `LifecycleLoggingBeanTest` passes; `./mvnw verify` green.
+`LifecycleLoggingBeanTest` runs one context and asserts four slices of the
+recorded list, one test each, each slice filtered from the full list and
+checked with `containsExactly` (relative order and no duplicates):
+
+1. **Bean's own callbacks** — `constructor`, `setter injection`,
+   `setBeanName`, `@PostConstruct`, `afterPropertiesSet`, `initMethod`.
+   `constructor` first is guaranteed by Java; the setter proves
+   `populateBean` sits between instantiation and the Aware callbacks.
+2. **Post-processor hooks interleaved** — `postProcessBeanFactory` first,
+   then the bean's callbacks with the four BPP hooks between them.
+   Hypothesis to verify, not assume: the custom BPP's
+   `postProcessBeforeInitialization` runs *after* `@PostConstruct`, because
+   `CommonAnnotationBeanPostProcessor` is `PriorityOrdered` and a plain BPP
+   is not. If the run disagrees, the test asserts what actually happens and
+   the decision record explains it.
+3. **Container-level phases** — the bean's `postProcessAfterInitialization`,
+   then `afterSingletonsInstantiated`, `SmartLifecycle.start`,
+   `ContextRefreshedEvent`.
+4. **Destruction** — asserted after `run()` returns, since the runner closes
+   the context on exit: `SmartLifecycle.stop`, `@PreDestroy`, `destroy`,
+   `destroyMethod`.
+
+Out of this section: `ApplicationReadyEvent` (published only by
+`SpringApplication`, which `ApplicationContextRunner` doesn't use — named in
+the decision record as untested), and `getEarlyBeanReference` (only fires in
+a circular reference — section 5).
+
+**Acceptance** — all four tests pass; the logged full list matches them;
+`./mvnw verify` green.
 
 ---
 
@@ -84,6 +122,9 @@ in `postProcessAfterInitialization`, if the bean's class is annotated
 `IllegalStateException` naming the bean — if it implements none, since this
 stage's only `@Timed` target has one) that logs elapsed nanoseconds via
 SLF4J around each method call, otherwise returns the bean unchanged.
+Where BPP hooks sit in the lifecycle is section 2's job; this section is only
+about what a BPP can do in `postProcessAfterInitialization` — replace the
+bean with something else.
 
 Test-only: `@Timed` demo interface `Greeter` + impl `GreeterImpl` (test
 package), asserting via `ApplicationContextRunner` that (a) the bean
