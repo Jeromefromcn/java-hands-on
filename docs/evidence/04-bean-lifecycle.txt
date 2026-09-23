@@ -1,0 +1,51 @@
+Stage 04 section 2 — bean lifecycle order, measured on Spring Framework 7.0.9
+(Spring Boot 4.1.1), JDK 21.0.12, via LifecycleLoggingBeanTest.
+
+Full recorded order, one ApplicationContextRunner context, closed at the end:
+
+  1. postProcessBeanFactory
+  2. bpp.beforeInstantiation
+  3. constructor
+  4. bpp.afterInstantiation
+  5. setter injection
+  6. setBeanName
+  7. bpp.beforeInitialization
+  8. @PostConstruct
+  9. afterPropertiesSet
+  10. initMethod
+  11. bpp.afterInitialization
+  12. afterSingletonsInstantiated
+  13. SmartLifecycle.start
+  14. ContextRefreshedEvent
+  15. SmartLifecycle.stop
+  16. @PreDestroy
+  17. destroy
+  18. destroyMethod
+
+Hypothesis falsified: the plan predicted @PostConstruct before
+bpp.beforeInitialization, since CommonAnnotationBeanPostProcessor is
+PriorityOrdered. Measured the opposite (7 before 8).
+
+BeanPostProcessor chain as registered, printed from
+AbstractBeanFactory.getBeanPostProcessors() in a context holding only
+CallOrderRecorder and RecordingBeanPostProcessor (throwaway probe test, not
+kept):
+
+  SPRING 7.0.9
+  BPP-ORDER org.springframework.context.support.ApplicationContextAwareProcessor
+  BPP-ORDER org.springframework.context.annotation.ConfigurationClassPostProcessor$ImportAwareBeanPostProcessor
+  BPP-ORDER org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker
+  BPP-ORDER com.jerome.slledger.bootstrap.demo.lifecycle.RecordingBeanPostProcessor
+  BPP-ORDER org.springframework.context.annotation.CommonAnnotationBeanPostProcessor
+  BPP-ORDER org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor
+  BPP-ORDER org.springframework.context.support.ApplicationListenerDetector
+
+Cause, from spring-context 7.0.9 PostProcessorRegistrationDelegate
+.registerBeanPostProcessors: PriorityOrdered BPPs are registered first, but
+any that are also MergedBeanDefinitionPostProcessor are collected into
+internalPostProcessors and, after the plain BPPs, re-registered with
+"// Finally, re-register all internal BeanPostProcessors."
+AbstractBeanFactory.addBeanPostProcessor removes an existing entry and
+appends it to the end, so CommonAnnotationBeanPostProcessor (@PostConstruct)
+and AutowiredAnnotationBeanPostProcessor (@Autowired) end up behind every
+plain BPP.

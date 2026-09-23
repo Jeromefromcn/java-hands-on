@@ -52,7 +52,7 @@ Spring Boot banner and "Started SlLedgerApplication"; stopped manually
 
 ---
 
-## [ ] 2 · Bean lifecycle order, creation to destruction
+## [x] 2 · Bean lifecycle order, creation to destruction
 
 `com.jerome.slledger.bootstrap.demo.lifecycle` (test-only package,
 `bootstrap/src/test/java`). Every class appends to one shared
@@ -62,9 +62,11 @@ one entry per line, when read):
 - `LifecycleLoggingBean` — the observed bean. Constructor, an `@Autowired`
   setter, `BeanNameAware`, `@PostConstruct`, `InitializingBean`, a custom
   init method, `@PreDestroy`, `DisposableBean`, a custom destroy method. The
-  custom init/destroy methods are registered through the
-  `ApplicationContextRunner.withBean` customizer
-  (`setInitMethodName`/`setDestroyMethodName`) — the equivalent of
+  custom init/destroy methods are registered through
+  `GenericApplicationContext.registerBean` with a customizer
+  (`setInitMethodName`/`setDestroyMethodName`), called from
+  `withInitializer` — `withBean` only accepts a customizer alongside a
+  `Supplier`, which would bypass constructor injection. The equivalent of
   `@Bean(initMethod = ..., destroyMethod = ...)` without a `@Configuration`.
 - `RecordingBeanFactoryPostProcessor` — `BeanFactoryPostProcessor`. Runs
   before any bean exists, so it cannot be injected with the recorder; it
@@ -93,7 +95,10 @@ checked with `containsExactly` (relative order and no duplicates):
    `postProcessBeforeInitialization` runs *after* `@PostConstruct`, because
    `CommonAnnotationBeanPostProcessor` is `PriorityOrdered` and a plain BPP
    is not. If the run disagrees, the test asserts what actually happens and
-   the decision record explains it.
+   the decision record explains it. **Result: falsified** — the plain BPP
+   runs first, because `CommonAnnotationBeanPostProcessor` is also a
+   `MergedBeanDefinitionPostProcessor` and those are re-registered at the end
+   of the chain. Evidence in `docs/evidence/04-bean-lifecycle.txt`.
 3. **Container-level phases** — the bean's `postProcessAfterInitialization`,
    then `afterSingletonsInstantiated`, `SmartLifecycle.start`,
    `ContextRefreshedEvent`.
