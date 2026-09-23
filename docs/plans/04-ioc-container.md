@@ -146,7 +146,7 @@ naming the bean — the behaviour described above, otherwise untested.
 
 ---
 
-## [ ] 4 · `proxyBeanMethods`
+## [x] 4 · `proxyBeanMethods`
 
 `ProxyBeanMethodsIT` (`bootstrap/src/test/java`), nested static classes:
 `TrueConfig` (`@Configuration`, default `proxyBeanMethods = true`) and
@@ -158,7 +158,11 @@ naming the bean — the behaviour described above, otherwise untested.
 asserts `getBean(Holder.class).widget() == getBean(Widget.class)`;
 `withUserConfiguration(FalseConfig.class)` asserts they are **not** the same
 instance (a fresh `new Widget()`, since `widget()` is now called as a plain
-Java method, not intercepted by the CGLIB proxy).
+Java method, not intercepted by the CGLIB proxy). Each case also asserts the
+config bean's own class — a `$$SpringCGLIB$$` subclass under `true`, the
+plain class under `false` — so the test shows the mechanism, not just the
+outcome. Framework behaviour, so no red phase: the test was checked by
+flipping `TrueConfig` to `false` and watching it fail, then reverted.
 
 **Acceptance** — both assertions pass; `./mvnw verify` green.
 
