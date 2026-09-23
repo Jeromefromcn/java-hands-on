@@ -201,33 +201,44 @@ FailureAnalyzer's console report is kept in
 
 ---
 
-## [ ] 6 · Scope: request-scoped context into a singleton
+## [x] 6 · Scope: request-scoped context into a singleton
+
+Two things found while writing it. `spring-web` and the servlet API were not
+on the classpath (the spec assumed `spring-boot-starter-test` brought them);
+`bootstrap` gains both at **test** scope, versions from the BOM. And
+`@RequestScope` already carries a scoped proxy (`proxyMode = TARGET_CLASS`),
+so direct injection with it never fails — the failing case needs plain
+`@Scope("request")`.
 
 `com.jerome.slledger.bootstrap.demo.scope` (test-only):
-`CounterpartyRequestContext` (`@Component`, `@RequestScope`, mutable
-`String counterpartyId` field with getter/setter), `CurrentCounterpartyHolder`
-(`@Component`, takes `ObjectProvider<CounterpartyRequestContext>` in its
-constructor, exposes `currentId()` calling `.getObject().getCounterpartyId()`),
-`DirectlyInjectedHolder` (`@Component`, field-injects
-`CounterpartyRequestContext` directly, exposes the same `currentId()`).
 
-`CounterpartyScopeTest`: builds an `AnnotationConfigApplicationContext`
-(needs the concrete context type, not `ApplicationContextRunner`, since the
-test manipulates `RequestContextHolder` around the calls) registering all
-three plus a `RequestScope` registration
-(`beanFactory.registerScope("request", new RequestScope())` — no servlet
-container is running, so the scope has to be registered by hand rather than
-relying on `@EnableWebMvc`'s auto-registration). Simulated request via
-`ServletRequestAttributes(new MockHttpServletRequest())` set on
-`RequestContextHolder` in `try`, cleared in `finally`:
-`CurrentCounterpartyHolder.currentId()` returns the value set on the
-request-scoped bean fetched from the same context inside the block.
-Outside any `try` block (no request bound), `DirectlyInjectedHolder`'s
-`getBean` call — the field injection happens at context refresh time — is
-asserted to throw, unwrapping to
-`IllegalStateException: No thread-bound request found`.
+- `CounterpartyRequestContext` — `@Scope("request")`, no proxy, mutable
+  `counterpartyId`.
+- `ProxiedCounterpartyRequestContext` — the same, with `@RequestScope`.
+- `CurrentCounterpartyHolder` — constructor takes
+  `ObjectProvider<CounterpartyRequestContext>`, `currentId()` calls
+  `getObject()` each time.
+- `DirectlyInjectedHolder` — constructor-injects `CounterpartyRequestContext`.
+- `ProxyInjectedHolder` — constructor-injects
+  `ProxiedCounterpartyRequestContext`.
 
-**Acceptance** — both assertions pass; `./mvnw verify` green.
+`CounterpartyScopeTest` builds an `AnnotationConfigApplicationContext` with
+`registerScope("request", new RequestScope())` by hand (no servlet container)
+and simulates each request with `ServletRequestAttributes(new
+MockHttpServletRequest())` on `RequestContextHolder`, reset in `finally`:
+
+1. `objectProviderResolvesPerRequest` — a value set in one request is read
+   back in it; a second request sees a fresh bean (`null`).
+2. `reproducesDirectInjectionOutsideRequest` — refresh throws
+   `BeanCreationException`, root cause `IllegalStateException: No
+   thread-bound request found`: the singleton is built when no request
+   exists.
+3. `scopedProxyResolvesPerCall` — the injected field is a CGLIB proxy; per
+   request behaviour matches case 1; called outside a request it throws
+   `ScopeNotActiveException`, root cause the same `IllegalStateException`.
+   The failure moves from startup to call time.
+
+**Acceptance** — all three pass; `./mvnw verify` green.
 
 ---
 
