@@ -116,7 +116,7 @@ a circular reference — section 5).
 
 ---
 
-## [ ] 3 · `BeanPostProcessor`: a timing proxy
+## [x] 3 · `BeanPostProcessor`: a timing proxy
 
 `com.jerome.slledger.bootstrap.timing` (`main` — this one is real
 infrastructure, not a demo, even though nothing in the real app uses it
@@ -136,7 +136,11 @@ package), asserting via `ApplicationContextRunner` that (a) the bean
 returned from the context is a JDK proxy (`Proxy.isProxyClass`) whose
 invocation still returns the real result, and (b) a second, non-`@Timed`
 bean in the same context is identity-equal (`==`) to its own unwrapped
-instance — the processor is a no-op for it.
+instance — the processor is a no-op for it. Two more, added while writing
+it: (c) each call logs `<beanName>.<method> took <n> ns`, captured with
+`OutputCaptureExtension` (the spec's acceptance criterion 3); (d) a `@Timed`
+bean with no interface fails startup with the `IllegalStateException`
+naming the bean — the behaviour described above, otherwise untested.
 
 **Acceptance** — both assertions pass; `./mvnw verify` green.
 
