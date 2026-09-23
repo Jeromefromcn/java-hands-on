@@ -168,24 +168,34 @@ flipping `TrueConfig` to `false` and watching it fail, then reverted.
 
 ---
 
-## [ ] 5 · Circular dependency
+## [x] 5 · Circular dependency
 
 `CircularDependencyIT`, nested static classes: `Alpha`/`Beta`
 (`@Component`, constructor-inject each other) and `AlphaSetter`/`BetaSetter`
 (`@Component`, no-arg constructor, setter-inject each other, setters
 annotated `@Autowired`).
 
-`reproducesConstructorCircularDependency` — `ApplicationContextRunner`
-`.withUserConfiguration(Alpha.class, Beta.class)`, asserts
-`.run(context -> assertThat(context).hasFailed())` then unwraps
-`context.getStartupFailure()` down to `BeanCurrentlyInCreationException`
-(via `UnsatisfiedDependencyException.getCause()`), per the wrong-behaviour
-naming convention in `CLAUDE.md` — the "wrong" behaviour here is the
+Found while writing it: `ApplicationContextRunner` does not use Spring
+Framework's default (cycles allowed). It mirrors Spring Boot's — cycles off —
+unless `withAllowCircularReferences(true)` is called. So the two runner cases
+explicitly allow cycles, and a third case shows Boot's default for real.
+
+`reproducesConstructorCircularDependency` — runner with cycles **allowed**,
+`.withUserConfiguration(Alpha.class, Beta.class)`, asserts the context
+failed with root cause `BeanCurrentlyInCreationException`. Allowing cycles is
+what makes this assertion mean something: the constructor cycle fails even
+when the container is permitted to break cycles. Named per the
+wrong-behaviour convention in `CLAUDE.md` — the "wrong" behaviour is the
 failure itself, which is Spring's correct, intentional refusal.
 
-`AlphaSetter`/`BetaSetter` case: same runner shape, asserts the context
-refreshes successfully and `AlphaSetter`'s injected `BetaSetter` is not
-null.
+`setterCycleResolvesWhenCyclesAllowed` — same runner, the setter pair,
+asserts the context starts and each bean holds the other (`isSameAs`).
+
+`reproducesSetterCycleRejectedBySpringBootDefault` — the same setter pair
+through `SpringApplicationBuilder` (no web, no banner), asserts startup
+throws with root cause `BeanCurrentlyInCreationException`. The
+FailureAnalyzer's console report is kept in
+`docs/evidence/04-circular-dependency.txt`.
 
 **Acceptance** — both assertions pass; `./mvnw verify` green.
 

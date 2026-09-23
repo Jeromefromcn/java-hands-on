@@ -1,0 +1,35 @@
+Stage 04 section 5 — circular dependency, measured on Spring Boot 4.1.1 /
+Spring Framework 7.0.9, JDK 21.0.12, via CircularDependencyIT.
+
+| Cycle wired through | Circular references allowed? | Result                               |
+|---------------------|------------------------------|--------------------------------------|
+| constructors        | yes (runner, explicit)       | fails: BeanCurrentlyInCreationException |
+| setters             | yes (runner, explicit)       | starts; each bean holds the other    |
+| setters             | no (SpringApplication default) | fails: BeanCurrentlyInCreationException |
+
+ApplicationContextRunner does not follow Spring Framework's default here.
+spring-boot-test 4.1.1 AbstractApplicationContextRunner keeps
+`private boolean allowCircularReferences;` (uninitialised, so false) and
+applies it with `autowireCapableBeanFactory.setAllowCircularReferences(...)`
+— it mirrors Spring Boot's policy. Plain Spring behaviour needs
+`withAllowCircularReferences(true)`.
+
+Console output from the SpringApplication run (FailureAnalyzer):
+
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The dependencies of some of the beans in the application context form a cycle:
+
+┌─────┐
+|  circularDependencyIT.AlphaSetter
+↑     ↓
+|  circularDependencyIT.BetaSetter
+└─────┘
+
+
+Action:
+
+Relying upon circular references is discouraged and they are prohibited by default. Update your application to remove the dependency cycle between beans. As a last resort, it may be possible to break the cycle automatically by setting spring.main.allow-circular-references to true.
