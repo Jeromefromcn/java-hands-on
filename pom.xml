@@ -72,6 +72,11 @@
     <!-- Fixed timestamp for reproducible builds: two clean packages must
          produce byte-identical jars. Verified in section 8. -->
     <project.build.outputTimestamp>2026-09-20T00:00:00Z</project.build.outputTimestamp>
+
+    <!-- Build output directory name, per module. Command-line builds use
+         target; the m2e profile below switches IDE builds to target-ide.
+         See the m2e profile for why. -->
+    <build.directory.name>target</build.directory.name>
   </properties>
 
   <!-- The single source of every version, internal and third-party alike.
@@ -140,6 +145,7 @@
   </dependencyManagement>
 
   <build>
+    <directory>${project.basedir}/${build.directory.name}</directory>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -342,6 +348,29 @@
   </build>
 
   <profiles>
+    <profile>
+      <!-- IDE builds get their own output directory. Eclipse m2e, and so the
+           VS Code Java extension built on it, compiles in the background
+           with ECJ into the build directory it reads from this POM. ECJ
+           writes class files even for sources that do not compile, and
+           Maven's incremental compile then takes those class files as up to
+           date. Sharing target/ with a command-line build made ./mvnw verify
+           run classes that threw "Unresolved compilation problems"
+           (stage 5). m2e sets the m2e.version property on every build it
+           runs; the command line never does, so CLI and CI keep target/.
+           Workaround from the vscode-java maintainers:
+           https://github.com/redhat-developer/vscode-java/issues/1381 -->
+      <id>m2e</id>
+      <activation>
+        <property>
+          <name>m2e.version</name>
+        </property>
+      </activation>
+      <properties>
+        <build.directory.name>target-ide</build.directory.name>
+      </properties>
+    </profile>
+
     <profile>
       <!-- The default. It carries nothing yet on purpose: a profile that
            exists to look symmetrical is a place for differences to hide.

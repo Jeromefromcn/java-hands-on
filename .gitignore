@@ -1,5 +1,8 @@
 # --- Maven ---
 target/
+# IDE builds (Eclipse m2e / VS Code Java), kept apart from CLI builds: see the
+# m2e profile in pom.xml.
+target-ide/
 !.mvn/wrapper/maven-wrapper.jar
 .mvn/timing.properties
 pom.xml.versionsBackup
