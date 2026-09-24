@@ -106,3 +106,27 @@ Expecting empty but was: ["diagnosticsBean"]
 [ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 8.156 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.AccrualMoneyRoundTripIT
 [ERROR] com.jerome.slledger.bootstrap.demo.tx.AccrualMoneyRoundTripIT.overPreciseAmountIsRefusedOnRead -- Time elapsed: 6.385 s <<< FAILURE!
 Expecting code to raise a throwable.
+
+
+12. SelfInjectedReturnService: @Lazy removed from the self-reference
+    Test: SelfInvocationIT#lazySelfInjectionRollsBack
+    (raised by the final branch review: the record's claim was unmeasured)
+
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 7.562 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.SelfInvocationIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.SelfInvocationIT.lazySelfInjectionRollsBack -- Time elapsed: 7.531 s <<< ERROR!
+org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'selfInjectedReturnService': Unsatisfied dependency expressed through field 'self': Error creating bean with name 'selfInjectedReturnService': Requested bean is currently in creation: Is there an unresolvable circular reference or an asynchronous initialization dependency?
+Caused by: org.springframework.beans.factory.BeanCurrentlyInCreationException: Error creating bean with name 'selfInjectedReturnService': Requested bean is currently in creation: Is there an unresolvable circular reference or an asynchronous initialization dependency?
+
+
+13. SelfInvocationIT#currentProxyRollsBack: context started without ExposeProxy
+    (raised by the final branch review: the record's claim was unmeasured)
+
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 8.016 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.SelfInvocationIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.SelfInvocationIT.currentProxyRollsBack -- Time elapsed: 7.985 s <<< FAILURE!
+Expecting message to be:
+but was:
+java.lang.IllegalStateException: Cannot find current proxy: Set 'exposeProxy' property on Advised to 'true' to make it available, and ensure that AopContext.currentProxy() is invoked in the same thread as the AOP invocation context.
+
+   The context started; the failure came at the call. The exception type is
+   the same as the demo's own business failure (IllegalStateException); only
+   the message assertion told them apart.

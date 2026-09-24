@@ -61,11 +61,16 @@ back the whole unit (outstanding stays 100, transaction flag `true`).
   makes every proxied call in the context set and restore a `ThreadLocal`,
   whether or not anything reads it (overhead not measured); it couples the
   service to Spring AOP's API and to a cast to its own class; and forgetting
-  the flag fails only at call time, with `IllegalStateException`.
+  the flag fails only at call time, with `IllegalStateException: Cannot find
+  current proxy` — the context starts cleanly
+  ([`05-mutation-checks.txt`](../evidence/05-mutation-checks.txt) §13). That
+  is the same exception type as the demo's own business failure; only the
+  test's message assertion told the two apart.
 - *`@Lazy` self-injection*. Cost: a field whose type is the class it sits
   in, which reads like a mistake; it works only because `@Lazy` injects a
-  resolving proxy instead of the bean, sidestepping the construction-time
-  cycle that Spring Boot otherwise refuses; and the call site `self.recordReturn()` is the only hint that
+  resolving proxy instead of the bean — without it, startup fails with
+  `BeanCurrentlyInCreationException` on the field `self` (§12); and the call
+  site `self.recordReturn()` is the only hint that
   anything unusual is happening.
 
 **Boot proxies by subclass by default, interface or not** — the spec's
