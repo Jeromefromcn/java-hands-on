@@ -1,14 +1,18 @@
 package com.jerome.slledger.bootstrap;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Three architecture rules, checked on the one classpath that has every module on it: {@code
@@ -55,7 +59,7 @@ class ArchitectureIT {
   @Test
   @DisplayName(
       "adapter-web does not depend on adapter-persistence (vacuous today: neither has classes"
-          + " yet)")
+          + " exists in production code yet)")
   void webDoesNotDependOnPersistence() {
     // allowEmptyShould(true): ArchUnit fails a rule by default when the "that()" selection is
     // empty, on the theory that an empty selection usually means a typo'd package name. Here it
@@ -75,22 +79,53 @@ class ArchitectureIT {
 
   @Test
   @DisplayName(
-      "@Transactional lives only in application (vacuous today: no @Transactional class exists"
-          + " yet)")
+      "@Transactional lives only in application (vacuous today: no @Transactional class or method"
+          + " exists in production code yet)")
   void transactionalOnlyInApplication() {
+    transactionalOnlyInApplicationRule().check(CLASSES);
+  }
+
+  /** A class outside application whose only @Transactional is on a method, not on the class. */
+  static class MethodLevelTransactional {
+    @Transactional
+    public void book() {}
+  }
+
+  @Test
+  @DisplayName("the @Transactional rule catches an annotation on a method, not only on a class")
+  void transactionalRuleCatchesMethodLevelAnnotation() {
+    JavaClasses fixture = new ClassFileImporter().importClasses(MethodLevelTransactional.class);
+
+    assertThatThrownBy(() -> transactionalOnlyInApplicationRule().check(fixture))
+        .isInstanceOf(AssertionError.class);
+  }
+
+  private static ArchRule transactionalOnlyInApplicationRule() {
     // Matched by fully-qualified name, not by the annotation class itself: neither
     // org.springframework.transaction.annotation.Transactional nor
-    // jakarta.transaction.Transactional is on this module's classpath yet (stage 4 adds Spring).
-    // ArchUnit checks annotations by bytecode inspection, so the rule compiles and runs correctly
-    // before either dependency exists.
-    ArchRule rule =
-        classes()
-            .that()
-            .areAnnotatedWith("org.springframework.transaction.annotation.Transactional")
-            .should()
-            .resideInAPackage("com.jerome.slledger.application..")
-            .allowEmptyShould(true);
-
-    rule.check(CLASSES);
+    // jakarta.transaction.Transactional is on this module's main classpath (stage 5 puts Spring's
+    // on the test classpath only). ArchUnit checks annotations by bytecode inspection, so the rule
+    // compiles and runs correctly without either dependency.
+    //
+    // Checked on classes and on methods alike: the annotation is equally valid on either, and a
+    // class-only check passes a method-level @Transactional anywhere (found in stage 5, where
+    // every demo annotates methods).
+    String transactional = "org.springframework.transaction.annotation.Transactional";
+    String application = "com.jerome.slledger.application..";
+    return CompositeArchRule.of(
+            classes()
+                .that()
+                .areAnnotatedWith(transactional)
+                .should()
+                .resideInAPackage(application)
+                .allowEmptyShould(true))
+        .and(
+            methods()
+                .that()
+                .areAnnotatedWith(transactional)
+                .should()
+                .beDeclaredInClassesThat()
+                .resideInAPackage(application)
+                .allowEmptyShould(true));
   }
 }

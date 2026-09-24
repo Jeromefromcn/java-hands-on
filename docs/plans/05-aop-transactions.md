@@ -239,6 +239,16 @@ Before/after rows for the reproduction go to
 
 **Acceptance** — four tests pass. `./mvnw verify` green.
 
+**Deviation found in this section, fixed as its own commit:** `ArchitectureIT`
+rule 3 checked only `classes().that().areAnnotatedWith(...)`, so a
+method-level `@Transactional` passed anywhere. Every demo here annotates
+methods, and removing `DoNotIncludeTests` left rule 3 green — section 1's
+fix was not load-bearing. Rule 3 now also checks
+`methods().that().areAnnotatedWith(...)`, with a fixture test
+(`transactionalRuleCatchesMethodLevelAnnotation`) that failed against the
+class-only rule first. Without `DoNotIncludeTests` rule 3 now fails on the
+demos, as intended.
+
 ---
 
 ## [ ] 5 · `REQUIRES_NEW` in the daily accrual, and pool starvation
