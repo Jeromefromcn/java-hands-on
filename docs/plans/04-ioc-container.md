@@ -283,7 +283,7 @@ the spec's "the two sections compose in one context".
 
 ---
 
-## [ ] 8 · Configuration binding: accrual rule bounds
+## [x] 8 · Configuration binding: accrual rule bounds
 
 `com.jerome.slledger.bootstrap.config` (`main`): `AccrualRuleProperties`
 (`@ConfigurationProperties(prefix = "accrual")`, `@Validated`) with
@@ -306,15 +306,34 @@ fail refresh, asserted down to `ConstraintViolationException` (via
 Spring Boot 4 exception chain while writing this test and record the real
 type in the test's comment if it differs from this plan's guess).
 
+Settled while writing it — the guess was wrong. The chain is
+`BeanCreationException` → `ConfigurationPropertiesBindException` → `BindException`
+→ `BindValidationException`: Spring Boot validates through its own
+`ValidationBindHandler` and reports Bean Validation's violations as
+`ValidationErrors`, never throwing `jakarta`'s `ConstraintViolationException`.
+The test asserts the first and last links and that the message names the
+violated property (`boundsOrdered`, `roundingPrecision`). The bounds also gain
+`@NotNull`, so a missing bound is reported as missing rather than as an NPE
+inside `isBoundsOrdered()`.
+
+The lower bound, not the mid-point, feeds `FlatRate`: it is a configured value,
+while a mid-point needs a rounding decision nobody has made.
+`roundingPrecision` is bound and validated but not consumed yet — `FlatRate`
+rounds with `domain`'s own `MathContext`.
+
+Moved forward from section 9: base `accrual.*` values in `application.yml`.
+Once `AccrualRuleConfig` sits in the real app's component scan, a missing
+bound refuses startup, so without them `SlLedgerApplication` would not start
+between this commit and the next.
+
 **Acceptance** — all assertions pass; `./mvnw verify` green.
 
 ---
 
 ## [ ] 9 · Profiles and precedence
 
-`bootstrap/src/main/resources/application.yml` gains base
-`accrual.rate-lower-bound`, `accrual.rate-upper-bound`,
-`accrual.rounding-precision`, `marketdata.source: mock` (safe defaults).
+`bootstrap/src/main/resources/application.yml` gains
+`marketdata.source: mock` (the `accrual.*` base values arrived in section 8).
 Three new files: `application-local.yml` (mock source, narrower bounds),
 `application-test.yml` (used only by section-9's own test), `application-prod.yml`
 (`marketdata.source: real`, production-width bounds).
