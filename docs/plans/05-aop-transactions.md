@@ -378,7 +378,7 @@ Before/after balances per case to `docs/evidence/05-lost-update.txt`.
 
 ---
 
-## [ ] 8 · `rollbackFor` and the checked exception
+## [x] 8 · `rollbackFor` and the checked exception
 
 `demo.tx.rollback`:
 
