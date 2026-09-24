@@ -1,0 +1,93 @@
+Stage 5 mutation checks
+=======================
+
+Each check: one deliberate change to the demo or rule under test, the
+affected test class run alone via failsafe, the change reverted afterwards.
+Output lines are copied from that run's Maven log. None of these mutants
+was committed.
+
+
+1. ArchitectureIT rule 3, class-only form, against a method-level fixture
+   Mutant: rule 3 as it stood before stage 5 (classes().areAnnotatedWith)
+   Test:   transactionalRuleCatchesMethodLevelAnnotation (written first)
+
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.963 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.ArchitectureIT
+[ERROR] com.jerome.slledger.bootstrap.ArchitectureIT.transactionalRuleCatchesMethodLevelAnnotation -- Time elapsed: 0.294 s <<< FAILURE!
+Expecting code to raise a throwable.
+
+   Before that fix, removing ImportOption.DoNotIncludeTests left rule 3
+   green: failsafe report tests="3" failures="0".
+
+
+2. ArchitectureIT without DoNotIncludeTests, after the rule covered methods
+   Mutant: .withImportOption(new ImportOption.DoNotIncludeTests()) removed
+
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 3.755 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.ArchitectureIT
+[ERROR] com.jerome.slledger.bootstrap.ArchitectureIT.transactionalOnlyInApplication -- Time elapsed: 0.096 s <<< FAILURE!
+Architecture Violation [Priority: MEDIUM] - Rule 'classes that are annotated with @Transactional should reside in a package 'com.jerome.slledger.application..' and methods that are annotated with @Transactional should be declared in classes that reside in a package 'com.jerome.slledger.application..'' was violated (5 times):
+
+
+3. PositionAccrual: REQUIRES_NEW -> REQUIRED
+   Test: RequiresNewAccrualIT
+
+[ERROR] Tests run: 3, Failures: 1, Errors: 2, Skipped: 0, Time elapsed: 6.768 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.RequiresNewAccrualIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.RequiresNewAccrualIT.failingPositionIsIsolated -- Time elapsed: 0.293 s <<< ERROR!
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.RequiresNewAccrualIT.requiresNewHoldsTwoConnections -- Time elapsed: 0.327 s <<< ERROR!
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.RequiresNewAccrualIT.reproducesRequiresNewPoolStarvation -- Time elapsed: 6.105 s <<< FAILURE!
+org.springframework.transaction.UnexpectedRollbackException: Transaction rolled back because it has been marked as rollback-only
+
+
+4. InnerAdjustment: SET LOCAL lock_timeout -> SET lock_timeout
+   Test: RequiresNewSelfDeadlockIT
+
+   4a. Leak check running only the self-deadlock path (rolls back):
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.77 s -- in com.jerome.slledger.bootstrap.demo.tx.RequiresNewSelfDeadlockIT
+
+   4b. Leak check with a committed InnerAdjustment call added:
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 12.37 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.RequiresNewSelfDeadlockIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.RequiresNewSelfDeadlockIT.lockTimeoutDoesNotLeakIntoThePool -- Time elapsed: 3.379 s <<< FAILURE!
+expected: "0"
+ but was: "3s"
+
+
+5. InsideTxRetryingReturn: REPEATABLE_READ -> READ_COMMITTED
+   Test: IsolationIT
+
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 7.440 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.IsolationIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.IsolationIT.reproducesRetryInsideTransactionNeverSucceeds -- Time elapsed: 0.481 s <<< FAILURE!
+Expected size: 1 but was: 0 in:
+
+   Zero failed returns: at READ COMMITTED the retry inside the transaction
+   succeeded.
+
+
+6. TradeReader: @Async removed
+   Test: AsyncVisibilityIT
+
+[ERROR] Tests run: 2, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 6.979 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.AsyncVisibilityIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.AsyncVisibilityIT.reproducesAsyncReadBeforeCommit -- Time elapsed: 6.479 s <<< FAILURE!
+Expecting value to be false but was true
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.AsyncVisibilityIT.asyncReadRunsOnAnotherThread -- Time elapsed: 0.466 s <<< FAILURE!
+
+
+7. BookingWithAfterCommitRead: afterCommit() -> afterCompletion(int)
+   Test: AfterCommitIT
+
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 7.176 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.AfterCommitIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.AfterCommitIT.rolledBackTransactionNeverPublishes -- Time elapsed: 0.449 s <<< FAILURE!
+expected: 0
+ but was: 1
+
+
+8. TemplateDailyAccrualBatch: PROPAGATION_REQUIRES_NEW -> PROPAGATION_REQUIRED
+   Test: TransactionTemplateIT
+
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 6.288 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.TransactionTemplateIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.TransactionTemplateIT.templateGivesTheSameOutcome -- Time elapsed: 6.262 s <<< ERROR!
+org.springframework.transaction.UnexpectedRollbackException: Transaction rolled back because it has been marked as rollback-only
+
+
+9. Component-scan leak (not a mutant: the state of main before the fix)
+   Test: ApplicationScanTest, written first
+
+Expecting empty but was: ["asyncConfig", "txDemoApplication"]
