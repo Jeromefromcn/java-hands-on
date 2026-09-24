@@ -13,7 +13,6 @@ import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
@@ -71,7 +70,7 @@ class SelfInvocationIT {
     }
   }
 
-  @Configuration(proxyBeanMethods = false)
+  // Not @Configuration, so no component scan can pick it up; passed to TxDemo.start explicitly.
   @EnableAspectJAutoProxy(exposeProxy = true)
   static class ExposeProxy {}
 
