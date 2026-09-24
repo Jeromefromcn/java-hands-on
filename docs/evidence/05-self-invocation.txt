@@ -1,0 +1,6 @@
+SelfInvocationIT.reproducesSelfInvocationPartialWrite
+returnAll() -> this.recordReturn() [@Transactional], fails before the trade insert
+
+before: loan_position P1 outstanding=100, loan_trade rows for P1=0
+after:  loan_position P1 outstanding=70, loan_trade rows for P1=0
+transaction active inside recordReturn(): false

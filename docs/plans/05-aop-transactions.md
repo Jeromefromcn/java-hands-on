@@ -204,7 +204,7 @@ or the test and the decision record say it was falsified. `./mvnw verify` green.
 
 ---
 
-## [ ] 4 · Self-invocation and its three fixes
+## [x] 4 · Self-invocation and its three fixes
 
 `demo.tx.selfinvocation`. Every variant does the same unit of work on
 position `P1` (outstanding 100), returning 30:
