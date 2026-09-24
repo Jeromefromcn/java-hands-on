@@ -420,7 +420,7 @@ Before/after balances per case to `docs/evidence/05-lost-update.txt`.
 
 ---
 
-## [ ] 10 · `afterCommit`: publishing only what was committed
+## [x] 10 · `afterCommit`: publishing only what was committed
 
 `demo.tx.async` (continued):
 
