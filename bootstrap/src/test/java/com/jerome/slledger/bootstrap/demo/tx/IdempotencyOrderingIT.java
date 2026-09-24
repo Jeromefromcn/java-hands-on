@@ -50,6 +50,8 @@ class IdempotencyOrderingIT {
       assertThat(race.successes()).isEqualTo(1);
       assertThat(race.duplicates()).isEqualTo(1);
       assertThat(race.loserBlockedOnLock()).isFalse();
+      // Rejected before the winner's business work had committed or failed.
+      assertThat(race.loserFinishedWhileWinnerHeld()).isTrue();
       assertThat(context.getBean(TxDemoRows.class).tradeCount("P1")).isEqualTo(1);
       assertThat(context.getBean(IdempotencyAspect.class).transactionActiveAtCheck()).isFalse();
       OUTCOMES.put("check outside tx, concurrent duplicate", race.toString());
@@ -67,6 +69,7 @@ class IdempotencyOrderingIT {
       assertThat(race.successes()).isEqualTo(1);
       assertThat(race.duplicates()).isEqualTo(1);
       assertThat(race.loserBlockedOnLock()).isTrue();
+      assertThat(race.loserFinishedWhileWinnerHeld()).isFalse();
       assertThat(context.getBean(TxDemoRows.class).tradeCount("P1")).isEqualTo(1);
       assertThat(context.getBean(IdempotencyAspect.class).transactionActiveAtCheck()).isTrue();
       OUTCOMES.put("check inside tx, concurrent duplicate", race.toString());
@@ -124,7 +127,11 @@ class IdempotencyOrderingIT {
     }
   }
 
-  record Race(int successes, int duplicates, boolean loserBlockedOnLock) {}
+  record Race(
+      int successes,
+      int duplicates,
+      boolean loserBlockedOnLock,
+      boolean loserFinishedWhileWinnerHeld) {}
 
   /**
    * Two threads, same key, released together. The winner is held inside its business work (after
@@ -152,8 +159,11 @@ class IdempotencyOrderingIT {
 
       // Observation, bounded at 50 x 100 ms: the scenario orders itself.
       boolean loserBlockedOnLock = false;
+      boolean loserFinishedWhileWinnerHeld = false;
       for (int attempt = 0; attempt < 50; attempt++) {
         if (calls.stream().anyMatch(Future::isDone)) {
+          // Only the loser can finish here: the winner is held until countDown below.
+          loserFinishedWhileWinnerHeld = true;
           break;
         }
         if (backendsWaitingOnLock(jdbc) > 0) {
@@ -175,7 +185,7 @@ class IdempotencyOrderingIT {
           duplicates++;
         }
       }
-      return new Race(successes, duplicates, loserBlockedOnLock);
+      return new Race(successes, duplicates, loserBlockedOnLock, loserFinishedWhileWinnerHeld);
     } finally {
       service.holdInsideBusinessWork(null);
       executor.shutdownNow();

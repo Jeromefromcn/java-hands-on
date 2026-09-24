@@ -1,10 +1,10 @@
 IdempotencyOrderingIT: @Idempotent (key insert) x @Transactional, both orderings
 
 check inside tx, concurrent duplicate
-  Race[successes=1, duplicates=1, loserBlockedOnLock=true]
+  Race[successes=1, duplicates=1, loserBlockedOnLock=true, loserFinishedWhileWinnerHeld=false]
 check inside tx, retry after failure
   retry ran; trades=1, key rows=1
 check outside tx, concurrent duplicate
-  Race[successes=1, duplicates=1, loserBlockedOnLock=false]
+  Race[successes=1, duplicates=1, loserBlockedOnLock=false, loserFinishedWhileWinnerHeld=true]
 check outside tx, retry after failure
   retry rejected as duplicate; trades=0, key rows=1
