@@ -1,0 +1,25 @@
+# Stage 04, section 9 - why the simulated environment variable replaces the
+# systemEnvironment property source instead of being added with addFirst.
+#
+# Mutation run on 2026-09-24, JDK 21.0.12-tem, Spring Boot 4.1.1:
+# ConfigurationPrecedenceTest with the env simulation changed to
+#   getPropertySources().addFirst(new MapPropertySource("test-env-simulation",
+#       Map.of("accrual.rounding-precision", "6")))
+# i.e. the approach the plan first proposed. Layers: base=2, local=4, env=6,
+# command line=8. Only the command-line case fails: a source added first ranks
+# above commandLineArgs, so the "environment variable" wins over the command
+# line - the opposite of the real order. The committed test swaps the
+# systemEnvironment source in place and passes all seven cases.
+
+[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 2.737 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.config.ConfigurationPrecedenceTest
+[ERROR] com.jerome.slledger.bootstrap.config.ConfigurationPrecedenceTest.commandLineOverEnvironmentVariable -- Time elapsed: 0.152 s <<< FAILURE!
+expected: 8
+ but was: 6
+[ERROR] Failures: 
+[ERROR]   ConfigurationPrecedenceTest.commandLineOverEnvironmentVariable:56->assertResolved:70 
+expected: 8
+ but was: 6
+[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0
+[INFO] Bootstrap .......................................... FAILURE [  4.134 s]
+[INFO] BUILD FAILURE
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test (default-test) on project bootstrap: There are test failures.

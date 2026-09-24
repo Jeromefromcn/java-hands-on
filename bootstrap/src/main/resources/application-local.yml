@@ -1,0 +1,8 @@
+# A developer's machine: the mock source, bounds narrowed to resemble a desk's.
+accrual:
+  rate-lower-bound: 0.0050
+  rate-upper-bound: 0.0800
+  rounding-precision: 4
+
+marketdata:
+  source: mock

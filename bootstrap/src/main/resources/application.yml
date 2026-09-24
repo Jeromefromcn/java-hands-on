@@ -7,3 +7,6 @@ accrual:
   rate-lower-bound: 0.0000
   rate-upper-bound: 0.2000
   rounding-precision: 2
+
+marketdata:
+  source: mock

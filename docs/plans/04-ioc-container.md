@@ -330,7 +330,7 @@ between this commit and the next.
 
 ---
 
-## [ ] 9 · Profiles and precedence
+## [x] 9 · Profiles and precedence
 
 `bootstrap/src/main/resources/application.yml` gains
 `marketdata.source: mock` (the `accrual.*` base values arrived in section 8).
@@ -360,6 +360,18 @@ by re-reading YAML files — proving resolution, not configuration.
 local < simulated-env < command-line, chosen as distinct numbers precisely so
 a wrong precedence produces a wrong number instead of an accidental pass);
 `./mvnw verify` green.
+
+Settled while writing it — step 3 as written above proves the wrong order.
+`addFirst` puts the simulated source above `commandLineArgs`, so step 4
+resolves to the "env" value: checked by mutation, evidence in
+`docs/evidence/04-config-precedence.txt`. The test instead replaces the
+`systemEnvironment` source in place with the real environment plus
+`ACCRUAL_ROUNDINGPRECISION=6` — same name, same rank as a real variable.
+Values: base 2, `local` 4, env 6, command line 8. Each case also reads the
+bound `AccrualRuleProperties`, so resolution and binding are shown to agree.
+A parameterised case starts `local`, `test` and `prod` and asserts which
+market-data source each wires (`prod` → `realReferenceRates`), which is what
+gives `application-test.yml` and `application-prod.yml` a test at all.
 
 ---
 
