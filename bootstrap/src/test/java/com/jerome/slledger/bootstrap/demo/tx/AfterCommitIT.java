@@ -6,9 +6,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.jerome.slledger.bootstrap.demo.tx.async.AsyncConfig;
 import com.jerome.slledger.bootstrap.demo.tx.async.BookingWithAfterCommitRead;
 import com.jerome.slledger.bootstrap.demo.tx.async.TradeReader;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -19,6 +21,12 @@ import org.junit.jupiter.api.Timeout;
  */
 @Timeout(30)
 class AfterCommitIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   @Test
   @DisplayName("triggered after commit, the async read sees the trade")

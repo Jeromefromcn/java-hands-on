@@ -10,6 +10,7 @@ import com.jerome.slledger.bootstrap.demo.tx.isolation.ReadModifyWriteReturn;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.RepeatableReadReturn;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.RetryingReturn;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.sql.SQLException;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -35,6 +37,12 @@ import org.junit.jupiter.api.Timeout;
  */
 @Timeout(30)
 class IsolationIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   private static final Map<String, String> BALANCES = new TreeMap<>();
 
@@ -136,9 +144,11 @@ class IsolationIT {
                 }));
       }
       List<Throwable> failures = new ArrayList<>();
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
       for (Future<?> call : calls) {
         try {
-          call.get(20, TimeUnit.SECONDS);
+          // One deadline for both calls, inside the class's 30 s timeout.
+          call.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
         } catch (ExecutionException e) {
           failures.add(e.getCause());
         } catch (TimeoutException e) {

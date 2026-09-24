@@ -37,10 +37,17 @@ public class AccrualEntryRows {
 
   public Optional<AccrualEntry> find(LoanPositionId id, LocalDate on) {
     return jdbc.sql(
-            "SELECT amount, currency FROM accrual_entry"
+            "SELECT position_id, business_date, amount, currency FROM accrual_entry"
                 + " WHERE position_id = ? AND business_date = ?")
         .params(id.value(), on)
-        .query((rs, rowNum) -> new AccrualEntry(id, on, readFee(rs)))
+        // Every field from its column, not from the arguments: otherwise record equality in the
+        // round-trip test would never check that position and date survived.
+        .query(
+            (rs, rowNum) ->
+                new AccrualEntry(
+                    new LoanPositionId(rs.getString("position_id")),
+                    rs.getObject("business_date", LocalDate.class),
+                    readFee(rs)))
         .optional();
   }
 

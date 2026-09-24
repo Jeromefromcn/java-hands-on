@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.jerome.slledger.bootstrap.demo.tx.deadlock.InnerAdjustment;
 import com.jerome.slledger.bootstrap.demo.tx.deadlock.OuterAdjustment;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.lang.management.ManagementFactory;
@@ -24,6 +25,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -38,6 +40,12 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  */
 @Timeout(30)
 class RequiresNewSelfDeadlockIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   private static final int POOL_SIZE = 3;
   private static final String[] PROPERTIES = {

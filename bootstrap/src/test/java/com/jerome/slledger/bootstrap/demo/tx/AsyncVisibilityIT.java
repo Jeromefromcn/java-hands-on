@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jerome.slledger.bootstrap.demo.tx.async.AsyncConfig;
 import com.jerome.slledger.bootstrap.demo.tx.async.BookingWithAsyncRead;
 import com.jerome.slledger.bootstrap.demo.tx.async.TradeReader;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -17,6 +19,12 @@ import org.junit.jupiter.api.Timeout;
  */
 @Timeout(30)
 class AsyncVisibilityIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   // The transaction is bound to the calling thread; the @Async method runs on a pool thread, takes
   // its own connection, and cannot see a row the caller has not committed yet.

@@ -4,20 +4,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.bootstrap.demo.tx.support.AccrualEntryRows;
 import com.jerome.slledger.bootstrap.demo.tx.support.PositionAccrualStep;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import com.jerome.slledger.bootstrap.demo.tx.template.TemplateDailyAccrualBatch;
+import com.zaxxer.hikari.HikariDataSource;
 import java.time.LocalDate;
 import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * {@code RequiresNewAccrualIT}'s batch again, with each position's {@code REQUIRES_NEW} boundary
  * drawn by a {@code TransactionTemplate} inside the loop instead of by a second bean's annotation.
  */
+@Timeout(30)
 class TransactionTemplateIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   private static final LocalDate ON = LocalDate.of(2026, 3, 16);
 
@@ -48,6 +59,10 @@ class TransactionTemplateIT {
                   .list())
           .containsExactly("P1", "P2", "P4", "P5");
       assertThat(rows.accrualRunCount()).isEqualTo(1);
+      // Each template transaction returned its connection, P3's failed one included.
+      assertThat(
+              context.getBean(HikariDataSource.class).getHikariPoolMXBean().getActiveConnections())
+          .isZero();
     }
   }
 }

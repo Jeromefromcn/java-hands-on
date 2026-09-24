@@ -8,6 +8,7 @@ import com.jerome.slledger.bootstrap.demo.tx.propagation.PositionAccrual;
 import com.jerome.slledger.bootstrap.demo.tx.support.AccrualEntryRows;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
 import com.jerome.slledger.bootstrap.demo.tx.support.PositionAccrualStep;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import com.zaxxer.hikari.HikariDataSource;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -30,6 +32,12 @@ import org.springframework.transaction.CannotCreateTransactionException;
  */
 @Timeout(30)
 class RequiresNewAccrualIT {
+
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
 
   private static final LocalDate ON = LocalDate.of(2026, 3, 16);
   private static final Map<String, String> MEASURED = new ConcurrentHashMap<>();

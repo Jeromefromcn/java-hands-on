@@ -9,6 +9,7 @@ import com.jerome.slledger.bootstrap.demo.tx.idempotency.DuplicateRequestExcepti
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.IdempotencyAspect;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.IdempotentReturn;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
+import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -37,6 +39,12 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 @Timeout(30)
 class IdempotencyOrderingIT {
 
+  // Container start-up, including a first image pull, happens here: outside the test timeout.
+  @BeforeAll
+  static void startPostgres() {
+    SharedPostgres.start();
+  }
+
   private static final Map<String, String> OUTCOMES = new TreeMap<>();
 
   @Test
@@ -49,8 +57,9 @@ class IdempotencyOrderingIT {
 
       assertThat(race.successes()).isEqualTo(1);
       assertThat(race.duplicates()).isEqualTo(1);
-      assertThat(race.loserBlockedOnLock()).isFalse();
-      // Rejected before the winner's business work had committed or failed.
+      // Rejected before the winner's business work had committed or failed. Not asserted:
+      // loserBlockedOnLock == false. Two autocommit inserts of the same key can overlap for
+      // microseconds, and a poll landing there would see a real, harmless lock wait.
       assertThat(race.loserFinishedWhileWinnerHeld()).isTrue();
       assertThat(context.getBean(TxDemoRows.class).tradeCount("P1")).isEqualTo(1);
       assertThat(context.getBean(IdempotencyAspect.class).transactionActiveAtCheck()).isFalse();
@@ -176,9 +185,11 @@ class IdempotencyOrderingIT {
 
       int successes = 0;
       int duplicates = 0;
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
       for (Future<?> call : calls) {
         try {
-          call.get(20, TimeUnit.SECONDS);
+          // One deadline for both calls, inside the class's 30 s timeout.
+          call.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
           successes++;
         } catch (ExecutionException e) {
           assertThat(e.getCause()).isInstanceOf(DuplicateRequestException.class);

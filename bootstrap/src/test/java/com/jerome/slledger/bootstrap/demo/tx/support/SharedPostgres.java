@@ -16,10 +16,18 @@ public final class SharedPostgres {
 
   private SharedPostgres() {}
 
-  public static synchronized String[] datasourceProperties() {
+  /**
+   * Starts the container if it is not running yet. Tests with a {@code @Timeout} call this from
+   * {@code @BeforeAll}, so a first image pull and container start are not charged to a test.
+   */
+  public static synchronized void start() {
     if (!CONTAINER.isRunning()) {
       CONTAINER.start();
     }
+  }
+
+  public static synchronized String[] datasourceProperties() {
+    start();
     return new String[] {
       "spring.datasource.url=" + CONTAINER.getJdbcUrl(),
       "spring.datasource.username=" + CONTAINER.getUsername(),
