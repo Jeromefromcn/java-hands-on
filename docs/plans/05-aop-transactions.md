@@ -144,7 +144,7 @@ tests green. `./mvnw verify` green.
 
 ---
 
-## [ ] 2 · The money invariant at its first column
+## [x] 2 · The money invariant at its first column
 
 `demo.tx.support.AccrualEntryRows`:
 
