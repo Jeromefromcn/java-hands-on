@@ -397,7 +397,7 @@ Before/after balances per case to `docs/evidence/05-lost-update.txt`.
 
 ---
 
-## [ ] 9 · Transaction + `@Async`: reading before commit
+## [x] 9 · Transaction + `@Async`: reading before commit
 
 `demo.tx.async`:
 
