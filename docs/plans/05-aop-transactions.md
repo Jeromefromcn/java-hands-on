@@ -251,7 +251,7 @@ demos, as intended.
 
 ---
 
-## [ ] 5 · `REQUIRES_NEW` in the daily accrual, and pool starvation
+## [x] 5 · `REQUIRES_NEW` in the daily accrual, and pool starvation
 
 `demo.tx.propagation`:
 
