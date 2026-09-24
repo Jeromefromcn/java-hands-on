@@ -375,7 +375,7 @@ gives `application-test.yml` and `application-prod.yml` a test at all.
 
 ---
 
-## [ ] 10 · Decision record
+## [x] 10 · Decision record
 
 `docs/decisions/04-ioc-container.md`: the bean lifecycle order from section 2
 written out as prose (not just "see the test"); the `proxyBeanMethods = false`
