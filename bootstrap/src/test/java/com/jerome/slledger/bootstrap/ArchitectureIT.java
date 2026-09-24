@@ -5,6 +5,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,11 +25,17 @@ import org.junit.jupiter.api.Test;
  * docs/decisions/03-testing-foundation.md}. The point of writing them now, rather than when the
  * first violating class would appear, is that the first class that would violate rule 1 or rule 3
  * fails the build the moment it is written, not after a review misses it.
+ *
+ * <p>Test classes are not imported. The rules govern production code; test-only demos are exactly
+ * where reproductions belong, and stage 5's {@code @Transactional} demos under {@code
+ * bootstrap/src/test} would otherwise violate rule 3 by design.
  */
 class ArchitectureIT {
 
   private static final JavaClasses CLASSES =
-      new ClassFileImporter().importPackages("com.jerome.slledger");
+      new ClassFileImporter()
+          .withImportOption(new ImportOption.DoNotIncludeTests())
+          .importPackages("com.jerome.slledger");
 
   @Test
   @DisplayName(

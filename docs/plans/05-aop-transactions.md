@@ -49,7 +49,7 @@ a test in the section named.
 
 ---
 
-## [ ] 1 · Test-scope JDBC, a shared Postgres, and the two fixes it forces
+## [x] 1 · Test-scope JDBC, a shared Postgres, and the two fixes it forces
 
 `bootstrap/pom.xml` gains, all `<scope>test</scope>`:
 `org.springframework.boot:spring-boot-starter-jdbc`,

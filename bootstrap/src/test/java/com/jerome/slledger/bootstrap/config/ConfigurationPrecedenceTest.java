@@ -77,7 +77,13 @@ class ConfigurationPrecedenceTest {
     SpringApplicationBuilder builder =
         new SpringApplicationBuilder(SlLedgerApplication.class)
             .web(WebApplicationType.NONE)
-            .bannerMode(Banner.Mode.OFF);
+            .bannerMode(Banner.Mode.OFF)
+            // The JDBC starter is on the test classpath only, for stage 5's transaction demos.
+            // The real application has no datasource, so the auto-configuration that the test
+            // classpath would otherwise trigger is switched off here rather than given a URL.
+            .properties(
+                "spring.autoconfigure.exclude="
+                    + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration");
     if (withEnvVar) {
       // A running JVM cannot set its own environment variables. Instead the systemEnvironment
       // property source is swapped for one holding the real environment plus one variable: same
