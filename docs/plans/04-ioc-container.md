@@ -242,7 +242,7 @@ MockHttpServletRequest())` on `RequestContextHolder`, reset in `finally`:
 
 ---
 
-## [ ] 7 · Conditional wiring: market-data source
+## [x] 7 · Conditional wiring: market-data source
 
 `com.jerome.slledger.bootstrap.marketdata` (`main`):
 `MockReferenceRates` and `RealReferenceRates`, both `implements
@@ -268,6 +268,16 @@ asserted against the actual `System.getProperty("os.name")` read at test
 time (`context.containsBean("diagnosticsBean")` equals whether the running
 JVM's OS matches), not hardcoded to the CI runner's expected family — this
 keeps the test honest if it ever runs on a different OS.
+
+Settled while writing it: `OnOperatingSystemCondition` and `DiagnosticsBean`
+are demo beans, so per the ground rules they live in the test-only
+`demo.conditional` package, not `marketdata`; the test registers
+`DiagnosticsBean` on its own runner. The condition reads `os.name` through
+the `Environment` rather than `System.getProperty`, which is what makes a
+second case possible: `withSystemProperties("os.name=Windows 11")` turns the
+bean off, so the condition is shown to decide, not just to agree with this
+machine. A fifth case asserts the selected source is the `@Timed` JDK proxy —
+the spec's "the two sections compose in one context".
 
 **Acceptance** — all assertions pass; `./mvnw verify` green.
 
