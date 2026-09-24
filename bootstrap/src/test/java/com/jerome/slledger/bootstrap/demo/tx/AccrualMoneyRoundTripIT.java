@@ -1,6 +1,7 @@
 package com.jerome.slledger.bootstrap.demo.tx;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.jerome.slledger.bootstrap.demo.tx.support.AccrualEntryRows;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
@@ -13,8 +14,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Currency;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * The money invariant at the first column it crosses into: {@code amount numeric(19,6)} plus {@code
@@ -49,6 +52,26 @@ class AccrualMoneyRoundTripIT {
       // above holds only because Money's constructor re-scales to the currency's minor units on
       // the way back in. The column type does not carry the invariant; Money does.
       assertThat(rows.rawAmount(POSITION, ON).scale()).isEqualTo(6);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "an amount with more digits than its currency allows is refused on read, not rounded")
+  void overPreciseAmountIsRefusedOnRead() {
+    try (var context = TxDemo.start(AccrualEntryRows.class)) {
+      // Written by anything other than AccrualEntryRows: the column accepts 6 decimal places,
+      // HKD has 2. Rounding it on read would be a second, silent rounding step outside domain.
+      context
+          .getBean(JdbcClient.class)
+          .sql(
+              "INSERT INTO accrual_entry(position_id, business_date, amount, currency)"
+                  + " VALUES ('P1', ?, 143.845, 'HKD')")
+          .param(ON)
+          .update();
+
+      assertThatThrownBy(() -> context.getBean(AccrualEntryRows.class).find(POSITION, ON))
+          .isInstanceOf(ArithmeticException.class);
     }
   }
 }
