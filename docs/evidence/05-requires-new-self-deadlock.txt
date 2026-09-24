@@ -1,0 +1,88 @@
+RequiresNewSelfDeadlockIT.reproducesRequiresNewSelfDeadlock
+OuterAdjustment.adjust [REQUIRED] updates P1, then InnerAdjustment.adjust [REQUIRES_NEW, SET LOCAL lock_timeout = '3s'] updates P1
+
+elapsed until the worker's call failed (ms): 3031
+exception: org.springframework.jdbc.UncategorizedSQLException
+root cause SQLState 55P03: ERROR: canceling statement due to lock timeout
+  Where: while updating tuple (0,1) in relation "loan_position"
+
+--- pg_stat_activity while blocked ---
+{pid=74, state=idle in transaction, wait_event_type=Client, wait_event=ClientRead, blocked_by={}, query=UPDATE loan_position SET outstanding_quantity = outstanding_quantity - 1 WHERE id = $1}
+{pid=75, state=active, wait_event_type=Lock, wait_event=transactionid, blocked_by={74}, query=UPDATE loan_position SET outstanding_quantity = outstanding_quantity - 1 WHERE id = $1}
+
+--- pg_locks while blocked (loan_position, tuple, transactionid) ---
+{pid=74, locktype=relation, relation=loan_position, page=null, tuple=null, transactionid=null, mode=RowExclusiveLock, granted=true}
+{pid=74, locktype=transactionid, relation=null, page=null, tuple=null, transactionid=834, mode=ExclusiveLock, granted=true}
+{pid=75, locktype=relation, relation=loan_position, page=null, tuple=null, transactionid=null, mode=RowExclusiveLock, granted=true}
+{pid=75, locktype=transactionid, relation=null, page=null, tuple=null, transactionid=835, mode=ExclusiveLock, granted=true}
+{pid=75, locktype=tuple, relation=loan_position, page=0, tuple=1, transactionid=null, mode=ExclusiveLock, granted=true}
+{pid=75, locktype=transactionid, relation=null, page=null, tuple=null, transactionid=834, mode=ShareLock, granted=false}
+
+--- worker thread stack while blocked ---
+"self-deadlock-worker" RUNNABLE
+    at java.base@21.0.12/sun.nio.ch.Net.poll(Native Method)
+    at java.base@21.0.12/sun.nio.ch.NioSocketImpl.park(NioSocketImpl.java:191)
+    at java.base@21.0.12/sun.nio.ch.NioSocketImpl.park(NioSocketImpl.java:201)
+    at java.base@21.0.12/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:309)
+    at java.base@21.0.12/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:346)
+    at java.base@21.0.12/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:796)
+    at java.base@21.0.12/java.net.Socket$SocketInputStream.read(Socket.java:1099)
+    at app//org.postgresql.core.VisibleBufferedInputStream.readMore(VisibleBufferedInputStream.java:192)
+    at app//org.postgresql.core.VisibleBufferedInputStream.ensureBytes(VisibleBufferedInputStream.java:159)
+    at app//org.postgresql.core.VisibleBufferedInputStream.ensureBytes(VisibleBufferedInputStream.java:144)
+    at app//org.postgresql.core.VisibleBufferedInputStream.read(VisibleBufferedInputStream.java:76)
+    at app//org.postgresql.core.PGStream.receiveChar(PGStream.java:480)
+    at app//org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:2383)
+    at app//org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:446)
+    at app//org.postgresql.jdbc.PgStatement.executeInternal(PgStatement.java:533)
+    at app//org.postgresql.jdbc.PgStatement.execute(PgStatement.java:449)
+    at app//org.postgresql.jdbc.PgPreparedStatement.executeWithFlags(PgPreparedStatement.java:197)
+    at app//org.postgresql.jdbc.PgPreparedStatement.executeUpdate(PgPreparedStatement.java:158)
+    at app//com.zaxxer.hikari.pool.ProxyPreparedStatement.executeUpdate(ProxyPreparedStatement.java:61)
+    at app//com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeUpdate(HikariProxyPreparedStatement.java)
+    at app//org.springframework.jdbc.core.JdbcTemplate.lambda$update$0(JdbcTemplate.java:971)
+    at app//org.springframework.jdbc.core.JdbcTemplate$$Lambda/0x00000030016ba248.doInPreparedStatement(Unknown Source)
+    at app//org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:670)
+    at app//org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:966)
+    at app//org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:987)
+    at app//org.springframework.jdbc.core.simple.DefaultJdbcClient$DefaultStatementSpec.update(DefaultJdbcClient.java:282)
+    at app//com.jerome.slledger.bootstrap.demo.tx.deadlock.InnerAdjustment.adjust(InnerAdjustment.java:28)
+    at java.base@21.0.12/java.lang.invoke.DirectMethodHandle$Holder.invokeVirtual(DirectMethodHandle$Holder)
+    at java.base@21.0.12/java.lang.invoke.LambdaForm$MH/0x00000030013b8c00.invoke(LambdaForm$MH)
+    at java.base@21.0.12/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+    at java.base@21.0.12/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:154)
+    at java.base@21.0.12/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+    at java.base@21.0.12/java.lang.reflect.Method.invoke(Method.java:580)
+    at app//org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158)
+    at app//org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133)
+    at app//org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371)
+    at app//org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179)
+    at app//org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719)
+    at app//com.jerome.slledger.bootstrap.demo.tx.deadlock.InnerAdjustment$$SpringCGLIB$$0.adjust(<generated>)
+    at app//com.jerome.slledger.bootstrap.demo.tx.deadlock.OuterAdjustment.adjust(OuterAdjustment.java:24)
+    at java.base@21.0.12/java.lang.invoke.DirectMethodHandle$Holder.invokeVirtual(DirectMethodHandle$Holder)
+    at java.base@21.0.12/java.lang.invoke.LambdaForm$MH/0x00000030013b8c00.invoke(LambdaForm$MH)
+    at java.base@21.0.12/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+    at java.base@21.0.12/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:154)
+    at java.base@21.0.12/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+    at java.base@21.0.12/java.lang.reflect.Method.invoke(Method.java:580)
+    at app//org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158)
+    at app//org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133)
+    at app//org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371)
+    at app//org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130)
+    at app//org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179)
+    at app//org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719)
+    at app//com.jerome.slledger.bootstrap.demo.tx.deadlock.OuterAdjustment$$SpringCGLIB$$0.adjust(<generated>)
+    at app//com.jerome.slledger.bootstrap.demo.tx.RequiresNewSelfDeadlockIT.lambda$1(RequiresNewSelfDeadlockIT.java:89)
+    at app//com.jerome.slledger.bootstrap.demo.tx.RequiresNewSelfDeadlockIT$$Lambda/0x00000030016eb710.run(Unknown Source)
+    at java.base@21.0.12/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+    at java.base@21.0.12/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+    at java.base@21.0.12/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+    at java.base@21.0.12/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+    at java.base@21.0.12/java.lang.Thread.runWith(Thread.java:1596)
+    at java.base@21.0.12/java.lang.Thread.run(Thread.java:1583)

@@ -290,7 +290,7 @@ Measured active count and starvation wait go to
 
 ---
 
-## [ ] 6 · `REQUIRES_NEW` self-deadlock
+## [x] 6 · `REQUIRES_NEW` self-deadlock
 
 `demo.tx.deadlock`:
 
@@ -321,6 +321,16 @@ Stack, lock snapshot and elapsed time to
 **Acceptance** — both tests pass; evidence shows the worker thread parked
 inside the inner `UPDATE` and two backends of the same JVM, one holding and
 one waiting on the same tuple. `./mvnw verify` green.
+
+**Found while implementing:** the leak check as first written passed with a
+plain `SET` too — the self-deadlock path always rolls back, and Postgres
+reverts even a plain `SET` on rollback. The test now also runs a committed
+`InnerAdjustment.adjust` (called directly, no outer lock) before borrowing
+the pool; with `SET` in place of `SET LOCAL` it fails on `"3s"`. And the
+evidence shows the waiter blocked on the holder's `transactionid`
+(`ShareLock`, not granted) while itself holding the `tuple` lock — not two
+backends on the same tuple; the worker thread is `RUNNABLE` in a socket
+read, not parked.
 
 ---
 
