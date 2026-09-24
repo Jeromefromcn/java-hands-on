@@ -7,6 +7,7 @@ import com.jerome.slledger.bootstrap.demo.tx.propagation.DailyAccrualBatch;
 import com.jerome.slledger.bootstrap.demo.tx.propagation.PositionAccrual;
 import com.jerome.slledger.bootstrap.demo.tx.support.AccrualEntryRows;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
+import com.jerome.slledger.bootstrap.demo.tx.support.PositionAccrualStep;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import com.zaxxer.hikari.HikariDataSource;
@@ -82,7 +83,11 @@ class RequiresNewAccrualIT {
     };
     try (var context =
         TxDemo.start(
-            poolOfOne, DailyAccrualBatch.class, PositionAccrual.class, AccrualEntryRows.class)) {
+            poolOfOne,
+            DailyAccrualBatch.class,
+            PositionAccrual.class,
+            PositionAccrualStep.class,
+            AccrualEntryRows.class)) {
       seedPositions(context.getBean(TxDemoRows.class));
       DailyAccrualBatch batch = context.getBean(DailyAccrualBatch.class);
 
@@ -114,7 +119,11 @@ class RequiresNewAccrualIT {
   }
 
   private static ConfigurableApplicationContext startBatch() {
-    return TxDemo.start(DailyAccrualBatch.class, PositionAccrual.class, AccrualEntryRows.class);
+    return TxDemo.start(
+        DailyAccrualBatch.class,
+        PositionAccrual.class,
+        PositionAccrualStep.class,
+        AccrualEntryRows.class);
   }
 
   /** P3's negative quantity is rejected by domain, not by the database or a test-only switch. */

@@ -443,7 +443,7 @@ Before/after balances per case to `docs/evidence/05-lost-update.txt`.
 
 ---
 
-## [ ] 11 · `TransactionTemplate`: a boundary finer than the method
+## [x] 11 · `TransactionTemplate`: a boundary finer than the method
 
 `demo.tx.template.TemplateDailyAccrualBatch.run(LocalDate on)` —
 `@Transactional`, inserts the `accrual_run` row, then per position runs the
