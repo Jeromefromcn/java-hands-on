@@ -465,7 +465,7 @@ extraction. `./mvnw verify` green.
 
 ---
 
-## [ ] 12 · `@Idempotent` × `@Transactional`: who is on the outside
+## [x] 12 · `@Idempotent` × `@Transactional`: who is on the outside
 
 `demo.tx.idempotency`:
 
@@ -504,6 +504,22 @@ confirms or falsifies it, and the decision record reports which.
 
 **Acceptance** — four tests pass (with the prediction confirmed or the test
 and record adjusted to what was measured). `./mvnw verify` green.
+
+**Found while implementing, fixed as its own commit:** `SlLedgerApplication`
+component-scans `com.jerome.slledger.bootstrap`, which on the test classpath
+includes `demo.tx`. `TxDemoApplication` (`@SpringBootConfiguration`, since
+section 1) and `AsyncConfig` (`@Configuration`, since section 9) were being
+loaded into stage 4's full-application tests silently; section 12's two
+ordering configs collided on a bean name and made it visible. The demo
+configuration classes now carry no stereotype — their `@Enable…` annotation
+carries an `@Import`, so `TxDemo.start` still processes them — and
+`ApplicationScanTest` asserts no `demo.tx` bean reaches the application
+(red with `[asyncConfig, txDemoApplication]` before the fix).
+
+The concurrent-duplicate prediction is observed, not inferred: the winner is
+held inside its business work; with the check inside, the loser appears in
+`pg_stat_activity` waiting on a lock; with it outside, the loser is rejected
+while the winner is still held.
 
 ---
 
