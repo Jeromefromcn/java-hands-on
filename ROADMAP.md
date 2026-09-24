@@ -113,14 +113,14 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **BOM 導入**：引入 `spring-boot-dependencies` 作為 BOM（`<scope>import</scope>`），對比「繼承 `spring-boot-starter-parent`」的做法。**受監管環境大多不能繼承外部 parent**（父 POM 要是公司自己的），所以 import BOM 才是真實寫法——寫下兩者差別
-- [ ] **依賴範圍**：跑 `./mvnw dependency:tree`，看清 `compile` / `provided` / `runtime` / `test` 的傳遞規則。故意把 `domain` 的一個依賴標成 `compile`，觀察它怎麼傳遞洩漏到 `adapter-web`
-- [ ] **依賴衝突**：手動引入同一個庫的兩個版本，用 `dependency:tree -Dverbose` 找出 Maven 的「最近優先」仲裁結果。再用 `<exclusions>` 與 `dependencyManagement` 兩種方式各修一次。**這是階段 15 那個 `NoSuchMethodError` 的前置**
-- [ ] **`maven-enforcer-plugin`**：加規則——禁止依賴收斂衝突（`dependencyConvergence`）、禁止 SNAPSHOT 依賴、鎖定 JDK 與 Maven 最低版本。違反就 fail build
-- [ ] **模組邊界**：用 enforcer 的 `bannedDependencies` 檢查 `domain` 模組不引入任何第三方依賴
-- [ ] **profiles**：`local` / `ci` 兩個 profile，驗證 profile 激活的幾種方式與優先級
-- [ ] **可重現構建**：設 `project.build.outputTimestamp`，連續兩次 `clean package` 對比 jar 的 checksum。**這在受監管環境是合規要求，不是潔癖**
-- [ ] **Gradle 對照（半天）**：同一套多模組結構用 Gradle + Version Catalog 再寫一遍。寫決策記錄《Maven vs Gradle：什麼場景選哪個》——重點答構建可審計性與增量構建速度的取捨，不要答「Gradle 更現代」
+- [x] **BOM 導入**：引入 `spring-boot-dependencies` 作為 BOM（`<scope>import</scope>`），對比「繼承 `spring-boot-starter-parent`」的做法。**受監管環境大多不能繼承外部 parent**（父 POM 要是公司自己的），所以 import BOM 才是真實寫法——寫下兩者差別
+- [ ] **依賴範圍**：跑 `./mvnw dependency:tree`，看清 `compile` / `provided` / `runtime` / `test` 的傳遞規則。故意把 `domain` 的一個依賴標成 `compile`，觀察它怎麼傳遞洩漏到 `adapter-web` *(partial: the compile-scope leak was shown inside `domain` via `bannedDependencies`, not traced into `adapter-web`)*
+- [x] **依賴衝突**：手動引入同一個庫的兩個版本，用 `dependency:tree -Dverbose` 找出 Maven 的「最近優先」仲裁結果。再用 `<exclusions>` 與 `dependencyManagement` 兩種方式各修一次。**這是階段 15 那個 `NoSuchMethodError` 的前置**
+- [x] **`maven-enforcer-plugin`**：加規則——禁止依賴收斂衝突（`dependencyConvergence`）、禁止 SNAPSHOT 依賴、鎖定 JDK 與 Maven 最低版本。違反就 fail build
+- [x] **模組邊界**：用 enforcer 的 `bannedDependencies` 檢查 `domain` 模組不引入任何第三方依賴
+- [x] **profiles**：`local` / `ci` 兩個 profile，驗證 profile 激活的幾種方式與優先級
+- [x] **可重現構建**：設 `project.build.outputTimestamp`，連續兩次 `clean package` 對比 jar 的 checksum。**這在受監管環境是合規要求，不是潔癖**
+- [ ] **Gradle 對照（半天）**：同一套多模組結構用 Gradle + Version Catalog 再寫一遍。寫決策記錄《Maven vs Gradle：什麼場景選哪個》——重點答構建可審計性與增量構建速度的取捨，不要答「Gradle 更現代」 *(deferred indefinitely — see `docs/decisions/01-project-skeleton.md`)*
 
 **口頭驗收**
 
@@ -135,22 +135,22 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **不可變性**：`Money` 用 `record`（amount + currency），所有運算返回新實例；加法遇到幣種不同直接拋異常
-- [ ] **精度**：故意用 `double` 實現一次計息，跑 365 天累加，對比 `BigDecimal` 版本的差額。把差額數字寫進決策記錄——這是最容易講出實感的一個數字
-- [ ] **捨入策略**：`RoundingMode` 選哪個？在哪一步捨入（每筆捨 vs 最後捨）？寫下選擇與理由
-- [ ] **`sealed interface`**：`LoanEvent` 封閉為 `Opened` / `Returned` / `Accrued` / `MarginCalled`，用 pattern matching switch 處理，驗證編譯器的窮盡性檢查
-- [ ] **`equals`/`hashCode`**：給 `LoanPosition` 一個值物件 ID，故意寫錯 `hashCode`（只用部分欄位），放進 `HashMap` 觀察撈不回來的現象
-- [ ] **`java.time`**：實現 T+2 結算日計算，要跳過週末與香港公眾假期。這裏會逼你面對 `LocalDate` vs `ZonedDateTime` vs `Instant` 的選擇——業務日期用哪個、時間戳用哪個，寫下來
-- [ ] **異常體系**：定義 `DomainException` 分支（額度不足、頭寸不存在、歸還超額）。checked vs unchecked 選哪個、為什麼——這是高頻追問
-- [ ] **`Optional`**：只在返回值用，不當欄位、不當參數。故意違反一次，看它怎麼污染調用方
-- [ ] **Stream**：用 `Collectors.groupingBy` + `teeing` 做一次頭寸按對手方的彙總，對比 for 迴圈版本的可讀性
-- [ ] **設計模式落地**：不要為了用而用，從本項目的真實需求出發挑四個——
+- [x] **不可變性**：`Money` 用 `record`（amount + currency），所有運算返回新實例；加法遇到幣種不同直接拋異常
+- [x] **精度**：故意用 `double` 實現一次計息，跑 365 天累加，對比 `BigDecimal` 版本的差額。把差額數字寫進決策記錄——這是最容易講出實感的一個數字
+- [x] **捨入策略**：`RoundingMode` 選哪個？在哪一步捨入（每筆捨 vs 最後捨）？寫下選擇與理由
+- [x] **`sealed interface`**：`LoanEvent` 封閉為 `Opened` / `Returned` / `Accrued` / `MarginCalled`，用 pattern matching switch 處理，驗證編譯器的窮盡性檢查
+- [x] **`equals`/`hashCode`**：給 `LoanPosition` 一個值物件 ID，故意寫錯 `hashCode`（只用部分欄位），放進 `HashMap` 觀察撈不回來的現象
+- [x] **`java.time`**：實現 T+2 結算日計算，要跳過週末與香港公眾假期。這裏會逼你面對 `LocalDate` vs `ZonedDateTime` vs `Instant` 的選擇——業務日期用哪個、時間戳用哪個，寫下來
+- [x] **異常體系**：定義 `DomainException` 分支（額度不足、頭寸不存在、歸還超額）。checked vs unchecked 選哪個、為什麼——這是高頻追問
+- [x] **`Optional`**：只在返回值用，不當欄位、不當參數。故意違反一次，看它怎麼污染調用方
+- [x] **Stream**：用 `Collectors.groupingBy` + `teeing` 做一次頭寸按對手方的彙總，對比 for 迴圈版本的可讀性
+- [x] **設計模式落地**：不要為了用而用，從本項目的真實需求出發挑四個——
   - **策略**：計息規則（固定費率 / 階梯費率 / 浮動）
   - **狀態機**：`LoanPosition` 的 `OPEN → PARTIALLY_RETURNED → CLOSED`，非法轉換直接拋異常
   - **建造者**：`LoanTrade` 欄位多且有約束，對比 `record` 全參構造的可讀性
   - **模板方法 vs 策略**：日切與重估兩個批次的共同骨架該用哪個，寫下理由
   每個寫一句「不用它會變成什麼樣」——**答得出反面才算懂**
-- [ ] **資料結構選型**：頭寸按到期日排序取最近 N 筆——`TreeMap` / `PriorityQueue` / 排序後的 `List` 各寫一版，貼出三組耗時與各自的適用邊界
+- [x] **資料結構選型**：頭寸按到期日排序取最近 N 筆——`TreeMap` / `PriorityQueue` / 排序後的 `List` 各寫一版，貼出三組耗時與各自的適用邊界
 
 **口頭驗收**：5 分鐘講清「為什麼金融系統不用 `double`」，能舉出自己跑出來的那個差額數字。
 
@@ -162,14 +162,14 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] JUnit 5：`@Nested` 組織測試、`@ParameterizedTest` + `@CsvSource` 驗計息表、`@DisplayName` 寫成業務句子
-- [ ] AssertJ：自定義 `MoneyAssert`，讓斷言讀起來是 `assertThat(fee).isEqualTo("12.34 HKD")`
-- [ ] Mockito：先寫一個**過度 mock** 的測試（mock 掉領域物件），再改成只 mock 邊界。把兩版都留著，決策記錄裏寫「什麼時候 mock」
-- [ ] ArchUnit：寫三條規則（跑在 `maven-failsafe-plugin` 的集成測試階段）——`domain` 不依賴 `adapter`、`adapter-web` 不直接依賴 `adapter-persistence`、所有 `@Transactional` 只出現在 `application` 層。讓它進 CI
-- [ ] JaCoCo：綁到 `verify` 階段設覆蓋率門檻（`jacoco-maven-plugin` 的 `check` goal），但**在決策記錄裏寫下你為什麼設在這個數字**，以及覆蓋率高但測試沒用的一個具體例子
-- [ ] 測試替身分類：寫一份 `docs/decisions/test-doubles.md`，用本項目的具體例子區分 stub / mock / fake / spy
-- [ ] **BDD**：用 Cucumber 寫**一個** feature 就夠——「對手方借入 1000 股，三天後歸還 400 股，計息應為 X」的 Given-When-Then。目的不是鋪開 BDD，是讓你被問到時能說「我跑過，它和普通單測的分工是⋯⋯」而不是只有概念
-- [ ] **測試金字塔比例**：寫下本項目單元 / 集成 / 端到端的目標比例，以及**金融系統為什麼集成測試佔比通常更高**（對應 06 的過關線）
+- [x] JUnit 5：`@Nested` 組織測試、`@ParameterizedTest` + `@CsvSource` 驗計息表、`@DisplayName` 寫成業務句子
+- [x] AssertJ：自定義 `MoneyAssert`，讓斷言讀起來是 `assertThat(fee).isEqualTo("12.34 HKD")`
+- [x] Mockito：先寫一個**過度 mock** 的測試（mock 掉領域物件），再改成只 mock 邊界。把兩版都留著，決策記錄裏寫「什麼時候 mock」
+- [x] ArchUnit：寫三條規則（跑在 `maven-failsafe-plugin` 的集成測試階段）——`domain` 不依賴 `adapter`、`adapter-web` 不直接依賴 `adapter-persistence`、所有 `@Transactional` 只出現在 `application` 層。讓它進 CI
+- [x] JaCoCo：綁到 `verify` 階段設覆蓋率門檻（`jacoco-maven-plugin` 的 `check` goal），但**在決策記錄裏寫下你為什麼設在這個數字**，以及覆蓋率高但測試沒用的一個具體例子
+- [x] 測試替身分類：寫一份 `docs/decisions/test-doubles.md`，用本項目的具體例子區分 stub / mock / fake / spy
+- [x] **BDD**：用 Cucumber 寫**一個** feature 就夠——「對手方借入 1000 股，三天後歸還 400 股，計息應為 X」的 Given-When-Then。目的不是鋪開 BDD，是讓你被問到時能說「我跑過，它和普通單測的分工是⋯⋯」而不是只有概念
+- [x] **測試金字塔比例**：寫下本項目單元 / 集成 / 端到端的目標比例，以及**金融系統為什麼集成測試佔比通常更高**（對應 06 的過關線）
 
 **口頭驗收**：「你怎麼決定一個東西要不要寫測試」——能從行為 vs 實現的角度答，不是背覆蓋率。
 
@@ -183,14 +183,14 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **Bean 生命週期**：寫一個實現 `BeanNameAware` + `InitializingBean` + `@PostConstruct` + `SmartInitializingSingleton` 的 bean，打印調用順序，畫出完整生命週期圖
-- [ ] **`BeanPostProcessor`**：自己寫一個，給所有帶自定義註解的 bean 包一層計時代理。這是理解 AOP 底層的最短路徑
-- [ ] **`@Configuration` 的 `proxyBeanMethods`**：寫一個 `@Bean` 方法調用另一個 `@Bean` 方法的場景，分別設 `true`/`false`，觀察實例數量差異。**這是高頻追問且大多數人答不出來**
-- [ ] **循環依賴**：故意造一個構造器注入的循環，看它啟動失敗；改成 setter 注入看它成功；寫下為什麼 Spring Boot 2.6 之後默認禁止，以及三級快取解決的是哪一種
-- [ ] **作用域**：把「當前請求的對手方上下文」做成 request scope，再把它注入一個 singleton，觀察需要 `ObjectProvider` 或 scoped proxy 才行的原因
-- [ ] **條件裝配**：用 `@ConditionalOnProperty` 做「行情源：mock / 真實」兩套實現切換；自己寫一個 `@Conditional` 實現
-- [ ] **配置綁定**：`@ConfigurationProperties` + `@Validated` 綁定計息規則（費率上下限、捨入精度），啟動時校驗失敗直接拒絕啟動
-- [ ] **Profile**：`local` / `test` / `prod` 三套，驗證配置優先級（命令列 > 環境變數 > `application-{profile}.yml` > `application.yml`）。**動手驗，不要背順序表**
+- [x] **Bean 生命週期**：寫一個實現 `BeanNameAware` + `InitializingBean` + `@PostConstruct` + `SmartInitializingSingleton` 的 bean，打印調用順序，畫出完整生命週期圖
+- [x] **`BeanPostProcessor`**：自己寫一個，給所有帶自定義註解的 bean 包一層計時代理。這是理解 AOP 底層的最短路徑
+- [x] **`@Configuration` 的 `proxyBeanMethods`**：寫一個 `@Bean` 方法調用另一個 `@Bean` 方法的場景，分別設 `true`/`false`，觀察實例數量差異。**這是高頻追問且大多數人答不出來**
+- [x] **循環依賴**：故意造一個構造器注入的循環，看它啟動失敗；改成 setter 注入看它成功；寫下為什麼 Spring Boot 2.6 之後默認禁止，以及三級快取解決的是哪一種
+- [x] **作用域**：把「當前請求的對手方上下文」做成 request scope，再把它注入一個 singleton，觀察需要 `ObjectProvider` 或 scoped proxy 才行的原因
+- [x] **條件裝配**：用 `@ConditionalOnProperty` 做「行情源：mock / 真實」兩套實現切換；自己寫一個 `@Conditional` 實現
+- [x] **配置綁定**：`@ConfigurationProperties` + `@Validated` 綁定計息規則（費率上下限、捨入精度），啟動時校驗失敗直接拒絕啟動
+- [x] **Profile**：`local` / `test` / `prod` 三套，驗證配置優先級（命令列 > 環境變數 > `application-{profile}.yml` > `application.yml`）。**動手驗，不要背順序表**
 
 **口頭驗收**：不看筆記畫出 Bean 生命週期；說清 `proxyBeanMethods=false` 什麼時候不能用。
 
@@ -478,10 +478,10 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 | 段 | 階段 | 狀態 | 決策記錄 | 口頭驗收 |
 |---|---|---|---|---|
-| A | 1 工程骨架 | ☐ | ☐ | ☐ |
-| A | 2 領域模型 | ☐ | ☐ | ☐ |
-| A | 3 測試地基 | ☐ | ☐ | ☐ |
-| B | 4 IoC 容器 | ☐ | ☐ | ☐ |
+| A | 1 工程骨架 | ☑ | ☑ | ☐ |
+| A | 2 領域模型 | ☑ | ☑ | ☐ |
+| A | 3 測試地基 | ☑ | ☑ | ☐ |
+| B | 4 IoC 容器 | ☑ | ☑ | ☐ |
 | B | 5 AOP 與事務 | ☐ | ☐ | ☐ |
 | B | 6 持久層 | ☐ | ☐ | ☐ |
 | B | 7 Web 層 | ☐ | ☐ | ☐ |
