@@ -94,15 +94,15 @@ undo that — commit throws `UnexpectedRollbackException`
 
 **Why the `REQUIRES_NEW` self-deadlock is invisible to Postgres**
 ([`05-requires-new-self-deadlock.txt`](../evidence/05-requires-new-self-deadlock.txt)).
-The snapshot while blocked: backend 62 (inner) `active`, waiting on
-`transactionid` 746 (`ShareLock`, not granted), `blocked_by={63}`; backend
-63 (outer) `idle in transaction`, waiting on `ClientRead`, holding
-`transactionid` 746. Postgres's deadlock detector looks for a cycle in the
+The snapshot while blocked: backend 75 (inner) `active`, waiting on
+`transactionid` 834 (`ShareLock`, not granted), `blocked_by={74}`; backend
+74 (outer) `idle in transaction`, waiting on `ClientRead`, holding
+`transactionid` 834. Postgres's deadlock detector looks for a cycle in the
 graph of backends waiting on locks. There is one edge in that graph,
-62 → 63. Backend 63 is waiting for its client to send the next statement;
+75 → 74. Backend 74 is waiting for its client to send the next statement;
 the client is the worker thread, and the worker thread's stack shows it
-inside `InnerAdjustment.adjust`, reading the socket of backend 62. The edge
-63 → 62 is a Java method call that has not returned, and it exists only in
+inside `InnerAdjustment.adjust`, reading the socket of backend 75. The edge
+74 → 75 is a Java method call that has not returned, and it exists only in
 the JVM. With no cycle to find, the database would wait forever; only the
 inner transaction's `SET LOCAL lock_timeout = '3s'` ended it, after
 **3031 ms**, SQLState `55P03`. The exception propagated through the outer
@@ -236,9 +236,14 @@ sees". That turned out false for this stage: `SlLedgerApplication` scans
 into stage 4's full-application tests without failing anything, until two
 configuration classes collided on a bean name. `ApplicationScanTest` now
 asserts no `demo.tx` bean reaches the application — it failed first with
-`["asyncConfig", "txDemoApplication"]` (§9). The demo configuration classes
-carry no stereotype; their `@Enable…` annotation carries an `@Import`, so
-`TxDemo.start` still processes them. Test classes' own nested
+`["asyncConfig", "txDemoApplication"]` (§9). The final review then widened
+the guard from `demo.tx` to every `demo` package, and it failed again with
+`["diagnosticsBean"]` (§10): stage 4's own Linux-only `@Component` had been
+in every full-application test context on this machine since stage 4. No
+demo class carries a stereotype now; the configuration ones keep their
+`@Enable…` annotation, which carries an `@Import`, so `TxDemo.start` still
+processes them, and `DiagnosticsBean` keeps its `@Conditional`, which is
+still evaluated when a test registers it explicitly. Test classes' own nested
 `@Configuration` classes (stage 4's `ProxyBeanMethodsIT`) did not leak;
 why was not investigated, so nothing here relies on it.
 
@@ -260,8 +265,8 @@ to handle lock timeouts would miss the self-deadlock. The tests assert
 - **The blocked worker thread is `RUNNABLE`,** in `sun.nio.ch.Net.poll`
   under PgJDBC's socket read — not parked, not `BLOCKED`. A thread dump
   alone would not flag it as waiting on anything; `pg_stat_activity` does.
-- **The waiter waits on a transaction ID, not a tuple.** Backend 62 held the
-  `tuple` lock on `(0,1)` and waited on 63's `transactionid`. The plan's
+- **The waiter waits on a transaction ID, not a tuple.** Backend 75 held the
+  `tuple` lock on `(0,1)` and waited on 74's `transactionid`. The plan's
   wording ("two backends on the same tuple") was corrected to match.
 - **Environment:** VS Code's Java extension compiles into the same
   `target/` as Maven. Once, a mid-edit ECJ build left classes throwing
@@ -277,9 +282,20 @@ to handle lock timeouts would miss the self-deadlock. The tests assert
 scale and currency survived. The raw column value had scale 6 in every
 case; equality holds only because `Money`'s constructor re-scales to the
 currency's minor units on the way back in. The column type does not carry
-the invariant — `Money` does — so every future reader of this table must go
-through `Money.of`, never hand a raw `BigDecimal` onward. `char(3)` comes
-back blank-padded and is trimmed before `Currency.getInstance`.
+the invariant — `Money` does.
+
+That re-scaling is also a rounding, and the first version of the reader
+applied it silently: a row written by anything else as `HKD 143.845` would
+have come back as `143.85`, a second rounding step outside `domain`, where
+the stage-2 rule says rounding happens once. The final review caught it
+(§11). The reader now builds the `Money`, compares its amount with the
+stored value, and refuses the row with `ArithmeticException` if they
+differ; `AccrualMoneyRoundTripIT.overPreciseAmountIsRefusedOnRead` pins it.
+Any future reader of a money column needs the same check, not a bare
+`Money.of`. `char(3)` comes back blank-padded and is trimmed before
+`Currency.getInstance`. `numeric(19,6)` leaves 13 integer digits: ample for
+a daily fee, worth re-checking before stage 6 reuses the type for
+notionals.
 
 ## Where it breaks at 100x
 

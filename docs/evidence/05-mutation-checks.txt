@@ -91,3 +91,18 @@ org.springframework.transaction.UnexpectedRollbackException: Transaction rolled 
    Test: ApplicationScanTest, written first
 
 Expecting empty but was: ["asyncConfig", "txDemoApplication"]
+
+
+10. ApplicationScanTest widened from demo.tx to every demo package
+    (raised by the final branch review)
+
+Expecting empty but was: ["diagnosticsBean"]
+
+
+11. AccrualEntryRows.find, before the read-side precision check
+    Test: AccrualMoneyRoundTripIT.overPreciseAmountIsRefusedOnRead, written first
+    (raised by the final branch review)
+
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 8.156 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.demo.tx.AccrualMoneyRoundTripIT
+[ERROR] com.jerome.slledger.bootstrap.demo.tx.AccrualMoneyRoundTripIT.overPreciseAmountIsRefusedOnRead -- Time elapsed: 6.385 s <<< FAILURE!
+Expecting code to raise a throwable.
