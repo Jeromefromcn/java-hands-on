@@ -202,16 +202,16 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **代理機制**：同一個服務分別用「實現接口」與「不實現接口」兩種寫法，打印 `getClass()`，看 JDK 動態代理與 CGLIB 的差別；把 `proxyTargetClass` 切換一次
-- [ ] **自調用失效**：在一個 service 裏，`methodA()` 直接調用本類的 `@Transactional methodB()`，製造一次資料不一致。**存檔現象**。然後用三種方式修（拆類 / `AopContext.currentProxy()` / 注入自己），寫下各自代價
-- [ ] **傳播行為**：用「日切計息」造一個真實場景——批次裏某一筆頭寸計息失敗，不能讓整批回滾。用 `REQUIRES_NEW` 實現，並驗證它確實開了新連接（打印連接池活躍數，觀察連接翻倍的風險）
-- [ ] **`REQUIRES_NEW` 的坑**：外層事務持有行鎖，內層 `REQUIRES_NEW` 想更新同一行 → 自我死鎖。**造出來，存檔堆疊**
-- [ ] **隔離級別**：Postgres 下分別在 `READ COMMITTED` 與 `REPEATABLE READ` 跑一次「讀取餘額 → 計算 → 寫回」，造出 lost update；再用樂觀鎖修。寫下「金融場景為什麼常要求更高隔離」的真實理由（不是背定義）
-- [ ] **`rollbackFor`**：默認只對 unchecked 回滾——用 checked 異常造一次「異常拋了但事務提交了」，存檔
-- [ ] **事務 + 異步**：在 `@Transactional` 方法裏 `@Async` 調用另一個方法讀剛寫入的資料，造出讀不到的現象。這直接引出下一條
-- [ ] **`TransactionSynchronizationManager`**：用 `afterCommit` 回調修上面那個問題（事務提交後才發事件），這是階段 10 Outbox 的前置
-- [ ] **`TransactionTemplate`**：把一個聲明式事務改成編程式，寫下什麼時候該用編程式（答案與「事務邊界要比方法邊界細」有關）
-- [ ] **AOP 執行順序**：自定義註解 `@Idempotent` + `@Transactional` 疊在同一方法，用 `@Order` 控制誰在外層。**冪等檢查必須在事務外還是內？** 這題自己推一遍再驗
+- [x] **代理機制**：同一個服務分別用「實現接口」與「不實現接口」兩種寫法，打印 `getClass()`，看 JDK 動態代理與 CGLIB 的差別；把 `proxyTargetClass` 切換一次
+- [x] **自調用失效**：在一個 service 裏，`methodA()` 直接調用本類的 `@Transactional methodB()`，製造一次資料不一致。**存檔現象**。然後用三種方式修（拆類 / `AopContext.currentProxy()` / 注入自己），寫下各自代價
+- [x] **傳播行為**：用「日切計息」造一個真實場景——批次裏某一筆頭寸計息失敗，不能讓整批回滾。用 `REQUIRES_NEW` 實現，並驗證它確實開了新連接（打印連接池活躍數，觀察連接翻倍的風險）
+- [x] **`REQUIRES_NEW` 的坑**：外層事務持有行鎖，內層 `REQUIRES_NEW` 想更新同一行 → 自我死鎖。**造出來，存檔堆疊**
+- [x] **隔離級別**：Postgres 下分別在 `READ COMMITTED` 與 `REPEATABLE READ` 跑一次「讀取餘額 → 計算 → 寫回」，造出 lost update；再用樂觀鎖修。寫下「金融場景為什麼常要求更高隔離」的真實理由（不是背定義）
+- [x] **`rollbackFor`**：默認只對 unchecked 回滾——用 checked 異常造一次「異常拋了但事務提交了」，存檔
+- [x] **事務 + 異步**：在 `@Transactional` 方法裏 `@Async` 調用另一個方法讀剛寫入的資料，造出讀不到的現象。這直接引出下一條
+- [x] **`TransactionSynchronizationManager`**：用 `afterCommit` 回調修上面那個問題（事務提交後才發事件），這是階段 10 Outbox 的前置
+- [x] **`TransactionTemplate`**：把一個聲明式事務改成編程式，寫下什麼時候該用編程式（答案與「事務邊界要比方法邊界細」有關）
+- [x] **AOP 執行順序**：自定義註解 `@Idempotent` + `@Transactional` 疊在同一方法，用 `@Order` 控制誰在外層。**冪等檢查必須在事務外還是內？** 這題自己推一遍再驗
 
 **口頭驗收**：5 分鐘講清 `@Transactional` 自調用為什麼失效（從 AOP 代理原理切入，不是「因為沒走代理」這種同義反覆）。
 
@@ -482,7 +482,7 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 | A | 2 領域模型 | ☑ | ☑ | ☐ |
 | A | 3 測試地基 | ☑ | ☑ | ☐ |
 | B | 4 IoC 容器 | ☑ | ☑ | ☐ |
-| B | 5 AOP 與事務 | ☐ | ☐ | ☐ |
+| B | 5 AOP 與事務 | ☑ | ☑ | ☐ |
 | B | 6 持久層 | ☐ | ☐ | ☐ |
 | B | 7 Web 層 | ☐ | ☐ | ☐ |
 | C | 8 併發 | ☐ | ☐ | ☐ |
