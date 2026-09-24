@@ -172,7 +172,7 @@ insert, find.
 
 ---
 
-## [ ] 3 · Proxy mechanism: JDK vs CGLIB, and the `final` method
+## [x] 3 · Proxy mechanism: JDK vs CGLIB, and the `final` method
 
 `demo.tx.proxy` (no database):
 

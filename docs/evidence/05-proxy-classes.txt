@@ -1,0 +1,10 @@
+Proxy class per configuration (ProxyMechanismTest)
+
+proxy-target-class=false, interface-backed
+  jdk.proxy2.$Proxy56
+proxy-target-class=false, concrete
+  com.jerome.slledger.bootstrap.demo.tx.proxy.ConcretePositionQueries$$SpringCGLIB$$0
+default, interface-backed
+  com.jerome.slledger.bootstrap.demo.tx.proxy.InterfacePositionQueries$$SpringCGLIB$$0
+default, concrete
+  com.jerome.slledger.bootstrap.demo.tx.proxy.ConcretePositionQueries$$SpringCGLIB$$0
