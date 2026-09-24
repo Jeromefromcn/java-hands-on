@@ -12,15 +12,16 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 
 /**
  * The real application component-scans {@code com.jerome.slledger.bootstrap}, and the test
- * classpath puts stage 5's demos under that package too. None of them may reach the application.
+ * classpath puts every stage's demos under that package too. None of them may reach the
+ * application.
  */
 class ApplicationScanTest {
 
-  private static final String DEMOS = "com.jerome.slledger.bootstrap.demo.tx";
+  private static final String DEMOS = "com.jerome.slledger.bootstrap.demo";
 
   @Test
-  @DisplayName("the application's component scan picks up none of stage 5's test-only demo beans")
-  void noTransactionDemoBeansInTheApplication() {
+  @DisplayName("the application's component scan picks up none of the test-only demo beans")
+  void noDemoBeansInTheApplication() {
     try (var context =
         new SpringApplicationBuilder(SlLedgerApplication.class)
             .web(WebApplicationType.NONE)
