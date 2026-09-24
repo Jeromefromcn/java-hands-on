@@ -1,0 +1,10 @@
+IsolationIT: P1 at 100, two concurrent returns
+
+READ COMMITTED, read-modify-write
+  before 100 (version 0), returns of 10 and 20 -> after 90 (version 0); failed: none
+REPEATABLE READ, read-modify-write
+  before 100 (version 0), returns of 10 and 20 -> after 80 (version 0); failed: [CannotAcquireLockException SQLState 40001]
+REPEATABLE READ, retry inside the transaction
+  before 100 (version 0), returns of 10 and 20 -> after 80 (version 1); failed: [ConcurrentUpdateException, attempts [40001, 25P02, 25P02]]
+optimistic lock, retry outside the transaction
+  before 100 (version 0), returns of 10 and 20 -> after 70 (version 2); failed: none

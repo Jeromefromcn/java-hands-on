@@ -334,7 +334,7 @@ read, not parked.
 
 ---
 
-## [ ] 7 · Isolation levels, lost update, optimistic lock
+## [x] 7 · Isolation levels, lost update, optimistic lock
 
 `demo.tx.isolation`:
 
