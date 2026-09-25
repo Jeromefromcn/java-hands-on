@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
  * Summaries over a collection of positions.
  *
  * <p>In {@code loan} rather than in {@code party}, although what it produces is a statement about
- * counterparties, because it reads {@link LoanPosition#counterparty()} and {@link
- * LoanPosition#collateral()} and both are package-private. Moving this class to {@code party} would
- * mean widening those to public so that one summary can read them, which trades a tight aggregate
- * for a tidy package name. The aggregate wins.
+ * counterparties. It was placed here in stage 2 because {@link LoanPosition#counterparty()} and
+ * {@link LoanPosition#collateral()} were package-private then. Stage 6 made them public for the
+ * persistence mapper, which removed that reason; the class stays because it summarises positions,
+ * and moving it would be churn with no reader who benefits.
  */
 public final class LoanPositions {
 

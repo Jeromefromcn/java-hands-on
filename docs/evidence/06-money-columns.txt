@@ -1,0 +1,25 @@
+Stage 06 · section 3 — money and rates at every new column
+Measured 2026-09-25, JDK 21.0.12-tem, postgres:17-alpine (Testcontainers), Hibernate 7.4.5.
+
+MoneyColumnsRoundTripIT: 22 tests, all green.
+  - 3  everyMoneyColumnComesBackExactly      (HKD, JPY, BHD)
+       credit limit written as 9999999999999999.99 / 9999999999999999 /
+       9999999999999999.999: all 16 integer digits numeric(22,6) leaves, read
+       back equal.
+  - 15 anAmountWithMorePrecisionThanItsCurrencyIsRefusedOnRead
+       (5 columns x 3 currencies; raw UPDATE adds 0.001 HKD / 0.1 JPY / 0.0001 BHD)
+  - 1  aRowWhoseStatusDisagreesWithItsQuantitiesIsRefusedOnRead
+  - 1  aRateKeepsEveryDigitAndItsScale        (0.0400, 0.036512345678901234567)
+  - 2  FloatingRate / MarginalTieredRate refused on write
+
+Mutation 1 — MoneyColumns without the precision comparison:
+[ERROR] Tests run: 22, Failures: 15, Errors: 0, Skipped: 0
+  (all 15 over-precise cases turn red; the re-scaling in Money silently rounds them)
+
+Mutation 2 — loan_position.flat_rate as numeric(12,8), the plan's first choice:
+[ERROR] Tests run: 22, Failures: 4, Errors: 0, Skipped: 0
+  expected: FlatRate[rate=Rate[annual=0.0400]]
+   but was: FlatRate[rate=Rate[annual=0.04000000]]
+  (the three round trips and the rate test turn red: a fixed-scale column pads
+   Rate's scale, and Rate's record equality compares BigDecimal scale. The
+   column is unconstrained numeric, which Postgres stores as given.)

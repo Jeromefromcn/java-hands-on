@@ -217,23 +217,28 @@ public final class LoanPosition {
   }
 
   /**
-   * Package-private: the revaluation in {@code margin} needs these, and nothing outside this
-   * package has asked. An aggregate that exposes every field it holds has stopped being an
-   * aggregate and become a data structure with extra steps.
+   * Public since stage 6, when the persistence mapper became the first caller outside this package
+   * that has to read every field to store it. Until then they were package-private because nobody
+   * outside had asked.
+   *
+   * <p>Reading them does not weaken the aggregate. All four fields are final and hold immutable
+   * values, so nothing obtained here is a path to changing the position; the invariant is guarded
+   * by {@link #returnQuantity} and {@link #restore}, which are still the only ways to reach a
+   * state.
    */
-  Money collateral() {
+  public Money collateral() {
     return collateral;
   }
 
-  CounterpartyId counterparty() {
+  public CounterpartyId counterparty() {
     return counterparty;
   }
 
-  Isin security() {
+  public Isin security() {
     return security;
   }
 
-  AccrualRule accrualRule() {
+  public AccrualRule accrualRule() {
     return accrualRule;
   }
 

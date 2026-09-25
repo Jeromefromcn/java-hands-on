@@ -198,7 +198,7 @@ Javadoc fixes:
 
 ---
 
-## [ ] 3 · V1 schema, entities, mappers, and money at every column
+## [x] 3 · V1 schema, entities, mappers, and money at every column
 
 **`db/migration/V1__ledger_tables.sql`**
 
@@ -267,6 +267,25 @@ Every column is `not null`.
 **Acceptance**
 - The ITs above pass, and Hibernate validation passes against V1.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **`flat_rate` is unconstrained `numeric`, not `numeric(12,8)`.** `Rate` is
+  deliberately not normalised, and its record equality compares `BigDecimal`
+  scale. A fixed-scale column pads `0.0400` to `0.04000000`, so the rate reads
+  back as a different `Rate`, and it would round anything past 8 places.
+  Measured by mutation in `docs/evidence/06-money-columns.txt`.
+- **`LoanPosition`'s `collateral()`, `counterparty()`, `security()` and
+  `accrualRule()` are now public.** The mapper sits outside `domain.loan`
+  and has to read every field to store it. The fields are final and
+  immutable, so reading them opens no path to a state change. The
+  `LoanPositions` Javadoc that justified its package by those getters being
+  package-private was updated.
+- **`accrual_entry` uses a primary key `(position_id, business_date)`, not a
+  unique constraint.** JPA needs an id, and the primary key is the same rule
+  and the same index. Exercise 8's "no index" run drops the primary key.
+- **`LedgerFixtures` is deferred** to the first section that inserts rows the
+  mappers cannot write (section 9). This section writes everything through
+  the mappers.
 
 ---
 
