@@ -28,10 +28,11 @@ import java.util.Optional;
  * outstanding quantity changed.
  *
  * <p><strong>Not thread-safe.</strong> {@link #returnQuantity} reads and writes two fields with no
- * synchronisation, so two concurrent returns can both pass the check and produce a lost update.
- * That is stated here rather than discovered later: stage 8 reproduces exactly that failure and
- * then fixes it with optimistic locking, and it can only be a change to a stated assumption if the
- * assumption was stated.
+ * synchronisation, so two threads sharing one instance can both pass the check and produce a lost
+ * update. That is stated here rather than discovered later, and it is stage 8's subject. It is a
+ * different failure from two transactions each loading their own copy of the same row and writing
+ * it back: that one is caught by the {@code @Version} column the persistence adapter adds in stage
+ * 6, and no change to this class could catch it.
  *
  * <p>The invariant, true at every instant: {@code 0 <= outstandingQuantity <= originalQuantity},
  * and {@code status} agrees with {@code outstandingQuantity}.
@@ -98,6 +99,45 @@ public final class LoanPosition {
   }
 
   /**
+   * Rebuilds a position that was stored earlier, in whatever state it was stored in.
+   *
+   * <p>This is not a second way to create a position: it cannot produce a state {@link #open} and
+   * {@link #returnQuantity} could not have reached. The invariant is checked before anything is
+   * built, and a combination that violates it is refused rather than repaired. A row that says
+   * {@code CLOSED} with ten outstanding means something outside this class wrote it, and picking
+   * which of the two fields to believe would be guessing.
+   *
+   * <p>Status is taken as given and checked, not derived from the quantities, although it could be.
+   * Deriving it would silently accept a stored status that disagrees; checking it turns the
+   * disagreement into an error at the moment it is read.
+   */
+  public static LoanPosition restore(
+      LoanPositionId id,
+      CounterpartyId counterparty,
+      Isin security,
+      long originalQuantity,
+      long outstandingQuantity,
+      LoanStatus status,
+      Money collateral,
+      AccrualRule accrualRule) {
+    Objects.requireNonNull(status, "status");
+    if (outstandingQuantity < 0
+        || outstandingQuantity > originalQuantity
+        || status != statusFor(outstandingQuantity, originalQuantity)) {
+      throw new IllegalArgumentException(
+          "Not a reachable position state: %s with %d of %d outstanding"
+              .formatted(status, outstandingQuantity, originalQuantity));
+    }
+    // open() runs every check a new position gets, including a positive original quantity.
+    LoanPosition position =
+        open(id, counterparty, security, originalQuantity, collateral, accrualRule);
+
+    position.outstandingQuantity = outstandingQuantity;
+    position.status = status;
+    return position;
+  }
+
+  /**
    * The only transition this aggregate has.
    *
    * <p>Every refusal happens before any field is written, so a rejected return leaves the position
@@ -117,7 +157,15 @@ public final class LoanPosition {
     }
 
     outstandingQuantity -= quantity;
-    status = outstandingQuantity == 0 ? LoanStatus.CLOSED : LoanStatus.PARTIALLY_RETURNED;
+    status = statusFor(outstandingQuantity, originalQuantity);
+  }
+
+  /** The one status each quantity pair allows; {@link #restore} and returns share it. */
+  private static LoanStatus statusFor(long outstanding, long original) {
+    if (outstanding == 0) {
+      return LoanStatus.CLOSED;
+    }
+    return outstanding == original ? LoanStatus.OPEN : LoanStatus.PARTIALLY_RETURNED;
   }
 
   /**

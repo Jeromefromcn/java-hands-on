@@ -26,10 +26,10 @@ public final class SettlementDates {
   /**
    * How far the search will walk before giving up.
    *
-   * <p>{@link HolidayCalendar} is an extension point — stage 6 replaces the hand-entered set with
-   * something loaded from a real source — and a calendar that reports no business day at all would
-   * otherwise spin here forever, holding whichever thread asked. A year of closures is not a market
-   * this ledger can settle in.
+   * <p>{@link HolidayCalendar} is an extension point — the hand-entered set is meant to give way to
+   * one loaded from a real source, though no stage has that scheduled — and a calendar that reports
+   * no business day at all would otherwise spin here forever, holding whichever thread asked. A
+   * year of closures is not a market this ledger can settle in.
    */
   private static final int GIVE_UP_AFTER_CALENDAR_DAYS = 365;
 

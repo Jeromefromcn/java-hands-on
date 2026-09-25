@@ -150,7 +150,7 @@ public final class SharedPostgres {
 
 ---
 
-## [ ] 2 · `LoanPosition.restore` and `LoanPositionRepository`
+## [x] 2 · `LoanPosition.restore` and `LoanPositionRepository`
 
 This section touches `domain` only, and is written test-first.
 

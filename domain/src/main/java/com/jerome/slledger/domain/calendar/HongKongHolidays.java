@@ -11,8 +11,8 @@ import java.util.Set;
  * transcribed from the publicly gazetted general holiday list. They are not a market-data feed,
  * they are not maintained, and they carry no guarantee: a settlement date computed for any other
  * year is computed against an empty holiday set and will be wrong. Replacing this class with a
- * calendar loaded from a real source is a stage 6 concern; nothing outside this file needs to
- * change when that happens, which is the reason {@link HolidayCalendar} is an interface.
+ * calendar loaded from a real source is not scheduled in any stage yet; nothing outside this file
+ * needs to change when it happens, which is the reason {@link HolidayCalendar} is an interface.
  *
  * <p>Note that three of the seventeen — 4 April, 26 September and 26 December — fall on a Saturday.
  * They are listed for completeness and they cost no business day, because Saturday was already

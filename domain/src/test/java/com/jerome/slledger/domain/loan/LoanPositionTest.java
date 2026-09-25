@@ -14,7 +14,10 @@ import com.jerome.slledger.domain.party.CounterpartyId;
 import java.util.Currency;
 import java.util.HashSet;
 import java.util.Set;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The state machine: OPEN -> PARTIALLY_RETURNED -> CLOSED, and nothing else.
@@ -136,6 +139,101 @@ class LoanPositionTest {
             RULE);
 
     assertThat(one).isNotEqualTo(other);
+  }
+
+  /**
+   * Rebuilding a position from storage. {@code open} can only ever produce {@code OPEN} with the
+   * whole quantity outstanding, so a row that has seen a return had no way back in before stage 6.
+   * The invariant is checked on the way in: a row that violates it is refused, never repaired.
+   */
+  @Nested
+  class Restore {
+
+    @ParameterizedTest(name = "original {0}, outstanding {1}, {2}")
+    @CsvSource({
+      "10000, 10000, OPEN",
+      "10000,  4000, PARTIALLY_RETURNED",
+      "10000,     0, CLOSED",
+    })
+    void aConsistentRowComesBackAsItWasStored(long original, long outstanding, LoanStatus status) {
+      LoanPosition position = restored(original, outstanding, status);
+
+      assertThat(position.originalQuantity()).isEqualTo(original);
+      assertThat(position.outstandingQuantity()).isEqualTo(outstanding);
+      assertThat(position.status()).isEqualTo(status);
+    }
+
+    @ParameterizedTest(name = "original {0}, outstanding {1}, {2}")
+    @CsvSource({
+      "    0,     0, CLOSED",
+      "   -1,     0, CLOSED",
+      "10000,    -1, PARTIALLY_RETURNED",
+      "10000, 10001, OPEN",
+      "10000,  6000, OPEN",
+      "10000,     0, PARTIALLY_RETURNED",
+      "10000, 10000, PARTIALLY_RETURNED",
+      "10000,    10, CLOSED",
+    })
+    void aRowThatViolatesTheInvariantIsRefused(long original, long outstanding, LoanStatus status) {
+      assertThatExceptionOfType(IllegalArgumentException.class)
+          .isThrownBy(() -> restored(original, outstanding, status))
+          .withMessageContaining(String.valueOf(outstanding))
+          .withMessageContaining(String.valueOf(original));
+    }
+
+    @Test
+    void aRestoredPartiallyReturnedPositionTakesTheRestAndCloses() {
+      LoanPosition position = restored(10_000L, 4_000L, LoanStatus.PARTIALLY_RETURNED);
+
+      position.returnQuantity(4_000L);
+
+      assertThat(position.status()).isEqualTo(LoanStatus.CLOSED);
+      assertThat(position.outstandingQuantity()).isZero();
+    }
+
+    @Test
+    void aRestoredPositionIsTheSamePositionAsTheOneThatWasOpened() {
+      LoanPosition opened = aPositionOf(10_000L);
+      LoanPosition restored = restored(10_000L, 4_000L, LoanStatus.PARTIALLY_RETURNED);
+
+      assertThat(restored).isEqualTo(opened);
+      assertThat(restored.hashCode()).isEqualTo(opened.hashCode());
+    }
+
+    @Test
+    void aMissingStatusIsRefused() {
+      assertThatExceptionOfType(NullPointerException.class)
+          .isThrownBy(() -> restored(10_000L, 10_000L, null))
+          .withMessage("status");
+    }
+
+    @Test
+    void negativeCollateralIsRefusedHereAsItIsOnOpen() {
+      assertThatExceptionOfType(IllegalArgumentException.class)
+          .isThrownBy(
+              () ->
+                  LoanPosition.restore(
+                      new LoanPositionId("LP-0001"),
+                      new CounterpartyId("CP-0001"),
+                      new Isin("HK0000000001"),
+                      10_000L,
+                      10_000L,
+                      LoanStatus.OPEN,
+                      Money.of("-0.01", HKD),
+                      RULE));
+    }
+
+    private LoanPosition restored(long original, long outstanding, LoanStatus status) {
+      return LoanPosition.restore(
+          new LoanPositionId("LP-0001"),
+          new CounterpartyId("CP-0001"),
+          new Isin("HK0000000001"),
+          original,
+          outstanding,
+          status,
+          Money.of("4126000.00", HKD),
+          RULE);
+    }
   }
 
   private static LoanPosition aPositionOf(long quantity) {

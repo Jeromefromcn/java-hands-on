@@ -89,8 +89,9 @@ class SettlementDatesTest {
 
   @Test
   void aCalendarWithNoBusinessDaysAtAllIsRefusedRatherThanLoopedOn() {
-    // HolidayCalendar is an extension point: stage 6 replaces HongKongHolidays with something
-    // loaded from a real source, and a misconfigured one that closes every day would otherwise
+    // HolidayCalendar is an extension point: HongKongHolidays is meant to give way to something
+    // loaded from a real source (not yet scheduled), and a misconfigured one that closes every day
+    // would otherwise
     // spin here forever holding whatever thread called it.
     // The trade date itself has to be open, or the refusal would be the ordinary
     // NotABusinessDayException and this test would pass without exercising the loop at all.
