@@ -2,9 +2,12 @@ package com.jerome.slledger.bootstrap.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.SlLedgerApplication;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,7 +24,7 @@ import org.springframework.core.env.SystemEnvironmentPropertySource;
  * resolved to. Each layer is given a different number (2, 4, 6, 8), so a wrong precedence shows up
  * as a wrong number rather than an accidental pass.
  */
-class ConfigurationPrecedenceTest {
+class ConfigurationPrecedenceIT {
 
   private static final String KEY = "accrual.rounding-precision";
 
@@ -77,13 +80,7 @@ class ConfigurationPrecedenceTest {
     SpringApplicationBuilder builder =
         new SpringApplicationBuilder(SlLedgerApplication.class)
             .web(WebApplicationType.NONE)
-            .bannerMode(Banner.Mode.OFF)
-            // The JDBC starter is on the test classpath only, for stage 5's transaction demos.
-            // The real application has no datasource, so the auto-configuration that the test
-            // classpath would otherwise trigger is switched off here rather than given a URL.
-            .properties(
-                "spring.autoconfigure.exclude="
-                    + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration");
+            .bannerMode(Banner.Mode.OFF);
     if (withEnvVar) {
       // A running JVM cannot set its own environment variables. Instead the systemEnvironment
       // property source is swapped for one holding the real environment plus one variable: same
@@ -102,6 +99,14 @@ class ConfigurationPrecedenceTest {
                         StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, env));
           });
     }
-    return builder.run(args);
+    // Since stage 6 the application needs a database. The datasource is appended as arguments,
+    // the highest-precedence source, so no profile's YAML can override it; the property this test
+    // measures is a different key, so its precedence is unaffected.
+    String[] withDatabase =
+        Stream.concat(
+                Arrays.stream(args),
+                Arrays.stream(SharedPostgres.freshDatabase()).map(p -> "--" + p))
+            .toArray(String[]::new);
+    return builder.run(withDatabase);
   }
 }

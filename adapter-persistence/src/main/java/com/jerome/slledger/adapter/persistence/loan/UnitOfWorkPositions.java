@@ -3,6 +3,7 @@ package com.jerome.slledger.adapter.persistence.loan;
 import com.jerome.slledger.domain.loan.LoanPosition;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -18,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * unbound when it completes, committed or rolled back, so a pooled thread never carries one
  * transaction's instances into the next.
  */
+@Component
 public class UnitOfWorkPositions {
 
   /** The positions loaded in the current transaction; refuses to answer outside one. */

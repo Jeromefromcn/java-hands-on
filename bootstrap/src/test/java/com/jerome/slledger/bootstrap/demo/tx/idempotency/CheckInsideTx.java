@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * Lower order runs outside.
  *
  * <p>Deliberately not {@code @Configuration}: the real application component-scans this package on
- * the test classpath (see {@code ApplicationScanTest}). Passed to {@code TxDemo.start} explicitly,
- * it is still processed as configuration, because {@code @EnableTransactionManagement} carries an
+ * the test classpath (see {@code ApplicationScanIT}). Passed to {@code TxDemo.start} explicitly, it
+ * is still processed as configuration, because {@code @EnableTransactionManagement} carries an
  * {@code @Import}.
  */
 @EnableTransactionManagement(order = 0)

@@ -24,11 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
  * Bound to the {@code integration-test}/{@code verify} phases, not {@code surefire}'s {@code test}
  * phase — these are architecture checks, not unit tests, and stay out of the fast inner loop.
  *
- * <p>All three rules pass vacuously today: {@code application}, {@code adapter-persistence} and
- * {@code adapter-web} hold no classes yet. That is stated here rather than hidden, per {@code
- * docs/decisions/03-testing-foundation.md}. The point of writing them now, rather than when the
- * first violating class would appear, is that the first class that would violate rule 1 or rule 3
- * fails the build the moment it is written, not after a review misses it.
+ * <p>Since stage 6, rules 1 and 3 check real classes: {@code adapter-persistence} holds the JPA
+ * adapter, and {@code application} holds the {@code @Transactional} use cases. Rule 2 still passes
+ * vacuously, because {@code adapter-web} is empty until stage 7; that is stated here rather than
+ * hidden, per {@code docs/decisions/03-testing-foundation.md}.
  *
  * <p>Test classes are not imported. The rules govern production code; test-only demos are exactly
  * where reproductions belong, and stage 5's {@code @Transactional} demos under {@code
@@ -42,8 +41,7 @@ class ArchitectureIT {
           .importPackages("com.jerome.slledger");
 
   @Test
-  @DisplayName(
-      "domain does not depend on any adapter (vacuous today: no adapter classes exist yet)")
+  @DisplayName("domain does not depend on any adapter")
   void domainDoesNotDependOnAdapters() {
     ArchRule rule =
         noClasses()
@@ -58,8 +56,8 @@ class ArchitectureIT {
 
   @Test
   @DisplayName(
-      "adapter-web does not depend on adapter-persistence (vacuous today: neither has classes"
-          + " exists in production code yet)")
+      "adapter-web does not depend on adapter-persistence (vacuous until stage 7: adapter-web"
+          + " has no classes yet)")
   void webDoesNotDependOnPersistence() {
     // allowEmptyShould(true): ArchUnit fails a rule by default when the "that()" selection is
     // empty, on the theory that an empty selection usually means a typo'd package name. Here it
@@ -78,9 +76,7 @@ class ArchitectureIT {
   }
 
   @Test
-  @DisplayName(
-      "@Transactional lives only in application (vacuous today: no @Transactional class or method"
-          + " exists in production code yet)")
+  @DisplayName("@Transactional lives only in application")
   void transactionalOnlyInApplication() {
     transactionalOnlyInApplicationRule().check(CLASSES);
   }
@@ -101,11 +97,10 @@ class ArchitectureIT {
   }
 
   private static ArchRule transactionalOnlyInApplicationRule() {
-    // Matched by fully-qualified name, not by the annotation class itself: neither
-    // org.springframework.transaction.annotation.Transactional nor
-    // jakarta.transaction.Transactional is on this module's main classpath (stage 5 puts Spring's
-    // on the test classpath only). ArchUnit checks annotations by bytecode inspection, so the rule
-    // compiles and runs correctly without either dependency.
+    // Matched by fully-qualified name, not by the annotation class itself. That dates from stage 5,
+    // when Spring's annotation was on the test classpath only; since stage 6 it is on the main
+    // classpath through application's spring-tx, and matching by name still works the same way:
+    // ArchUnit checks annotations by bytecode inspection.
     //
     // Checked on classes and on methods alike: the annotation is equally valid on either, and a
     // class-only check passes a method-level @Transactional anywhere (found in stage 5, where

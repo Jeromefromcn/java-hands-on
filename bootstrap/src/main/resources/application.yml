@@ -1,6 +1,18 @@
 spring:
   application:
     name: sl-ledger
+  # Stage 6. Flyway owns the schema; Hibernate only checks that the entities match it.
+  # open-in-view off: a lazy association touched after the service returned is an error, not a
+  # silent query issued outside any transaction. See docs/decisions/06-persistence.md.
+  # No second-level cache: a per-node cache with no cross-node invalidation (stage 9).
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        cache:
+          use_second_level_cache: false
 
 # Synthetic values, wide enough to be safe defaults. Profiles narrow them.
 accrual:
@@ -10,3 +22,7 @@ accrual:
 
 marketdata:
   source: mock
+
+ledger:
+  return:
+    max-attempts: 3

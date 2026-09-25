@@ -46,7 +46,7 @@ abstract class LoanPositionRepositoryContract {
   TransactionTemplate tx;
   JdbcClient jdbc;
 
-  /** The adapter under test and anything it needs besides what the context auto-configures. */
+  /** Beans to add to the context besides what PersistenceConfiguration scans. */
   abstract Class<?>[] beans();
 
   @BeforeEach

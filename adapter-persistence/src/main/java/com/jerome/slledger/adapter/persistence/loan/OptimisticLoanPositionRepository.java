@@ -9,6 +9,7 @@ import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * Positions with optimistic locking: no lock is taken on read, and a concurrent write is detected
@@ -20,6 +21,7 @@ import java.util.Optional;
  * stops working the moment the two are separated, which is why {@link UnitOfWorkPositions} refuses
  * a position this transaction did not load. See {@code docs/decisions/06-persistence.md}.
  */
+@Repository
 public class OptimisticLoanPositionRepository implements LoanPositionRepository {
 
   private final LoanPositionJpaRepository jpa;

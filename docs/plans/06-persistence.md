@@ -355,7 +355,7 @@ also covers:
 
 ---
 
-## [ ] 5 · Use cases in `application`, wired in `bootstrap`
+## [x] 5 · Use cases in `application`, wired in `bootstrap`
 
 **`application.position`**
 
@@ -435,6 +435,38 @@ public class ReturnPosition {          // NOT transactional: the retry loop
   `adapter-persistence`. Rule 1 and rule 2 are no longer vacuous, and the
   Javadoc saying they are is updated.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Adapters are registered by component scan, not by `@Bean` methods.**
+  They are `@Repository` / `@Component` beans picked up by
+  `PersistenceConfiguration`'s `@ComponentScan`. They depend on Spring Data
+  interfaces that are package-private to their own package, which a factory
+  method in the configuration's package cannot name. Section 4's tests now
+  get the optimistic adapter from the scan.
+- **`PositionNotLoadedInThisTransactionException` extends
+  `RuntimeException`, not `IllegalStateException`.** This was observed, not
+  predicted: once the adapter became a `@Repository`, Spring's persistence
+  exception translation turned it into `InvalidDataAccessApiUsageException`
+  (`EntityManagerFactoryUtils.convertJpaAccessExceptionIfPossible`), and
+  three section 4 tests failed on the type.
+- **Rules 1 and 3 are no longer vacuous; rule 2 still is.** `adapter-web`
+  stays empty until stage 7. The plan's "rule 1 and rule 2" was wrong.
+- **The two renamed full-application tests pass the datasource as
+  command-line arguments.** `SpringApplicationBuilder.properties` sets
+  default properties, the lowest precedence, and section 6 puts a
+  datasource into `application-local.yml`, which would override them.
+- **Additions the plan implied but did not name.**
+  - `ListPositions`, the listing use case, is `@Transactional(readOnly =
+    true)`. Its Javadoc states that read-only does not make the page and the
+    count one snapshot.
+  - `UnknownReferenceException` covers an unknown counterparty, security or
+    position.
+  - `ReturnPosition` rethrows the last `OptimisticLockingFailureException`
+    when attempts run out.
+- **Duplicate detection matches the constraint name**
+  (`loan_trade_idempotency_key_key`) through Hibernate's
+  `ConstraintViolationException`. When the name was mutated, the three
+  duplicate tests failed.
 
 ---
 

@@ -15,7 +15,8 @@ class OptimisticLoanPositionRepositoryIT extends LoanPositionRepositoryContract 
 
   @Override
   Class<?>[] beans() {
-    return new Class<?>[] {OptimisticLoanPositionRepository.class, UnitOfWorkPositions.class};
+    // PersistenceConfiguration's component scan registers the optimistic adapter.
+    return new Class<?>[0];
   }
 
   @Test
@@ -41,7 +42,8 @@ class OptimisticLoanPositionRepositoryIT extends LoanPositionRepositoryContract 
   @Test
   void reproducesSilentOverwriteAcrossTransactions() {
     try (var naive = LedgerDb.start(NaiveLoanPositionRepository.class)) {
-      LoanPositionRepository naiveRepository = naive.getBean(LoanPositionRepository.class);
+      // By its own type: the scanned optimistic adapter is in this context too.
+      LoanPositionRepository naiveRepository = naive.getBean(NaiveLoanPositionRepository.class);
       var naiveTx = naive.getBean(TransactionTemplate.class);
       var naiveJdbc = naive.getBean(JdbcClient.class);
       copyReferenceRows(naiveJdbc);
