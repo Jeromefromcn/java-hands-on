@@ -3,13 +3,13 @@ package com.jerome.slledger.bootstrap.demo.tx;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.CheckInsideTx;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.CheckOutsideTx;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.DuplicateRequestException;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.IdempotencyAspect;
 import com.jerome.slledger.bootstrap.demo.tx.idempotency.IdempotentReturn;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
-import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.util.ArrayList;

@@ -2,6 +2,7 @@ package com.jerome.slledger.bootstrap.demo.tx;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.ConcurrentUpdateException;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.InsideTxRetryingReturn;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.OptimisticReturn;
@@ -10,7 +11,6 @@ import com.jerome.slledger.bootstrap.demo.tx.isolation.ReadModifyWriteReturn;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.RepeatableReadReturn;
 import com.jerome.slledger.bootstrap.demo.tx.isolation.RetryingReturn;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
-import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.sql.SQLException;

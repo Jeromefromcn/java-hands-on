@@ -20,6 +20,14 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>domain</artifactId>
     </dependency>
+
+    <!-- @Transactional and org.springframework.dao only. Use cases are plain
+         classes that bootstrap instantiates with @Bean, so nothing from
+         Spring Boot is needed here. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-tx</artifactId>
+    </dependency>
   </dependencies>
 
 </project>

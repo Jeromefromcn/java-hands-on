@@ -1,0 +1,29 @@
+Stage 06 · section 1 — dependency convergence after adding JPA and Flyway
+Measured 2026-09-25, JDK 21.0.12-tem, Maven wrapper, Spring Boot BOM 4.1.1.
+
+Added:
+  application          org.springframework:spring-tx
+  adapter-persistence  spring-boot-starter-data-jpa, spring-boot-starter-flyway,
+                       org.flywaydb:flyway-database-postgresql
+                       (test: spring-boot-starter-test, postgresql, testcontainers-postgresql)
+  bootstrap            org.postgresql:postgresql test -> runtime;
+                       adapter-persistence test-jar (test)
+
+Resolved versions (./mvnw -pl adapter-persistence dependency:tree -Dscope=compile):
+  org.hibernate.orm:hibernate-core:jar:7.4.5.Final:compile
+  jakarta.persistence:jakarta.persistence-api:jar:3.2.0:compile
+  org.springframework.data:spring-data-jpa:jar:4.1.1:compile
+  com.zaxxer:HikariCP:jar:7.0.2:compile
+  org.flywaydb:flyway-core:jar:12.4.0:compile
+  org.flywaydb:flyway-database-postgresql:jar:12.4.0:compile
+
+(./mvnw -pl bootstrap dependency:tree -Dscope=runtime):
+  org.postgresql:postgresql:jar:42.7.13:runtime
+
+Enforcer (./mvnw validate, rules incl. dependencyConvergence and
+banDuplicatePomDependencyVersions): passed, exit 0.
+
+The plan expected Hibernate's transitive dependencies to trip
+dependencyConvergence and budgeted explicit dependencyManagement overrides for
+them. None were needed: the Boot BOM already pins every version that appears
+more than once in the tree. No override was added.

@@ -3,10 +3,10 @@ package com.jerome.slledger.bootstrap.demo.tx;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.async.AsyncConfig;
 import com.jerome.slledger.bootstrap.demo.tx.async.BookingWithAfterCommitRead;
 import com.jerome.slledger.bootstrap.demo.tx.async.TradeReader;
-import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;

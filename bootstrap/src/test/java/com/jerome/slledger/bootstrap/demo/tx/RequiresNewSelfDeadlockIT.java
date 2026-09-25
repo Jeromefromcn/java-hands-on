@@ -3,10 +3,10 @@ package com.jerome.slledger.bootstrap.demo.tx;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.deadlock.InnerAdjustment;
 import com.jerome.slledger.bootstrap.demo.tx.deadlock.OuterAdjustment;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
-import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import java.lang.management.ManagementFactory;

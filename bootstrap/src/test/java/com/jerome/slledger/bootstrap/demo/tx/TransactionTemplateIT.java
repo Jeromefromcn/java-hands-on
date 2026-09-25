@@ -2,9 +2,9 @@ package com.jerome.slledger.bootstrap.demo.tx;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.AccrualEntryRows;
 import com.jerome.slledger.bootstrap.demo.tx.support.PositionAccrualStep;
-import com.jerome.slledger.bootstrap.demo.tx.support.SharedPostgres;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemo;
 import com.jerome.slledger.bootstrap.demo.tx.support.TxDemoRows;
 import com.jerome.slledger.bootstrap.demo.tx.template.TemplateDailyAccrualBatch;

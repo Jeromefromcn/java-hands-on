@@ -94,7 +94,7 @@ pinned by a test in the section named.
 
 ---
 
-## [ ] 1 · Build wiring, shared test infrastructure, stage 5 kept green
+## [x] 1 · Build wiring, shared test infrastructure, stage 5 kept green
 
 The build and test plumbing is wired before any production code.
 

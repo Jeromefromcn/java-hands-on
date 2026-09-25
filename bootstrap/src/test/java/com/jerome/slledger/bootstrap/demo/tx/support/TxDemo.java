@@ -1,5 +1,6 @@
 package com.jerome.slledger.bootstrap.demo.tx.support;
 
+import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,10 +23,18 @@ public final class TxDemo {
    * {@code extraProperties} are applied last, so a test can override the pool or anything else.
    */
   public static ConfigurableApplicationContext start(String[] extraProperties, Class<?>... beans) {
-    List<String> properties = new ArrayList<>(Arrays.asList(SharedPostgres.datasourceProperties()));
+    List<String> properties =
+        new ArrayList<>(Arrays.asList(SharedPostgres.datasourceProperties("tx_demo")));
     // schema.sql drops and recreates every table, so no context sees what an earlier one wrote.
     properties.add("spring.sql.init.mode=always");
     properties.add("spring.sql.init.schema-locations=classpath:demo/tx/schema.sql");
+    // Since stage 6, Flyway and JPA are on this classpath. Stage 5's hand-written schema is not
+    // Flyway's schema, so neither may touch it; the tx_demo database is theirs alone.
+    properties.add("spring.flyway.enabled=false");
+    properties.add(
+        "spring.autoconfigure.exclude="
+            + "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration,"
+            + "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration");
     properties.addAll(Arrays.asList(extraProperties));
 
     Class<?>[] sources = new Class<?>[beans.length + 2];
