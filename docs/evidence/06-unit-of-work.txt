@@ -1,0 +1,37 @@
+Stage 06 · section 4 — version on the entity only, and the guard that makes it hold
+Measured 2026-09-25, JDK 21.0.12-tem, postgres:17-alpine, Hibernate 7.4.5.
+
+OptimisticLoanPositionRepositoryIT: 10 tests, all green
+(7 from LoanPositionRepositoryContract + 3 of its own).
+
+reproducesSilentOverwriteAcrossTransactions (NaiveLoanPositionRepository:
+every save re-reads the row as it is now and copies the aggregate onto it):
+  T1  find P1                      -> outstanding 100, version 0
+  T2  find P1, return 30, commit   -> outstanding  70, version 1
+  T3  T1's copy: return 10, save   -> re-read row at version 1, copy 90 onto it
+  final outstanding_quantity = 90, no exception.   (asserted)
+  T2's return of 30 is gone. The version check ran and passed: it compared
+  version 1, just read, with version 1.
+
+theSameSequenceIsRefusedAtTheStaleWrite (OptimisticLoanPositionRepository):
+  T3 -> PositionNotLoadedInThisTransactionException, outstanding stays 70.
+
+Why the spec's Propagation.MANDATORY would not have caught it: T3 is a real,
+active transaction. MANDATORY asks "is there a transaction", and the answer
+is yes. The question that matters is "did this transaction load this
+instance", and that is what the identity map answers.
+
+Mutation M1 — on an unknown instance, re-read and copy (the naive shape)
+instead of refusing:
+[ERROR] Tests run: 10, Failures: 3, Errors: 0, Skipped: 0
+  OptimisticLoanPositionRepositoryIT>LoanPositionRepositoryContract.aNewInstanceWithAnIdAlreadyStoredIsRefusedNotMerged:178 
+  OptimisticLoanPositionRepositoryIT>LoanPositionRepositoryContract.aPositionLoadedInAnEarlierTransactionCannotBeWrittenBackInALaterOne:162 
+  OptimisticLoanPositionRepositoryIT.theSameSequenceIsRefusedAtTheStaleWrite:86 
+
+Mutation M2 — the map never unbound after the transaction completes:
+[ERROR] Tests run: 10, Failures: 2, Errors: 0, Skipped: 0
+  OptimisticLoanPositionRepositoryIT>LoanPositionRepositoryContract.aPositionLoadedInAnEarlierTransactionCannotBeWrittenBackInALaterOne:162 
+  OptimisticLoanPositionRepositoryIT.theSameSequenceIsRefusedAtTheStaleWrite:86 
+  (the leaked map still "knows" the stale instance, so no exception is
+   raised. What happened to the write was not measured: both tests stop at
+   the missing exception, before their outstanding-quantity assertion.)

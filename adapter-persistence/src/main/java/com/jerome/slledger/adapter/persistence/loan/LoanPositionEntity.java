@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,13 @@ public class LoanPositionEntity {
   String ruleType;
 
   BigDecimal flatRate;
+
+  /**
+   * Hibernate's flush writes {@code UPDATE … WHERE version = ?} and fails the transaction when no
+   * row matches. That check is only meaningful when this entity was read in the same transaction
+   * that writes it; {@link UnitOfWorkPositions} is what guarantees that.
+   */
+  @Version long version;
 
   @OneToMany(mappedBy = "position", fetch = FetchType.LAZY)
   List<AccrualEntryEntity> entries = new ArrayList<>();

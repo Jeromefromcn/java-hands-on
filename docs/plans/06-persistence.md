@@ -289,7 +289,7 @@ Every column is `not null`.
 
 ---
 
-## [ ] 4 · V2 `version`, the optimistic repository, and its guard
+## [x] 4 · V2 `version`, the optimistic repository, and its guard
 
 - **`V2__loan_position_version.sql`**:
   `ALTER TABLE loan_position ADD COLUMN version bigint NOT NULL DEFAULT 0`.
@@ -338,6 +338,20 @@ also covers:
 - The contract passes for the optimistic adapter.
 - The reproduction shows 90.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **`find` and `activeOf` are refused outside a transaction too, not only
+  `add`.** An instance loaded outside a transaction can never be written
+  back, because no transaction's map holds it. Refusing at `find` reports
+  the mistake where it is made, not at a later `add`. Read-only callers use
+  the application's projection port, which needs no aggregate.
+- **The contract has two tests beyond the list above.**
+  - `aChangeNeverPassedBackToAddIsNotStored` pins the `add` Javadoc
+    corrected in section 2.
+  - `aNewInstanceWithAnIdAlreadyStoredIsRefusedNotMerged` pins the "id
+    already exists" branch for an instance that was never loaded at all.
+
+  Both are behaviour the pessimistic adapter must share.
 
 ---
 
