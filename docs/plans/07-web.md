@@ -773,7 +773,7 @@ unscheduled (spec, fact 4).
 
 ---
 
-## [ ] 15 · Thread exhaustion, and the timeouts that prevent it
+## [x] 15 · Thread exhaustion, and the timeouts that prevent it
 
 **`bootstrap` `ThreadExhaustionIT`**
 - `reproducesThreadExhaustionWithoutTimeout`:
@@ -802,6 +802,22 @@ unscheduled (spec, fact 4).
 **Acceptance**
 - All three pass, and each releases its latch in `finally`.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Decision 8 confirmed.** All 4 workers were `WAITING` in
+  `CompletableFuture.get` under `JdkClientHttpRequest.executeInternal`,
+  inside `RestMarketPriceSource.priceOf`. `findDeadlockedThreads()` was
+  null. The dump keeps only the application's Tomcat workers; a first run
+  that included every `HttpClient-*` thread in the JVM was 728 lines of
+  other clients' idle workers.
+- **The connect-timeout test needs a longer read timeout.** Spring's JDK
+  request applies the read timeout to the whole exchange, connect
+  included, so with both at 500 ms the two cannot be told apart. With the
+  read timeout at 5 s, the call to `10.255.255.1` failed after 501 ms: the
+  connect timeout, surfaced as `HttpTimeoutException`. This machine drops
+  the SYN; it does not refuse.
+- Unbounded is `read-timeout=0`; `MarketDataProperties.bounded` treats zero
+  as absent.
 
 ---
 
