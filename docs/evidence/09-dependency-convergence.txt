@@ -1,0 +1,6 @@
+Stage 9, section 1: dependencyConvergence after adding caffeine, spring-boot-starter-data-redis
+and spring-boot-starter-json (compile) to adapter-persistence, spring-boot-starter-cache (test) to
+bootstrap. Measured with `./mvnw -q clean verify` on JDK 21.0.12-tem.
+
+Result: the enforcer rule passed with no new dependencyManagement entry. Caffeine, Lettuce,
+Spring Data Redis and Testcontainers versions all come from the Spring Boot 4.1.1 BOM.

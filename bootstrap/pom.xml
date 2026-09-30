@@ -80,6 +80,13 @@
          test-scoped declaration wins Maven's nearest-first mediation, which
          left HikariCP off the runtime classpath. Every test passed and the
          application could not start (docs/evidence/06-bootstrap-run.txt). -->
+    <!-- Stage 9: @Cacheable and friends, exercised on test beans only; the
+         product path is an explicit decorator. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-cache</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-aspectj</artifactId>

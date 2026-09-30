@@ -84,7 +84,7 @@ test in the section named.
 
 ---
 
-## [ ] 1 · Build wiring and Redis test support
+## [x] 1 · Build wiring and Redis test support
 
 **POMs**
 - `adapter-persistence`: compile `com.github.ben-manes.caffeine:caffeine`,
