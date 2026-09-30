@@ -1,6 +1,7 @@
 package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
+import com.jerome.slledger.adapter.web.WebConfiguration;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
 import com.jerome.slledger.application.port.PositionListQuery;
 import com.jerome.slledger.application.port.SecurityDirectory;
@@ -23,7 +24,7 @@ import org.springframework.context.annotation.Import;
  * Boot; the container that proxies it is this module's concern.
  */
 @Configuration(proxyBeanMethods = false)
-@Import(PersistenceConfiguration.class)
+@Import({PersistenceConfiguration.class, WebConfiguration.class})
 public class LedgerConfiguration {
 
   @Bean

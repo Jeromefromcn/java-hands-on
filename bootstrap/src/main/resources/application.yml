@@ -1,6 +1,11 @@
 spring:
   application:
     name: sl-ledger
+  # Stage 7. Spring MVC's own exceptions (unknown path, wrong media type) answer as RFC 9457
+  # ProblemDetail, like the ledger's. See docs/decisions/07-web.md.
+  mvc:
+    problemdetails:
+      enabled: true
   # Stage 6. Flyway owns the schema; Hibernate only checks that the entities match it.
   # open-in-view off: a lazy association touched after the service returned is an error, not a
   # silent query issued outside any transaction. See docs/decisions/06-persistence.md.

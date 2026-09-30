@@ -61,6 +61,12 @@
          every other version in this file. -->
     <archunit.version>1.5.0</archunit.version>
     <cucumber.version>7.20.1</cucumber.version>
+    <!-- Stage 7. springdoc's 3.x line is built against Boot 4; the -api
+         artifact serves the document without the browser UI. -->
+    <springdoc.version>3.1.1</springdoc.version>
+    <!-- Stage 7, test only: validates real responses against the served
+         OpenAPI document. -->
+    <swagger-request-validator.version>3.0.0</swagger-request-validator.version>
 
     <!-- spring-boot-dependencies (the import-scope BOM above) manages
          dependency versions only, not plugin versions — that pluginManagement
@@ -153,6 +159,16 @@
         <groupId>io.cucumber</groupId>
         <artifactId>cucumber-junit-platform-engine</artifactId>
         <version>${cucumber.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.atlassian.oai</groupId>
+        <artifactId>swagger-request-validator-core</artifactId>
+        <version>${swagger-request-validator.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

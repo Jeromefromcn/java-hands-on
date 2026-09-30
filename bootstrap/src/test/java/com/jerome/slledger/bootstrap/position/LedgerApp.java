@@ -19,15 +19,41 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * them is a {@code @Configuration} or {@code @Component}, so the application's own component scan
  * of this package never picks them up by itself.
  */
-final class LedgerApp {
+public final class LedgerApp {
 
   private LedgerApp() {}
 
-  static ConfigurableApplicationContext start(String... extraArgs) {
+  public static ConfigurableApplicationContext start(String... extraArgs) {
     return start(List.of(), extraArgs);
   }
 
-  static ConfigurableApplicationContext start(List<Class<?>> extraSources, String... extraArgs) {
+  public static ConfigurableApplicationContext start(
+      List<Class<?>> extraSources, String... extraArgs) {
+    return run(WebApplicationType.NONE, extraSources, extraArgs);
+  }
+
+  /** The same application serving HTTP on a random port; see {@link #port}. */
+  public static ConfigurableApplicationContext startWeb(String... extraArgs) {
+    return startWeb(List.of(), extraArgs);
+  }
+
+  public static ConfigurableApplicationContext startWeb(
+      List<Class<?>> extraSources, String... extraArgs) {
+    List<String> args = new ArrayList<>();
+    args.add("--server.port=0");
+    args.addAll(Arrays.asList(extraArgs));
+    return run(WebApplicationType.SERVLET, extraSources, args.toArray(String[]::new));
+  }
+
+  /** The port a context from {@link #startWeb} is listening on. */
+  public static int port(ConfigurableApplicationContext context) {
+    return ((org.springframework.boot.web.server.context.WebServerApplicationContext) context)
+        .getWebServer()
+        .getPort();
+  }
+
+  private static ConfigurableApplicationContext run(
+      WebApplicationType type, List<Class<?>> extraSources, String... extraArgs) {
     List<String> args = new ArrayList<>();
     for (String property : SharedPostgres.freshDatabase()) {
       args.add("--" + property);
@@ -37,13 +63,13 @@ final class LedgerApp {
     sources.add(SlLedgerApplication.class);
     sources.addAll(extraSources);
     return new SpringApplicationBuilder(sources.toArray(Class<?>[]::new))
-        .web(WebApplicationType.NONE)
+        .web(type)
         .bannerMode(Banner.Mode.OFF)
         .run(args.toArray(String[]::new));
   }
 
   /** Reference data has no use case of its own yet; it is inserted as it would be loaded. */
-  static void referenceData(JdbcClient jdbc) {
+  public static void referenceData(JdbcClient jdbc) {
     jdbc.sql(
             "INSERT INTO counterparty VALUES"
                 + " ('CP-001', 'Synthetic Borrower One', 1000000000.00, 'HKD'),"

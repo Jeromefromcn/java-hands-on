@@ -126,7 +126,7 @@ pinned by a test in the section named.
 
 ---
 
-## [ ] 1 · Build wiring and an empty server
+## [x] 1 · Build wiring and an empty server
 
 **POMs**
 - Parent `dependencyManagement`: `springdoc-openapi-starter-webmvc-api`

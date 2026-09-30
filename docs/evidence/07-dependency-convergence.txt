@@ -1,0 +1,60 @@
+Stage 07 · section 1 — dependency convergence after adding the web stack
+Measured 2026-09-30, JDK 21.0.12-tem, Maven wrapper, Spring Boot BOM 4.1.1.
+
+Added:
+  parent               dependencyManagement: springdoc-openapi-starter-webmvc-api 3.1.1,
+                       swagger-request-validator-core 3.0.0 (neither is in the Boot BOM)
+  adapter-web          spring-boot-starter-webmvc, spring-boot-starter-validation,
+                       springdoc-openapi-starter-webmvc-api
+                       (test: spring-boot-starter-webmvc-test, spring-boot-starter-aspectj)
+  bootstrap            test: swagger-request-validator-core
+  bootstrap            removed: test-scoped spring-web and jakarta.servlet-api (see below)
+
+Enforcer (./mvnw install -DskipTests, rules incl. dependencyConvergence):
+  "Rule 4: org.apache.maven.enforcer.rules.dependency.DependencyConvergence passed"
+  in every module. No override was added.
+
+Jackson 2 and Jackson 3 side by side
+(./mvnw -pl adapter-web dependency:tree -Dincludes=com.fasterxml.jackson.core,tools.jackson.core,io.swagger.core.v3):
+  com.jerome.slledger:adapter-web:jar:0.1.0-SNAPSHOT
+  +- org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.1:compile
+  |  \- org.springframework.boot:spring-boot-starter-jackson:jar:4.1.1:compile
+  |     \- org.springframework.boot:spring-boot-jackson:jar:4.1.1:compile
+  |        \- tools.jackson.core:jackson-databind:jar:3.1.5:compile
+  |           \- tools.jackson.core:jackson-core:jar:3.1.5:compile
+  \- org.springdoc:springdoc-openapi-starter-webmvc-api:jar:3.1.1:compile
+     \- org.springdoc:springdoc-openapi-starter-common:jar:3.1.1:compile
+        \- io.swagger.core.v3:swagger-core-jakarta:jar:2.2.55:compile
+           +- io.swagger.core.v3:swagger-annotations-jakarta:jar:2.2.55:compile
+           +- io.swagger.core.v3:swagger-models-jakarta:jar:2.2.55:compile
+           +- com.fasterxml.jackson.core:jackson-annotations:jar:2.21:compile
+           \- com.fasterxml.jackson.core:jackson-databind:jar:2.21.5:compile
+              \- com.fasterxml.jackson.core:jackson-core:jar:2.21.5:compile
+
+Boot 4 serializes with Jackson 3 (tools.jackson); springdoc's swagger-core
+still uses Jackson 2 (com.fasterxml.jackson) internally. Different group ids,
+different packages: they coexist, and the Boot BOM pins both lines, which is
+why convergence passes. Only Jackson 3 touches the ledger's own JSON.
+
+The nearest-wins trap, measured before removing the old declarations.
+bootstrap declared org.springframework:spring-web at test scope for stage 4's
+request-scope demo. With that declaration still present:
+  com.jerome.slledger:bootstrap:jar:0.1.0-SNAPSHOT
+  \- org.springframework:spring-web:jar:7.0.9:test
+
+spring-web would have been test scope in bootstrap even though adapter-web
+brings it at compile scope: the direct declaration wins mediation. The
+packaged application would have had no Spring MVC. Stage 6 hit the same trap
+with spring-boot-starter-jdbc. After removing it (-Dscope=runtime):
+  com.jerome.slledger:bootstrap:jar:0.1.0-SNAPSHOT
+  +- com.jerome.slledger:adapter-web:jar:0.1.0-SNAPSHOT:compile
+  |  \- org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.1:compile
+  |     +- org.springframework.boot:spring-boot-starter-tomcat:jar:4.1.1:compile
+  |     |  \- org.springframework.boot:spring-boot-starter-tomcat-runtime:jar:4.1.1:compile
+  |     |     +- org.apache.tomcat.embed:tomcat-embed-core:jar:11.0.24:compile
+  |     |     \- org.apache.tomcat.embed:tomcat-embed-websocket:jar:11.0.24:compile
+  |     \- org.springframework.boot:spring-boot-http-converter:jar:4.1.1:compile
+  |        \- org.springframework:spring-web:jar:7.0.9:compile
+  \- org.springframework.boot:spring-boot-starter-validation:jar:4.1.1:compile
+     \- org.springframework.boot:spring-boot-validation:jar:4.1.1:compile
+        \- org.apache.tomcat.embed:tomcat-embed-el:jar:11.0.24:compile

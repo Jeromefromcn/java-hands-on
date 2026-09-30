@@ -61,19 +61,17 @@
       <artifactId>archunit-junit5</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Request scope and a mock servlet request, for simulating a request in
-         a test. Test scope only: the web layer itself arrives in stage 7. -->
+    <!-- Stage 7: spring-web and jakarta.servlet-api used to be declared here at
+         test scope, for stage 4's request-scope demo. adapter-web now brings
+         both at compile scope, and a direct test-scoped declaration would win
+         nearest-first mediation and take them off the runtime classpath, the
+         same trap stage 6 hit with spring-boot-starter-jdbc. The web tests call
+         the server through spring-test's RestTestClient. -->
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
+      <groupId>com.atlassian.oai</groupId>
+      <artifactId>swagger-request-validator-core</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>jakarta.servlet</groupId>
-      <artifactId>jakarta.servlet-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-
     <!-- Stage 5: transaction and AOP demos against a real Postgres.
          spring-boot-starter-aspectj is Boot 4's name for Boot 3's
          spring-boot-starter-aop.
