@@ -32,7 +32,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * What every {@link LoanPositionRepository} implementation promises, whatever its lock strategy.
- * Section 4 runs it against the optimistic adapter, section 12 against the pessimistic one.
+ * Section 4 runs it against the optimistic adapter, section 12 against the pessimistic one; the
+ * adapter is selected by {@code ledger.persistence.locking}, as in the application.
  */
 abstract class LoanPositionRepositoryContract {
 
@@ -47,11 +48,18 @@ abstract class LoanPositionRepositoryContract {
   JdbcClient jdbc;
 
   /** Beans to add to the context besides what PersistenceConfiguration scans. */
-  abstract Class<?>[] beans();
+  Class<?>[] beans() {
+    return new Class<?>[0];
+  }
+
+  /** Properties for the context; selects the lock strategy under test. */
+  String[] properties() {
+    return new String[0];
+  }
 
   @BeforeEach
   void start() {
-    context = LedgerDb.start(beans());
+    context = LedgerDb.start(properties(), beans());
     repository = context.getBean(LoanPositionRepository.class);
     tx = context.getBean(TransactionTemplate.class);
     jdbc = context.getBean(JdbcClient.class);

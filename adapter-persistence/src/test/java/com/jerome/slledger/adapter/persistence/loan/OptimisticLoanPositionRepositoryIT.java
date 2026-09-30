@@ -13,10 +13,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 class OptimisticLoanPositionRepositoryIT extends LoanPositionRepositoryContract {
 
-  @Override
-  Class<?>[] beans() {
-    // PersistenceConfiguration's component scan registers the optimistic adapter.
-    return new Class<?>[0];
+  // No properties: the optimistic adapter is the default when ledger.persistence.locking is unset.
+
+  @Test
+  void theSelectedAdapterIsTheOptimisticOne() {
+    assertThat(context.getBeansOfType(LoanPositionRepository.class).values())
+        .singleElement()
+        .isInstanceOf(OptimisticLoanPositionRepository.class);
   }
 
   @Test

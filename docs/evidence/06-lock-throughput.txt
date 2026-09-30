@@ -1,0 +1,19 @@
+# Stage 6, exercise 6: optimistic vs pessimistic, two shapes (LockThroughputIT)
+# HOT: 1 position of 10,000, 400 returns of 1. SPREAD: 40 positions, 10 returns of 1 each (round-robin).
+# ok = returns that landed; optFails = Hibernate Statistics optimistic failures (each one a retry or an exhaustion);
+# exhausted = returns that lost 5 attempts; lockTmo = pessimistic lock-wait timeouts (3000 ms).
+# Postgres 17 in Testcontainers on the same 4-core host. Measured by the ./mvnw clean verify run of this commit.
+
+cores=4, JDK 21.0.12+8-LTS, 8 threads, ledger.return.max-attempts=5, pool=Hikari default (10)
+one warm-up run discarded, then 3 measured runs; the row is the median by wall time
+locking      shape     wallMs       ok       qps  optFails  exhausted   lockTmo | runs (wall ms)
+optimistic   HOT         1782      229     128.5      1070        171         0 | [1491, 1782, 1796]
+optimistic   SPREAD       602      400     664.5         0          0         0 | [439, 602, 603]
+pessimistic  HOT         1370      400     292.0         0          0         0 | [1148, 1370, 1587]
+pessimistic  SPREAD       577      400     693.2         0          0         0 | [511, 577, 633]
+
+## PessimisticLoanPositionRepositoryIT: the SQL find issues
+select lpe1_0.id,lpe1_0.collateral_amount,lpe1_0.collateral_currency,lpe1_0.counterparty_id,lpe1_0.flat_rate,lpe1_0.isin,lpe1_0.original_quantity,lpe1_0.outstanding_quantity,lpe1_0.rule_type,lpe1_0.status,lpe1_0.version from loan_position lpe1_0 where lpe1_0.id=? for no key update of lpe1_0
+
+## PessimisticLoanPositionRepositoryIT: a second finder while the first holds the lock
+waited 3013 ms, then org.springframework.dao.CannotAcquireLockException: JDBC exception executing SQL [ERROR: canceling statement due to lock timeout

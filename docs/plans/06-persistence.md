@@ -781,7 +781,7 @@ Evidence: `docs/evidence/06-optimistic-retry.txt`.
 
 ---
 
-## [ ] 12 · Exercise 6 — pessimistic adapter and throughput
+## [x] 12 · Exercise 6 — pessimistic adapter and throughput
 
 **`PessimisticLoanPositionRepository`**
 - `find` goes through `@Lock(PESSIMISTIC_WRITE)`, which issues
@@ -825,6 +825,27 @@ Evidence: `docs/evidence/06-lock-throughput.txt`, with the machine noted
 - The contract and correctness assertions pass.
 - The evidence holds 4 measured medians.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Both adapters extend `UnitOfWorkLoanPositionRepository`**, which holds the
+  identity map, `activeOf` and `add`. They differ only in how `find` loads
+  the row. The alternative was two copies of the same 40 lines.
+- **Hibernate 7.4.5 emits `for no key update of lpe1_0`** for
+  `PESSIMISTIC_WRITE` on Postgres, not `for update`. Per the Postgres
+  documentation, that mode does not conflict with the `FOR KEY SHARE` lock a
+  foreign-key check takes. That is documented, not measured here.
+- **The 3000 ms lock timeout was measured**: the second finder gave up after
+  3014 ms with `CannotAcquireLockException`, a
+  `PessimisticLockingFailureException`. The contract gained that test and one
+  asserting which adapter the property selected.
+- **`activeOf` is not locked under either strategy.** Locking the positions a
+  credit check reads would not stop a concurrent open: the row that open
+  inserts is not one anyone read. That write skew is recorded in the decision
+  record as a known gap, not fixed here.
+- **`LockThroughputIT` runs its warm-up per strategy × shape**, not per
+  strategy, so that each measured row has a warm run of its own shape.
+- **`@Param("id")`** is needed on `findForUpdate`: the build does not compile
+  with `-parameters`.
 
 ---
 

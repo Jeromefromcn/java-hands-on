@@ -27,11 +27,21 @@ import java.util.Currency;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** The three use cases, through the real application's wiring, against a database of their own. */
+/**
+ * The three use cases, through the real application's wiring, against a database of their own, once
+ * under each lock strategy: the use cases must not be able to tell them apart.
+ */
+@ParameterizedClass(name = "ledger.persistence.locking={0}")
+@ValueSource(strings = {"optimistic", "pessimistic"})
 class PositionUseCasesIT {
+
+  @Parameter String locking;
 
   private static final Currency HKD = Currency.getInstance("HKD");
   private static final Currency USD = Currency.getInstance("USD");
@@ -51,7 +61,7 @@ class PositionUseCasesIT {
 
   @BeforeEach
   void start() {
-    context = LedgerApp.start();
+    context = LedgerApp.start("--ledger.persistence.locking=" + locking);
     open = context.getBean(OpenPosition.class);
     returns = context.getBean(ReturnPosition.class);
     list = context.getBean(ListPositions.class);
@@ -72,6 +82,18 @@ class PositionUseCasesIT {
   @AfterEach
   void stop() {
     context.close();
+  }
+
+  @Test
+  void theConfiguredLockStrategyIsTheOneInUse() {
+    Object adapter =
+        context
+            .getBeansOfType(com.jerome.slledger.domain.loan.LoanPositionRepository.class)
+            .values()
+            .iterator()
+            .next();
+    assertThat(org.springframework.aop.support.AopUtils.getTargetClass(adapter).getSimpleName())
+        .startsWithIgnoringCase(locking);
   }
 
   @Test
