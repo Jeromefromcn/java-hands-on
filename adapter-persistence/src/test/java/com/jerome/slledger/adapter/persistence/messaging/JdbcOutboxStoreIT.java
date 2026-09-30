@@ -246,7 +246,7 @@ class JdbcOutboxStoreIT {
                 .append(
                     "SKIP LOCKED alone: relay A holds POSITION-1's older message; relay B claims [newer of POSITION-1, POSITION-2's] -> newer would be sent first\n")
                 .append(
-                    "with the NOT EXISTS guard: relay B claims [POSITION-2's] only; POSITION-1's newer waits for its older\n");
+                    "with the per-key guard (keep only a key's run that starts at its oldest unpublished message): relay B claims [POSITION-2's] only; POSITION-1's newer waits for its older\n");
           } catch (Exception e) {
             throw new IllegalStateException(e);
           }

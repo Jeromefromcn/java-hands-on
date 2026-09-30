@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -50,16 +49,37 @@ public final class SharedKafka {
     return "test." + stem + "." + UUID.randomUUID().toString().substring(0, 8);
   }
 
+  /**
+   * Returns once every partition of {@code name} has a leader. A producer that sends straight after
+   * {@code createTopics} can get NOT_LEADER_OR_FOLLOWER, and an idempotent producer that retries
+   * through it has been seen to stall on OUT_OF_ORDER_SEQUENCE_NUMBER until its delivery timeout (a
+   * full build hit exactly that: a 1,000-record send that never finished).
+   */
+  private static void awaitLeaders(Admin admin, String name) throws Exception {
+    long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+    while (System.nanoTime() < deadline) {
+      var description =
+          admin.describeTopics(List.of(name)).allTopicNames().get(10, TimeUnit.SECONDS).get(name);
+      if (description.partitions().stream()
+          .allMatch(p -> p.leader() != null && !p.isr().isEmpty())) {
+        return;
+      }
+      Thread.sleep(100);
+    }
+    throw new IllegalStateException("no leaders for " + name + " within 30 s");
+  }
+
   public static void createTopic(String name, int partitions) {
     try (Admin admin = Admin.create(Map.of("bootstrap.servers", bootstrapServers()))) {
       admin
           .createTopics(List.of(new NewTopic(name, partitions, (short) 1)))
           .all()
           .get(30, TimeUnit.SECONDS);
+      awaitLeaders(admin, name);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
-    } catch (ExecutionException | java.util.concurrent.TimeoutException e) {
+    } catch (Exception e) {
       throw new IllegalStateException("Could not create topic " + name, e);
     }
   }
@@ -73,10 +93,11 @@ public final class SharedKafka {
             .all()
             .get(30, TimeUnit.SECONDS);
       }
+      awaitLeaders(admin, name);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
-    } catch (ExecutionException | java.util.concurrent.TimeoutException e) {
+    } catch (Exception e) {
       throw new IllegalStateException("Could not ensure topic " + name, e);
     }
   }
