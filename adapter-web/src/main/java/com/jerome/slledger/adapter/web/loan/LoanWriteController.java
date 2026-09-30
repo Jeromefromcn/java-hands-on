@@ -3,6 +3,7 @@ package com.jerome.slledger.adapter.web.loan;
 import com.jerome.slledger.adapter.web.validation.IdempotencyKeyHeader;
 import com.jerome.slledger.application.position.IdempotentBooking;
 import com.jerome.slledger.application.position.Outcome;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,9 @@ public class LoanWriteController {
   }
 
   @PostMapping(consumes = "application/json")
+  @ApiResponse(
+      responseCode = "201",
+      description = "Booked, or the replay of an earlier booking with the same key and request")
   public ResponseEntity<BookedResponse> open(
       @RequestHeader(IDEMPOTENCY_KEY) @IdempotencyKeyHeader String key,
       @Valid @RequestBody OpenLoanRequest request) {
@@ -43,6 +47,9 @@ public class LoanWriteController {
 
   /** {@code 201} with no {@code Location}: a return has no resource of its own to point at. */
   @PostMapping(path = "/{id}/returns", consumes = "application/json")
+  @ApiResponse(
+      responseCode = "201",
+      description = "Booked, or the replay of an earlier booking with the same key and request")
   public ResponseEntity<BookedResponse> returnQuantity(
       @RequestHeader(IDEMPOTENCY_KEY) @IdempotencyKeyHeader String key,
       @PathVariable String id,

@@ -1,0 +1,39 @@
+Stage 07 · section 16 — responses validated against /v3/api-docs (OpenApiContractIT)
+
+Money as served:
+  {type=object, additionalProperties=false, description=An amount and its currency; one is never sent without the other., properties={amount={type=string, description=A decimal string at the currency's scale, never a JSON number: a number may be rounded to a double by the parser before it is read., examples=["1234.50"], pattern=^-?[0-9]+(\.[0-9]+)?$}, currency={type=string, description=ISO 4217 code, pattern=^[A-Z]{3}$}}, required=["amount","currency"]}
+
+Exchanges validated, each with no validation message:
+  POST  /loans                                                       201
+  POST  /loans                                                       201
+  POST  /loans                                                       422
+  POST  /loans                                                       400
+  POST  /loans                                                       400
+  POST  /loans/5590613a-db22-48bb-b458-d24e110f7d0e/returns          201
+  POST  /loans/5590613a-db22-48bb-b458-d24e110f7d0e/returns          422
+  POST  /loans/LP-NONE/returns                                       404
+  GET   /loans?page=0&size=5                                         200
+  GET   /loans?after=&size=5                                         200
+  GET   /loans?size=500                                              400
+  GET   /loans/5590613a-db22-48bb-b458-d24e110f7d0e                  200
+  GET   /loans/LP-NONE                                               404
+  GET   /loans/5590613a-db22-48bb-b458-d24e110f7d0e/accruals?from=2026-09-01&to=2026-09-30 200
+  GET   /loans/5590613a-db22-48bb-b458-d24e110f7d0e/accruals?from=2026-09-30&to=2026-09-01 400
+  GET   /securities/HK0000000007/quote                               200
+  GET   /securities/HK0000000015/quote                               502
+  GET   /securities/HK0000000023/quote                               404
+
+Mutation check: with the customizer's Money replacement removed (springdoc's
+inferred schema served again), the first exchange already failed validation:
+  [POST /loans -> 201]
+  ERROR - string found, number expected
+  ERROR - string found, object expected
+(amount is a string on the wire and a number in the inferred contract; currency
+is a string on the wire and java.util.Currency's object in the contract.)
+Restored afterwards.
+
+Every operation carries a "default" response of application/problem+json with
+required type, title, status and traceId. A success body checked against it
+would fail on the missing fields, so an undocumented success status (the POSTs'
+201 before @ApiResponse) cannot pass by falling through to it: the validator
+reported "Response status 201 not defined" until the annotation was added.

@@ -1,0 +1,68 @@
+Stage 07 · section 16 — what springdoc inferred before the customizer
+(GET /v3/api-docs on the running application, springdoc 3.1.1, OpenAPI 3.1.0)
+
+components.schemas.Money:
+{
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "object",
+      "properties": {
+        "currencyCode": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "defaultFractionDigits": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "numericCode": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "numericCodeAsString": {
+          "type": "string"
+        }
+      }
+    },
+    "negative": {
+      "type": "boolean"
+    }
+  }
+}
+
+components.schemas.Rate:
+{
+  "type": "object",
+  "properties": {
+    "annual": {
+      "type": "number"
+    }
+  }
+}
+
+Responses documented per operation:
+  GET   /loans                       200
+  POST  /loans                       200
+  POST  /loans/{id}/returns          200
+  GET   /securities/{isin}/quote     200
+  GET   /loans/{id}                  200
+  GET   /loans/{id}/accruals         200
+
+Three contract bugs in one schema, each from Jackson 2 introspecting the domain
+record the way swagger-core does:
+- amount is a number: a generated client would parse it as a double, the exact
+  loss section 2 measured (9999999999999999.99 -> 10000000000000000).
+- currency is java.util.Currency's bean properties (displayName, symbol, ...),
+  not the ISO code the API actually sends.
+- negative, from Money.isNegative(), is advertised as a field.
+None of this is what LedgerJacksonModule writes: the served contract and the
+wire disagreed. The POSTs were documented as 200, and no error response at all.

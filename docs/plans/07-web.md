@@ -821,7 +821,7 @@ unscheduled (spec, fact 4).
 
 ---
 
-## [ ] 16 · OpenAPI and the contract test
+## [x] 16 · OpenAPI and the contract test
 
 **`adapter-web`**: an `OpenApiCustomizer` that replaces the inferred
 `Money` schema with `{amount: string, pattern, currency: string}` and
@@ -842,6 +842,23 @@ inferred schema to `docs/evidence/07-openapi-money.txt`.
 **Acceptance**
 - The IT passes.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The inferred `Money` was worse than the plan expected.** Besides
+  `amount: number`, `currency` was `java.util.Currency`'s bean properties
+  (`displayName`, `symbol`, …) and `negative` was listed as a field.
+  swagger-core introspects with Jackson 2 and never sees
+  `LedgerJacksonModule`. Recorded in `07-openapi-money.txt`.
+- **Errors are one `default` response, not `@ApiResponse` per controller.**
+  An `OpenApiCustomizer` adds `default: application/problem+json` to every
+  operation, with `type`, `title`, `status` and `traceId` required. Only the
+  two `201`s need `@ApiResponse`; before it, the validator reported
+  "Response status 201 not defined".
+- **swagger's fluent setters return a raw `Schema`**, which `-Werror`
+  refuses as an unchecked conversion; the customizer uses plain setters.
+- The validator accepted springdoc's OpenAPI 3.1 document as served.
+- A mutation that dropped the `Money` replacement failed the first exchange
+  with "string found, number expected" and "string found, object expected".
 
 ---
 
