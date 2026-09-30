@@ -1,5 +1,7 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.application.messaging.IntegrationEvent.PositionOpened;
+import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
 import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.SecurityDirectory;
@@ -16,6 +18,7 @@ import com.jerome.slledger.domain.loan.TradeDirection;
 import com.jerome.slledger.domain.money.Money;
 import com.jerome.slledger.domain.party.Counterparty;
 import com.jerome.slledger.domain.party.ExposureSummary;
+import java.time.Clock;
 import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,8 @@ public class OpenPosition {
   private final LoanPositionRepository positions;
   private final TradeLedger trades;
   private final HolidayCalendar calendar;
+  private final Outbox outbox;
+  private final Clock clock;
 
   public OpenPosition(
       CounterpartyDirectory counterparties,
@@ -41,11 +46,28 @@ public class OpenPosition {
       LoanPositionRepository positions,
       TradeLedger trades,
       HolidayCalendar calendar) {
+    this(counterparties, securities, positions, trades, calendar, Outbox.NONE, Clock.systemUTC());
+  }
+
+  /**
+   * As above, and the open also records a {@code PositionOpened} in {@code outbox}, in the same
+   * transaction as the position and its trade.
+   */
+  public OpenPosition(
+      CounterpartyDirectory counterparties,
+      SecurityDirectory securities,
+      LoanPositionRepository positions,
+      TradeLedger trades,
+      HolidayCalendar calendar,
+      Outbox outbox,
+      Clock clock) {
     this.counterparties = counterparties;
     this.securities = securities;
     this.positions = positions;
     this.trades = trades;
     this.calendar = calendar;
+    this.outbox = outbox;
+    this.clock = clock;
   }
 
   /**
@@ -99,6 +121,15 @@ public class OpenPosition {
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
             .build();
     trades.book(borrow, command.fingerprint());
+    outbox.append(
+        new PositionOpened(
+            UUID.randomUUID(),
+            clock.instant(),
+            position.id(),
+            counterparty.id(),
+            security.isin(),
+            command.quantity(),
+            requested));
     return borrow;
   }
 }

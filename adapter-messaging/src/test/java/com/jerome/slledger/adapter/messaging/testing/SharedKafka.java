@@ -64,6 +64,23 @@ public final class SharedKafka {
     }
   }
 
+  /** Creates the topic unless it exists; a test that shares a well-known topic name calls this. */
+  public static void ensureTopic(String name, int partitions) {
+    try (Admin admin = Admin.create(Map.of("bootstrap.servers", bootstrapServers()))) {
+      if (!admin.listTopics().names().get(30, TimeUnit.SECONDS).contains(name)) {
+        admin
+            .createTopics(List.of(new NewTopic(name, partitions, (short) 1)))
+            .all()
+            .get(30, TimeUnit.SECONDS);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(e);
+    } catch (ExecutionException | java.util.concurrent.TimeoutException e) {
+      throw new IllegalStateException("Could not ensure topic " + name, e);
+    }
+  }
+
   /** Producer properties for a plain string producer on this broker. */
   public static Properties producerProperties() {
     Properties properties = new Properties();
@@ -97,10 +114,12 @@ public final class SharedKafka {
     properties.remove(ConsumerConfig.GROUP_ID_CONFIG);
     List<ConsumerRecord<String, String>> records = new ArrayList<>();
     try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties)) {
+      List<org.apache.kafka.common.PartitionInfo> infos = consumer.partitionsFor(topic);
+      if (infos == null || infos.isEmpty()) {
+        return records;
+      }
       List<TopicPartition> partitions =
-          consumer.partitionsFor(topic).stream()
-              .map(info -> new TopicPartition(topic, info.partition()))
-              .toList();
+          infos.stream().map(info -> new TopicPartition(topic, info.partition())).toList();
       consumer.assign(partitions);
       consumer.seekToBeginning(partitions);
       Map<TopicPartition, Long> ends = consumer.endOffsets(partitions);

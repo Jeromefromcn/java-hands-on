@@ -2,6 +2,7 @@ package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
+import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
 import com.jerome.slledger.application.port.MarketPriceSource;
@@ -23,6 +24,7 @@ import com.jerome.slledger.application.quote.QuotePrice;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
+import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +41,8 @@ import org.springframework.context.annotation.Import;
   PersistenceConfiguration.class,
   WebConfiguration.class,
   MarketDataExecutorConfiguration.class,
-  CacheConfiguration.class
+  CacheConfiguration.class,
+  MessagingConfiguration.class
 })
 public class LedgerConfiguration {
 
@@ -49,13 +52,28 @@ public class LedgerConfiguration {
   }
 
   @Bean
+  Clock clock() {
+    return Clock.systemUTC();
+  }
+
+  @Bean
   OpenPosition openPosition(
       CounterpartyDirectory counterparties,
       SecurityDirectory securities,
       LoanPositionRepository positions,
       TradeLedger trades,
-      HolidayCalendar calendar) {
-    return new OpenPosition(counterparties, securities, positions, trades, calendar);
+      HolidayCalendar calendar,
+      ObjectProvider<Outbox> outbox,
+      Clock clock) {
+    // The outbox exists only when messaging is on; without it an open records no event.
+    return new OpenPosition(
+        counterparties,
+        securities,
+        positions,
+        trades,
+        calendar,
+        outbox.getIfAvailable(() -> Outbox.NONE),
+        clock);
   }
 
   @Bean

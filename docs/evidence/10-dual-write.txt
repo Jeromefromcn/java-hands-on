@@ -1,0 +1,2 @@
+send inside the transaction, then rollback: positions committed=0, messages on the topic for it=1 (a downstream system now knows about a position that does not exist)
+commit then send, broker unreachable: send threw after 501 ms; positions committed=1, messages on the topic for it=0, rows recording that it is owed=0 (on the naive path)

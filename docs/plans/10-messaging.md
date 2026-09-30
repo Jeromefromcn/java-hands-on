@@ -199,9 +199,9 @@ test in the section named.
 
 ---
 
-## [ ] 4 · The outbox and the two dual-write failures
+## [x] 4 · The outbox and the two dual-write failures
 
-**Migration V7**: `outbox_event`.
+**Migration V6**: `outbox_event`.
 
 **`application.messaging`**
 - `OutboxStore` port: `append`, `claim(limit)` (`FOR UPDATE SKIP LOCKED`, by
@@ -229,6 +229,31 @@ test in the section named.
   appended.
 - `oldestUnpublishedAge` reads the age on a controlled clock.
 
+**Found while implementing**
+- Migrations are numbered in the order they are written, so the outbox is V6
+  and `price_version` V7 (the spec and this plan had them the other way
+  round). Flyway refuses an unapplied migration numbered below an applied one.
+- The claim as planned, `SKIP LOCKED` plus `NOT EXISTS (older unpublished row
+  of the same key)`, kept per-key order but handed out one message per key
+  per pass: three events for one position took three passes (found by
+  `brokerOutageThenRecovery`, which expected all three). Replaced by
+  `SKIP LOCKED`, then a second query that keeps, per key, the run of claimed
+  rows that starts at the key's oldest unpublished row. Same guarantee, and a
+  key's backlog drains in one pass. The `NOT EXISTS` form is described in the
+  class comment as the simpler alternative and why it was not kept.
+- `@Repository` translates exceptions: an `IllegalStateException` thrown by
+  the store came out as `InvalidDataAccessApiUsageException`. The store throws
+  `IllegalTransactionStateException` (as `JdbcWriteFence` does), which is not
+  translated.
+- `OpenPosition` gained a second constructor rather than a changed one, so no
+  existing call site moved. `LedgerConfiguration` provides a `Clock` bean and
+  passes `Outbox.NONE` when messaging is off.
+- The first cut of `MessagingProperties` and `MessagingConfiguration` is here,
+  not in section 12: the outbox tests need a running relay and sender. Section
+  12 adds the listeners, schedulers and purge to them.
+- Tests share the well-known topic names on one broker, so they filter by
+  message id instead of counting a topic's contents.
+
 **Acceptance**
 - Evidence `10-dual-write.txt`, `10-outbox.txt`. Full verify green.
 
@@ -236,7 +261,7 @@ test in the section named.
 
 ## [ ] 5 · Applying a price update, and ordering
 
-**Migration V6**: `security.price_version bigint not null default 0`.
+**Migration V7**: `security.price_version bigint not null default 0`.
 
 **`application.messaging`**
 - Port `SecurityPrices.applyIfNewer(isin, Money, version)` returning whether it

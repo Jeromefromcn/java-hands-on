@@ -1,0 +1,6 @@
+broker unreachable: relay pass claimed=3 sent=0, unpublished=3, none on topic; broker back: sent=3, unpublished=0, 3 on topic in append order for one key
+throw after the append: outbox rows=0, positions=0
+open -> 1 outbox row; relay pass sent=1, unpublished after=0; topic record key=position id, header messageId=event id, collateral 50000.00 HKD on the wire
+no relay running: unpublished=2, oldest unpublished is PT5M1S old on a controlled clock (stage 12 alerts on this)
+two relays, batch 7, 40 rows: relay A sent=21, relay B sent=19, topic holds 40 records with 40 distinct ids, unpublished=0
+relay died after the ack, before the mark: after the next pass the topic holds 2 records with one messageId, unpublished=0 (at-least-once; the consumer's guard removes the duplicate, section 6)

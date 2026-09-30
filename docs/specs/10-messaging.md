@@ -116,7 +116,7 @@ Testcontainers come from the Boot BOM. Lab POMs carry their own versions.
 |---|---|---|
 | `domain` | nothing | none |
 | `application` | `messaging` (events, outbox, relay, idempotent consumer, price apply, revaluation, notifier), `collateral` (TCC port and use cases), `saga` (orchestrator, open-position saga); ports | none |
-| `adapter-persistence` | JDBC adapters: outbox, consumed messages, price version apply, TCC, saga log, security positions; migrations V6–V10 | none |
+| `adapter-persistence` | JDBC adapters: outbox, consumed messages, price version apply, TCC, saga log, security positions; migrations V6–V10 (V6 outbox, V7 price version, V8 consumed messages, V9 collateral and TCC, V10 saga) | none |
 | `adapter-messaging` (new) | Kafka: JSON event codec, producer, sender, price-update and margin-call listeners, error handler, topics | Spring Kafka, Jackson |
 | `adapter-web` | nothing | none |
 | `bootstrap` | `ledger.messaging.*` properties and wiring, the in-process event bridge, relay and purge schedulers | none in main |
@@ -163,7 +163,7 @@ Testcontainers come from the Boot BOM. Lab POMs carry their own versions.
   the outbox for each shortfall, and publish `PriceApplied`. A position that
   cannot be revalued (collateral in another currency) is counted and logged
   and does not fail the update.
-- V6 adds `security.price_version`, default 0.
+- V7 adds `security.price_version`, default 0.
 
 ### Consuming exactly once in effect
 
@@ -208,7 +208,7 @@ Testcontainers come from the Boot BOM. Lab POMs carry their own versions.
 
 ### Outbox
 
-- V7: `outbox_event(id uuid pk, seq bigserial, topic, message_key, type,
+- V6: `outbox_event(id uuid pk, seq bigserial, topic, message_key, type,
   payload, created_at, published_at)` with a partial index on unpublished
   rows.
 - `OpenPosition` appends a `PositionOpened` in its own transaction.

@@ -1,0 +1,3 @@
+SKIP LOCKED alone: relay A holds POSITION-1's older message; relay B claims [newer of POSITION-1, POSITION-2's] -> newer would be sent first
+with the NOT EXISTS guard: relay B claims [POSITION-2's] only; POSITION-1's newer waits for its older
+two relays, 6 rows, 6 distinct keys: relay A claimed 3, relay B claimed 3 while A held its rows, no overlap, no wait
