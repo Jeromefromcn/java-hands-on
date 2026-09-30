@@ -502,7 +502,7 @@ injecting a crash.
 
 ---
 
-## [ ] 11 · Backpressure and being thrown out of the group
+## [x] 11 · Backpressure and being thrown out of the group
 
 **Tests** (`adapter-messaging`, real time is the subject and says so)
 - A producer faster than a consumer: lag sampled at intervals, growth
@@ -512,6 +512,18 @@ injecting a crash.
   next commit fails. With the handler under the interval it does not.
 - The measured worst per-record time against `max.poll.records × time <
   interval`.
+
+**Found while implementing**
+- The eviction test uses raw consumers with explicit sleeps as the "slow
+  database": the product container would need the handler to actually be slow,
+  and the raw consumer exposes the two facts asserted (the failed commit, the
+  restart at offset 0) directly. Three configurations are run, not two, so
+  both knobs are shown: fewer records per poll and faster records each keep
+  the batch under the interval.
+- The lag experiment measures about 62 records/s of growth against a producer
+  of about 100/s and a consumer of about 40/s (the consumer's `sleep(20)` is
+  not the whole per-record cost); the numbers are in the evidence file, not
+  the ones the arithmetic in the plan would give.
 
 **Acceptance**
 - Evidence `10-backpressure.txt`. Full verify green.

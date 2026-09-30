@@ -1,0 +1,5 @@
+producer ~100 records/s, consumer ~50 records/s (20 ms each), one partition: lag sampled each second for 6 s = [72, 132, 196, 260, 320, 384]; produced 580, lag when the producer stopped=384, drained to 0 in 10654 ms after it stopped
+max.poll.interval.ms 3000: max.poll.records=5 x 1000 ms per record = 5000 ms between polls -> commit failed (CommitFailedException), partitions lost/revoked=1, next poll started again at offset 0 (the 5 records handled were delivered again)
+max.poll.records=5 x 400 ms = 2000 ms -> commit ok, partitions lost=0, next poll at offset 5
+max.poll.records=2 x 1000 ms = 2000 ms -> commit ok, partitions lost=0, next poll at offset 2
+rule: max.poll.records x worst time per record must stay below max.poll.interval.ms (the sleeps above are the worst time per record; a real worst case is the p99 of the handler, measured in production)
