@@ -78,4 +78,41 @@ public final class LedgerFixtures {
         .update();
     return this;
   }
+
+  /**
+   * A BORROW trade for every position whose id starts with {@code prefix}, settling on {@code
+   * settlement}, so the position counts as active from that date. Idempotency keys are {@code "k-"
+   * + id}.
+   */
+  public LedgerFixtures borrowTradesForAll(String prefix, LocalDate settlement) {
+    jdbc.sql(
+            "INSERT INTO loan_trade (idempotency_key, position_id, counterparty_id, isin,"
+                + " direction, quantity, unit_price_amount, unit_price_currency, trade_date,"
+                + " settlement_date)"
+                + " SELECT 'k-' || id, id, counterparty_id, isin, 'BORROW', original_quantity,"
+                + " 41.26, 'HKD', ?::date - 2, ?::date FROM loan_position WHERE id LIKE ? || '%'")
+        .params(settlement, settlement, prefix)
+        .update();
+    return this;
+  }
+
+  /**
+   * {@code count} OPEN positions {@code prefix000001…} in one statement. {@code counterpartySql} is
+   * a SQL expression over {@code n} (the row number) that yields each position's counterparty, so a
+   * test can skew the ledger. Test code only: the expression is not bound.
+   */
+  public LedgerFixtures bulkPositions(
+      String prefix, int count, String isin, String counterpartySql) {
+    jdbc.sql(
+            "INSERT INTO loan_position (id, counterparty_id, isin, original_quantity,"
+                + " outstanding_quantity, status, collateral_amount, collateral_currency,"
+                + " rule_type, flat_rate)"
+                + " SELECT ? || lpad(n::text, 6, '0'), "
+                + counterpartySql
+                + ", ?, 1000, 1000, 'OPEN', 1000.00, 'HKD', 'FLAT', 0.0365"
+                + " FROM generate_series(1, ?) n")
+        .params(prefix, isin, count)
+        .update();
+    return this;
+  }
 }

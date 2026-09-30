@@ -13,7 +13,7 @@ import java.math.BigDecimal;
  * MarginalTieredRate} needs a child table of tiers. Both are refused by name instead of being
  * written in a shape nothing can read back.
  */
-final class AccrualRuleColumns {
+public final class AccrualRuleColumns {
 
   static final String FLAT = "FLAT";
 
@@ -33,7 +33,7 @@ final class AccrualRuleColumns {
     return ((FlatRate) rule).rate().annual();
   }
 
-  static AccrualRule toRule(String type, BigDecimal flatRate) {
+  public static AccrualRule toRule(String type, BigDecimal flatRate) {
     if (FLAT.equals(type)) {
       return new FlatRate(new Rate(flatRate));
     }

@@ -126,7 +126,7 @@ test in the section named.
 
 ---
 
-## [ ] 3 · Accrual ports and adapters
+## [x] 3 · Accrual ports and adapters
 
 **Change**
 - `application.accrual`: `AccrualCandidate` (`Valid(LoanPosition, Money
@@ -399,3 +399,15 @@ test in the section named.
 - V12 is 6.0.5's PostgreSQL script verbatim. The `ledger.batch.*` properties arrive with section 4.
 - `ArchitectureIT`'s rule on `batch` keeps `allowEmptyShould(true)` until the first class lands in
   section 4.
+
+**Section 3.**
+- The partial index `loan_position (id) WHERE status <> 'CLOSED'` in the plan is not created: the
+  reader orders by the primary key and filters, and no measurement showed it needed. What was needed
+  instead is `loan_trade (position_id, direction, settlement_date)`: "active on the date" asks for
+  the opening trade once per position, and `loan_trade` had no index on `position_id`, so the
+  first draft of the query scanned the table per row. And `loan_position (counterparty_id, id)` for
+  the counterparty slice. Both are in V13.
+- A position with no BORROW trade at all is not active on any date. Product code always writes the
+  trade with the position, so this only matters to fixtures, which now insert trades.
+- `AccrualRuleColumns` became public (`toRule`) so the accrual adapter reuses the one place that
+  turns a stored rule into a `FlatRate`, instead of a second copy that could disagree.
