@@ -469,9 +469,9 @@ is the TTL, and the number is on the page.
 only then returned to `lead`, which wrote the value to the tiers. In that window a second
 instance could take the lock, read the shared tier empty, and load again: the "one load across
 two instances" guarantee had a hole the width of one Redis write. It surfaced as an intermittent
-failure of `HotKeyRebuildIT.twoInstancesLoadOnce` (2 source calls, not 1) in two of about twelve
-full builds, both while the machine was busy, and passed on every re-run, which is how a race
-looks. The loader now stores the value *before* it releases the lock, and
+failure of `HotKeyRebuildIT.twoInstancesLoadOnce` (2 source calls, not 1) in one of about a
+dozen full builds, while the machine was busy with another build, and it passed on every re-run,
+which is how a race looks. The loader now stores the value *before* it releases the lock, and
 `ReadThroughTest.theRebuildLockIsHeldUntilTheValueIsStored` reproduces the window
 deterministically (the first instance is held inside its shared-tier write; the second must
 neither take the lock nor load). Checked against the old code: the test fails there (2 loads).
@@ -479,7 +479,7 @@ neither take the lock nor load). Checked against the old code: the test fails th
 The stage's numbers are unaffected: the evidence files record one load for the crowd, which is
 what the window allows when the second instance does not arrive inside it.
 
-The same builds flaked `PriceInvalidationIT.aMessageThatIsNotAnIsinIsRefusedAndHarmless` once: the
+Another of those builds flaked `PriceInvalidationIT.aMessageThatIsNotAnIsinIsRefusedAndHarmless` once: the
 Redis listener container hands messages to a pool, so the eviction of the second message can be
 observed before the first message's refusal has been counted. That was a race in the test, not
 the product; it now waits for the counter.
