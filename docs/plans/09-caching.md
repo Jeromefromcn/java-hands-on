@@ -508,7 +508,7 @@ latch hooks stands in for the database)**
 
 ---
 
-## [ ] 13 · The lab
+## [x] 13 · The lab
 
 **`labs/09-caching/`** — standalone POM, not in the root's `<modules>`,
 Testcontainers Redis.
@@ -525,6 +525,25 @@ Testcontainers Redis.
 **Acceptance**
 - `./mvnw -f labs/09-caching/pom.xml verify` runs; evidence files exist.
 - The root `./mvnw clean verify` still does not build the lab.
+
+**Found while implementing**
+- **The stop signal shows both halves of the watchdog.** Slow but alive: Redisson renews and
+  the second holder waits (10,024 ms against a 3,000 ms lease). Stopped: nothing renews, the
+  second holder gets the lock at 3,948 ms, and the resumed child writes anyway and then finds
+  its unlock refused. The same stopped run with a fencing token refuses the stale write.
+  The hand-written lock with no watchdog loses the lease under a holder that is only slow
+  (scenario 5), which is the case the watchdog exists for.
+- **The Bloom filter wins the scan and loses correctness.** 956 store lookups against
+  100,000 for the negative cache on 100,000 distinct unknown keys; on a hot set of 100 bad
+  keys the negative cache needs 100 and the filter 1,000 (one false-positive key, asked
+  1,000 times). A security listed after the filter was built is refused until a rebuild.
+- The negative-cache heap is not measured in the lab: a first attempt read a negative number
+  from a `System.gc()` difference, so the file says "bounded by maximumSize, not measured".
+- Redisson 4.7.0, Guava 33.4.0, protobuf-java 4.31.1, Testcontainers 2.0.5 are pinned in the
+  lab POM only. `RFencedLock` was not tried; the lab compares the hand-written fence, and the
+  decision record says so.
+- Protobuf is written with `CodedOutputStream`, not generated classes: no protoc step, and
+  the wire encoding is what is being compared.
 
 ---
 

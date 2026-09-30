@@ -1,0 +1,6 @@
+Stage 9 lab: an unbounded Caffeine cache filled until the heap ends
+Environment: JVM 21.0.12 (OpenJDK 64-Bit Server VM), 4 CPUs, Linux 6.17.0-1019-oracle
+-Xmx = 64 MB (as the JVM reports it)
+entries held when OutOfMemoryError: Java heap space -> 236810
+
+Each entry: an ISIN-shaped key and a 100-character value, one put per distinct key.

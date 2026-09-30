@@ -1,0 +1,64 @@
+Stage 9 lab: a lock holder that is stopped, and one that is only slow
+Environment: JVM 21.0.12 (OpenJDK 64-Bit Server VM), 4 CPUs, Linux 6.17.0-1019-oracle
+Redis 7.4 (Testcontainers), lease / watchdog timeout 3000 ms. The holder is a child JVM; a
+stop is `kill -STOP` on its pid, a resume is `kill -CONT`. Times are milliseconds since the
+scenario began, taken by the parent. "Handed over" means another holder acquired the lock
+before the child wrote. The write is `total = total + 1`; one round should add once per
+holder that legitimately ran.
+
+== 1. Redisson, holder slow but alive (9 s of work)
+   expected: watchdog renews the lease; second holder waits
+      969 ms  child   ACQUIRED
+     9969 ms  child   WRITING
+     9972 ms  child   WROTE
+     9980 ms  child   UNLOCKED
+    10024 ms  parent  ACQUIRED the lock
+    10026 ms  parent  WROTE
+   => lock handed to another holder before the child wrote: no; total = 2
+
+== 2. Redisson, holder stopped with SIGSTOP
+   expected: watchdog is stopped too; lease runs out; two holders
+      932 ms  child   ACQUIRED
+     1944 ms  parent  kill -STOP the child
+     3948 ms  parent  ACQUIRED the lock
+     3948 ms  parent  WROTE
+     4463 ms  parent  kill -CONT the child
+     6932 ms  child   WRITING
+     6936 ms  child   WROTE
+     6943 ms  child   UNLOCK-REFUSED (this process no longer holds the lock)
+   => lock handed to another holder before the child wrote: yes; total = 2
+
+== 3. Hand-written lock, holder stopped with SIGSTOP
+   expected: lease runs out; two holders
+     1051 ms  child   ACQUIRED token=1
+     2060 ms  parent  kill -STOP the child
+     4111 ms  parent  ACQUIRED the lock, token=2
+     4116 ms  parent  WROTE
+     4621 ms  parent  kill -CONT the child
+     7051 ms  child   WRITING
+     7053 ms  child   WROTE
+     7055 ms  child   RELEASED (a no-op if the lock had passed to someone else)
+   => lock handed to another holder before the child wrote: yes; total = 2
+
+== 4. Hand-written lock + fencing token, holder stopped with SIGSTOP
+   expected: lease runs out; stale write refused
+      987 ms  child   ACQUIRED token=1
+     1993 ms  parent  kill -STOP the child
+     4025 ms  parent  ACQUIRED the lock, token=2
+     4026 ms  parent  WROTE
+     4537 ms  parent  kill -CONT the child
+     6987 ms  child   WRITING
+     6989 ms  child   REFUSED-STALE-TOKEN
+     6990 ms  child   RELEASED (a no-op if the lock had passed to someone else)
+   => lock handed to another holder before the child wrote: yes; total = 1
+
+== 5. Hand-written lock, holder slow but alive (6 s of work)
+   expected: no watchdog; lease runs out under a live holder
+     1380 ms  child   ACQUIRED token=1
+     4441 ms  parent  ACQUIRED the lock, token=2
+     4443 ms  parent  WROTE
+     7380 ms  child   WRITING
+     7383 ms  child   WROTE
+     7384 ms  child   RELEASED (a no-op if the lock had passed to someone else)
+   => lock handed to another holder before the child wrote: yes; total = 2
+

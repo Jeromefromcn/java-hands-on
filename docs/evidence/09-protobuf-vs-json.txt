@@ -1,0 +1,27 @@
+Stage 9 lab: one price, JSON and protobuf
+Environment: JVM 21.0.12 (OpenJDK 64-Bit Server VM), 4 CPUs, Linux 6.17.0-1019-oracle
+JSON is what the ledger stores in Redis. Protobuf sizes are the encoded message alone
+(no framing). "back" is the amount as read after the round trip.
+
+amount 41.26 HKD
+  JSON, string amount           :  53 bytes, back 41.26
+  protobuf, string amount       :  12 bytes, back 41.26
+  protobuf, double amount       :  14 bytes, back 41.25999999999999801048033987171947956085205078125  (LOST DIGITS)
+  protobuf, int64 minor units   :   8 bytes, back 41.26
+
+amount 12345678901234567.89 HKD
+  JSON, string amount           :  68 bytes, back 12345678901234567.89
+  protobuf, string amount       :  27 bytes, back 12345678901234567.89
+  protobuf, double amount       :  14 bytes, back 12345678901234568  (LOST DIGITS)
+  protobuf, int64 minor units   :  15 bytes, back 12345678901234567.89
+
+amount 1234567890123456.789 BHD
+  JSON, string amount           :  68 bytes, back 1234567890123456.789
+  protobuf, string amount       :  27 bytes, back 1234567890123456.789
+  protobuf, double amount       :  14 bytes, back 1234567890123456.75  (LOST DIGITS)
+  protobuf, int64 minor units   :  15 bytes, back 1234567890123456.789
+
+Reading: protobuf is smaller than JSON either way, and the type chosen for the amount
+decides whether it is right. `double` is what a schema author reaches for and loses the
+digits; a string or a count of minor units keeps them. The minor-unit form needs the
+currency's scale on both ends and cannot say "more decimals than the currency allows".

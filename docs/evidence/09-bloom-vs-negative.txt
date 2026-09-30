@@ -1,0 +1,21 @@
+Stage 9 lab: Bloom filter against a negative cache
+Environment: JVM 21.0.12 (OpenJDK 64-Bit Server VM), 4 CPUs, Linux 6.17.0-1019-oracle
+Store: 10000 known keys. Bloom filter: Guava, false-positive rate 0.01. Negative cache:
+Caffeine, maximumSize 1000, no TTL (the count is of lookups, not of time).
+Store lookups = requests that reached the store.
+
+workload                          none      negative cache     Bloom filter
+A: scan, 100,000 distinct       100000            100000              956
+B: 100 keys x 1,000 requests    100000               100             1000
+
+Bloom filter heap: 12120 bytes measured (theory: 95851 bits = 11981 bytes for 10000 keys).
+Negative cache heap: bounded by maximumSize (1000 entries), not measured here.
+In workload B the filter's lookups are 1 false-positive key(s) asked over and over:
+the filter never learns that a key it passed was not in the store.
+
+A security listed after the filter was built (SYN9999999):
+  Bloom filter (built before it): mightContain = false. The key was not in the set the
+    filter was built from, so a real security is refused until the filter is rebuilt.
+    Nothing expires that refusal on its own.
+  negative cache (entry made just before it was listed): served from cache = true. It is
+    refused until that entry's TTL runs out, which is bounded and needs no rebuild.
