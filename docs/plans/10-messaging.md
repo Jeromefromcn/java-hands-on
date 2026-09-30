@@ -343,9 +343,12 @@ calls; container wiring in section 12).
 
 ---
 
-## [ ] 7 · Offset commit
+## [x] 7 · Offset commit
 
-**`adapter-messaging`** test-side harness with raw `KafkaConsumer`s.
+**`adapter-messaging`**: `KafkaConsumers`, the one container configuration
+(manual commit, `AckMode.RECORD`, earliest reset, bounded poll settings).
+The reproductions use raw `KafkaConsumer`s in `bootstrap`'s tests, because the
+guard they end with needs the database.
 
 **Tests**
 - `reproducesLossWhenOffsetCommittedBeforeProcessing`: commit, effect throws,
@@ -357,6 +360,15 @@ calls; container wiring in section 12).
   the guard from section 6 the effect runs once.
 - The product listener container config: `enable.auto.commit=false`, ack mode
   `RECORD`; asserted from the effective consumer properties.
+
+**Found while implementing**
+- The tests live in `bootstrap`, not `adapter-messaging`: the "with the guard"
+  half needs Postgres, and `adapter-messaging` may not depend on
+  `adapter-persistence`.
+- Both loss reproductions wait a bounded 6 s to observe that nothing arrives:
+  absence can only be seen by waiting, and the test says so.
+- `KafkaConsumers.Settings` carries `maxPollRecords`, `maxPollInterval` and
+  `sessionTimeout` already; section 11 measures what they bound.
 
 **Acceptance**
 - Evidence `10-offset-commit.txt`. Full verify green.

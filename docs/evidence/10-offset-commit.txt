@@ -1,0 +1,4 @@
+commit before processing, effect failed: effects applied=0, records a new consumer in the group receives within 6 s=0 (the message is lost)
+product container: while the listener was still running, committed offsets for the group=0; after it returned, committed offset=1 (commit follows the effect)
+enable.auto.commit=true (interval 100 ms), effect failed and was caught: the next poll committed it; records a new consumer receives=0 (the message is lost)
+effect done, process died before the commit, restarted twice: effects without the guard=2, notices sent with the guard=1
