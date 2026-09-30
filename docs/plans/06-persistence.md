@@ -878,7 +878,7 @@ Evidence: `docs/evidence/06-jpa-vs-jdbc.txt`.
 
 ---
 
-## [ ] 14 · Exercise 8 — `EXPLAIN` and V3
+## [x] 14 · Exercise 8 — `EXPLAIN` and V3
 
 The query is the monthly fee report:
 
@@ -913,6 +913,17 @@ Evidence: `docs/evidence/06-explain.txt`, holding the three plans in full.
 **Acceptance**
 - The plan assertions pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The prediction held.** With only the primary key
+  `(position_id, business_date)`, the plan is the same parallel sequential
+  scan as with no index at all, and the primary key is not mentioned. With
+  `(business_date, position_id)` it is a bitmap index scan.
+- **The fixture's heap is clustered by date**: 10,000 matching rows sit in 65
+  heap blocks. Daily accrual inserts every position's entry for a day
+  together, so production would be clustered the same way. A table clustered
+  by position would make the same index cost more heap reads. That case is
+  not measured.
 
 ---
 

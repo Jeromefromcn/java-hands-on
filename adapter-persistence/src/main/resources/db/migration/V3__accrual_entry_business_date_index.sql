@@ -1,0 +1,11 @@
+-- Stage 6, V3: the index the monthly fee report needs. The primary key (position_id,
+-- business_date) leads with position_id, so a date-range query over every position cannot use it:
+-- Postgres 17 has no skip scan. ExplainPlanIT measured the three orders; see
+-- docs/evidence/06-explain.txt and docs/decisions/06-persistence.md.
+--
+-- A plain CREATE INDEX, which locks out writes for as long as the build takes. Flyway runs each
+-- migration in a transaction, and CREATE INDEX CONCURRENTLY refuses to run in one. On a live
+-- table this would be CONCURRENTLY, in a script Flyway is told not to wrap
+-- (executeInTransaction=false in the script's .conf), with a check for an INVALID index left
+-- behind by a failed build.
+CREATE INDEX accrual_entry_business_date_idx ON accrual_entry (business_date, position_id);

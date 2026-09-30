@@ -1,0 +1,100 @@
+# Stage 6, exercise 8: EXPLAIN (ANALYZE, BUFFERS) of the monthly fee report (ExplainPlanIT)
+# 500 positions x 1,000 days = 500,000 accrual_entry rows via generate_series, then ANALYZE. 20-day range.
+# Timings below are single EXPLAIN ANALYZE runs, shown as Postgres printed them; the tests assert scan types only.
+
+Postgres 17.11
+Query:
+  SELECT position_id, sum(fee_amount) FROM accrual_entry WHERE business_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-20' GROUP BY position_id
+
+1. no index (primary key dropped on this throwaway database)
+  Finalize GroupAggregate  (cost=7359.28..7489.70 rows=500 width=40) (actual time=18.427..22.936 rows=500 loops=1)
+    Group Key: position_id
+    Buffers: shared hit=3201
+    ->  Gather Merge  (cost=7359.28..7475.95 rows=1000 width=40) (actual time=18.416..22.137 rows=1500 loops=1)
+          Workers Planned: 2
+          Workers Launched: 2
+          Buffers: shared hit=3201
+          ->  Sort  (cost=6359.25..6360.50 rows=500 width=40) (actual time=14.357..14.386 rows=500 loops=3)
+                Sort Key: position_id
+                Sort Method: quicksort  Memory: 71kB
+                Buffers: shared hit=3201
+                Worker 0:  Sort Method: quicksort  Memory: 71kB
+                Worker 1:  Sort Method: quicksort  Memory: 71kB
+                ->  Partial HashAggregate  (cost=6330.59..6336.84 rows=500 width=40) (actual time=13.752..13.917 rows=500 loops=3)
+                      Group Key: position_id
+                      Batches: 1  Memory Usage: 297kB
+                      Buffers: shared hit=3185
+                      Worker 0:  Batches: 1  Memory Usage: 297kB
+                      Worker 1:  Batches: 1  Memory Usage: 297kB
+                      ->  Parallel Seq Scan on accrual_entry  (cost=0.00..6310.00 rows=4118 width=13) (actual time=6.043..12.750 rows=3333 loops=3)
+                            Filter: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+                            Rows Removed by Filter: 163333
+                            Buffers: shared hit=3185
+  Planning:
+    Buffers: shared hit=52
+  Planning Time: 0.442 ms
+  Execution Time: 23.173 ms
+
+2. primary key (position_id, business_date) only
+  Finalize GroupAggregate  (cost=7358.71..7489.13 rows=500 width=40) (actual time=18.414..23.205 rows=500 loops=1)
+    Group Key: position_id
+    Buffers: shared hit=3201
+    ->  Gather Merge  (cost=7358.71..7475.38 rows=1000 width=40) (actual time=18.402..22.457 rows=1500 loops=1)
+          Workers Planned: 2
+          Workers Launched: 2
+          Buffers: shared hit=3201
+          ->  Sort  (cost=6358.68..6359.93 rows=500 width=40) (actual time=14.568..14.598 rows=500 loops=3)
+                Sort Key: position_id
+                Sort Method: quicksort  Memory: 71kB
+                Buffers: shared hit=3201
+                Worker 0:  Sort Method: quicksort  Memory: 71kB
+                Worker 1:  Sort Method: quicksort  Memory: 71kB
+                ->  Partial HashAggregate  (cost=6330.02..6336.27 rows=500 width=40) (actual time=13.958..14.130 rows=500 loops=3)
+                      Group Key: position_id
+                      Batches: 1  Memory Usage: 297kB
+                      Buffers: shared hit=3185
+                      Worker 0:  Batches: 1  Memory Usage: 297kB
+                      Worker 1:  Batches: 1  Memory Usage: 297kB
+                      ->  Parallel Seq Scan on accrual_entry  (cost=0.00..6310.00 rows=4004 width=13) (actual time=6.111..12.980 rows=3333 loops=3)
+                            Filter: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+                            Rows Removed by Filter: 163333
+                            Buffers: shared hit=3185
+  Planning:
+    Buffers: shared hit=52 read=1
+  Planning Time: 0.476 ms
+  Execution Time: 23.437 ms
+
+3. plus (business_date, position_id)
+  HashAggregate  (cost=3623.61..3629.86 rows=500 width=40) (actual time=4.428..4.549 rows=500 loops=1)
+    Group Key: position_id
+    Batches: 1  Memory Usage: 297kB
+    Buffers: shared hit=65 read=41
+    ->  Bitmap Heap Scan on accrual_entry  (cost=246.75..3575.65 rows=9593 width=13) (actual time=0.589..1.514 rows=10000 loops=1)
+          Recheck Cond: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+          Heap Blocks: exact=65
+          Buffers: shared hit=65 read=41
+          ->  Bitmap Index Scan on accrual_entry_date_first  (cost=0.00..244.35 rows=9593 width=0) (actual time=0.546..0.546 rows=10000 loops=1)
+                Index Cond: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+                Buffers: shared read=41
+  Planning:
+    Buffers: shared hit=53 read=1
+  Planning Time: 0.608 ms
+  Execution Time: 4.715 ms
+
+4. Flyway V1-V3 on a fresh database
+  HashAggregate  (cost=3714.45..3720.70 rows=500 width=40) (actual time=4.374..4.490 rows=500 loops=1)
+    Group Key: position_id
+    Batches: 1  Memory Usage: 297kB
+    Buffers: shared hit=107
+    ->  Bitmap Heap Scan on accrual_entry  (cost=298.69..3656.76 rows=11538 width=13) (actual time=0.485..1.392 rows=10000 loops=1)
+          Recheck Cond: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+          Heap Blocks: exact=65
+          Buffers: shared hit=107
+          ->  Bitmap Index Scan on accrual_entry_business_date_idx  (cost=0.00..295.80 rows=11538 width=0) (actual time=0.468..0.469 rows=10000 loops=1)
+                Index Cond: ((business_date >= '2025-06-01'::date) AND (business_date <= '2025-06-20'::date))
+                Buffers: shared hit=42
+  Planning:
+    Buffers: shared hit=56 read=1
+  Planning Time: 0.539 ms
+  Execution Time: 4.636 ms
+
