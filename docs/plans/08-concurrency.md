@@ -442,7 +442,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 10 · CAS against `synchronized`, and JMH
+## [x] 10 · CAS against `synchronized`, and JMH
 
 **`labs/08-concurrency`**
 - `Balance` over `Money`: an `AtomicReference<Money>` variant with a CAS loop
@@ -465,7 +465,19 @@ Failure modes the spec implies but no exercise is *about*.
   written from the measured output, not in advance.
 - `./mvnw clean verify` at the root is green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- **CAS against `synchronized`, measured (ops/us, higher is better, aarch64,
+  4 CPUs):** 1 thread, CAS 37.9 / sync 28.8; 2 threads, 11.0 / 10.1; 4 threads,
+  5.8 / 10.7; 8 threads, 5.9 / 13.5. CAS wins uncontended, ties at 2, and
+  loses from 4 up. The plan asked for two contention levels; the file has four
+  so the crossover is visible.
+- **The JMH mistake bit on the `double` version only:** discarded 0.527 ns/op
+  against 1.689 ns/op consumed. The `BigDecimal` version was 64.28 against 64.19
+  ns/op, equal within error, so it was not removed. The evidence header says
+  this is inferred from the numbers; the generated code was not inspected.
+- The `BigDecimal` benchmark is the real accrual (`FlatRate.dailyFee`); the
+  `double` twin is there because it is what stage 2's drift test says the
+  ledger must not use, and because it is the case where the mistake shows.
 
 ---
 

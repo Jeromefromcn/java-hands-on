@@ -1,0 +1,54 @@
+Stage 08 · section 10 — the JMH mistake: constants in, result dropped (AccrualBenchmark.mistake*)
+Command: java -jar labs/08-concurrency/target/labs.jar 'AccrualBenchmark.mistake.*' -f 2 -wi 3 -w 1 -i 5 -r 1
+
+Reading the result (from the two tables in this directory, not from expectation):
+  mistakeDoubleDiscarded  0.527 ns/op   against   consumedDouble 1.689 ns/op (same arithmetic, result consumed)
+  The discarded version is 3.2x faster than the same arithmetic when its result is used. That is
+  consistent with the JIT having folded the constants and removed the work; the generated code was not
+  inspected (no PrintAssembly), so this is the inference, not an observation.
+  mistakeBigDecimalDiscarded 64.282 ns/op   against   consumedBigDecimal 64.190 ns/op
+  The BigDecimal version was NOT removed: within error the two are equal. Why was not investigated.
+  The mistake is still a mistake there; it just did not show as a wrong number on this JDK.
+
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# VM invoker: /home/ubuntu/.sdkman/candidates/java/21.0.12-tem/bin/java
+# VM options: <none>
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+Result "labs.concurrency.AccrualBenchmark.mistakeBigDecimalDiscarded":
+  64.282 ±(99.9%) 0.818 ns/op [Average]
+  (min, avg, max) = (63.698, 64.282, 65.499), stdev = 0.541
+  CI (99.9%): [63.464, 65.100] (assumes normal distribution)
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# VM invoker: /home/ubuntu/.sdkman/candidates/java/21.0.12-tem/bin/java
+# VM options: <none>
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+Result "labs.concurrency.AccrualBenchmark.mistakeDoubleDiscarded":
+  0.527 ±(99.9%) 0.062 ns/op [Average]
+  (min, avg, max) = (0.505, 0.527, 0.609), stdev = 0.041
+  CI (99.9%): [0.464, 0.589] (assumes normal distribution)
+# Run complete. Total time: 00:00:33
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+Benchmark                                    Mode  Cnt   Score   Error  Units
+AccrualBenchmark.mistakeBigDecimalDiscarded  avgt   10  64.282 ± 0.818  ns/op
+AccrualBenchmark.mistakeDoubleDiscarded      avgt   10   0.527 ± 0.062  ns/op

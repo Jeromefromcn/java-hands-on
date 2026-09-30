@@ -1,0 +1,60 @@
+Stage 08 · section 10 — CAS against synchronized on one shared Money balance (BalanceBenchmark)
+Command: java -jar labs/08-concurrency/target/labs.jar BalanceBenchmark -f 2 -wi 3 -w 1 -i 5 -r 1 -t <threads>
+Machine: aarch64, 4 CPUs. Score is throughput; higher is better. Each credit is Money.plus (currency-checked).
+
+=== threads=1 ===
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 1 thread, will synchronize iterations
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 1 thread, will synchronize iterations
+Benchmark                             Mode  Cnt   Score   Error   Units
+BalanceBenchmark.casCredit           thrpt   10  37.897 ± 0.302  ops/us
+BalanceBenchmark.synchronizedCredit  thrpt   10  28.826 ± 0.965  ops/us
+=== threads=2 ===
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 2 threads, will synchronize iterations
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 2 threads, will synchronize iterations
+Benchmark                             Mode  Cnt   Score   Error   Units
+BalanceBenchmark.casCredit           thrpt   10  10.966 ± 2.545  ops/us
+BalanceBenchmark.synchronizedCredit  thrpt   10  10.133 ± 1.370  ops/us
+=== threads=4 ===
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 4 threads, will synchronize iterations
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 4 threads, will synchronize iterations
+Benchmark                             Mode  Cnt   Score   Error   Units
+BalanceBenchmark.casCredit           thrpt   10   5.758 ± 1.342  ops/us
+BalanceBenchmark.synchronizedCredit  thrpt   10  10.674 ± 1.071  ops/us
+=== threads=8 ===
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 8 threads, will synchronize iterations
+# JMH version: 1.37
+# VM version: JDK 21.0.12, OpenJDK 64-Bit Server VM, 21.0.12+8-LTS
+# Warmup: 3 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Threads: 8 threads, will synchronize iterations
+Benchmark                             Mode  Cnt   Score   Error   Units
+BalanceBenchmark.casCredit           thrpt   10   5.865 ± 2.204  ops/us
+BalanceBenchmark.synchronizedCredit  thrpt   10  13.537 ± 1.596  ops/us
