@@ -1,9 +1,13 @@
 package com.jerome.slledger.adapter.web.testing;
 
+import com.jerome.slledger.domain.money.Money;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.function.Supplier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -19,6 +23,13 @@ public class ProbeController {
     next = supplier;
   }
 
+  public static void throwing(RuntimeException exception) {
+    next =
+        () -> {
+          throw exception;
+        };
+  }
+
   public static void reset() {
     next = () -> "ok";
   }
@@ -29,10 +40,15 @@ public class ProbeController {
   }
 
   @PostMapping(path = "/probe", consumes = "application/json")
-  public Object post(@RequestBody Echo body) {
+  public Echo post(@Valid @RequestBody Echo body) {
     next.get();
     return body;
   }
 
-  public record Echo(String value) {}
+  @GetMapping("/probe/header")
+  public String header(@RequestHeader("Idempotency-Key") String key) {
+    return key;
+  }
+
+  public record Echo(@NotBlank String value, Money money) {}
 }

@@ -1,0 +1,10 @@
+Stage 07 · section 4 — what a 500 says (LedgerProblemHandlerTest.unexpectedLeaksNothing)
+
+thrown:   IllegalStateException("SECRET-DETAIL connection to db-internal-7 refused")
+status:   500
+headers:  Content-Type: application/problem+json
+          X-Trace-Id: 2151c023b3113133d29fe4f3cab6f914
+body:     {"detail":"An unexpected error occurred. Quote the trace id when reporting it.","instance":"/probe","status":500,"title":"Internal Server Error","type":"urn:sl-ledger:problem:internal","traceId":"2151c023b3113133d29fe4f3cab6f914"}
+
+The message, the exception type and the stack stay in the server log, under the same
+trace id.

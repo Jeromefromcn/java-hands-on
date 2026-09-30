@@ -1,7 +1,6 @@
 package com.jerome.slledger.adapter.web.trace;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.jerome.slledger.adapter.web.testing.ProbeController;
@@ -68,13 +67,12 @@ class TraceIdFilterTest {
 
   @Test
   @DisplayName("a request whose handler throws leaves no trace id on the thread")
-  void mdcClearedAfterException() {
-    ProbeController.answer(
-        () -> {
-          throw new IllegalStateException("boom");
-        });
+  void mdcClearedAfterException() throws Exception {
+    ProbeController.throwing(new IllegalStateException("boom"));
 
-    assertThatThrownBy(() -> mvc.perform(get("/probe"))).hasRootCauseMessage("boom");
+    int status = mvc.perform(get("/probe")).andReturn().getResponse().getStatus();
+
+    assertThat(status).isEqualTo(500);
     assertThat(MDC.get(TraceIdFilter.MDC_KEY)).isNull();
   }
 

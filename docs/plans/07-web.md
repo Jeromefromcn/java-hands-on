@@ -243,7 +243,7 @@ bean, which Boot registers on its `JsonMapper`.
 
 ---
 
-## [ ] 4 · Errors as `ProblemDetail`
+## [x] 4 · Errors as `ProblemDetail`
 
 **`application`**: `UnknownReferenceException.kind()` (decision 4).
 
@@ -285,6 +285,17 @@ exception)**
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Other `DomainException`s map to `422 domain-rule`**, not `500`:
+  `NotABusinessDayException` and friends are refusals of a well-formed
+  request, like the named ones.
+- **The trace id is added by one `ResponseBodyAdvice`**
+  (`TraceIdOnProblems`) to every `ProblemDetail`, not by each handler, so
+  no error path can forget it.
+- **A framework error's body is built inside `super.handleExceptionInternal`.**
+  Typing it before the call found a `null` body, and the `415` went out
+  with no `type`. It is typed after the call.
 
 ---
 
