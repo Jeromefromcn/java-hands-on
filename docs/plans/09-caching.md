@@ -431,7 +431,7 @@ Redis L2)**
 
 ---
 
-## [ ] 11 · Write order and delayed double delete
+## [x] 11 · Write order and delayed double delete
 
 **Tests (`SharedRedis`, `adapter-persistence`; a test-side `PriceStore` with
 latch hooks stands in for the database)**
@@ -447,6 +447,18 @@ latch hooks stands in for the database)**
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **"Ticks" are event order, not clock time.** The windows here are not time-controlled:
+  the stale entry sits in a real Redis tier with a real 30 s TTL. The evidence numbers the
+  events in the order they happened and reports the PTTL Redis gives the stale entry, which is
+  the bound on how long it stays. The controlled-clock exactness is section 10's.
+- **The reader is gated so the timeline is true.** In order B the reader must not look at the
+  cache until the writer's delete has happened; without a start latch its "miss" event
+  raced ahead of the delete and the timeline read wrong.
+- The delayed second delete is triggered by the test at the step where the delay would have
+  elapsed. What it costs and where it fails is the slow-reader test: the delete has to land
+  after the reader's write, so the delay has to exceed the longest read, which is not known.
 
 ---
 

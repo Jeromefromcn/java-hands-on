@@ -1,0 +1,49 @@
+Stage 9, section 11: cache-aside write orders, real Redis tier, a test-side store.
+R is a reader that misses and loads from the store; W is a writer changing the price
+from 41.26 to 42.00. Events are numbered in the order they happened. "Stale for" is the
+PTTL Redis reports for the stale entry when the scenario ends: the value stays until
+that TTL runs out or something evicts it.
+
+Order A: update the store, then delete the cache
+  1. R: cache miss
+  2. R: loaded 41.26 from the store
+  3. W: updated the store to 42.00
+  4. W: first delete of the cache entry
+  5. R: cached 41.26
+  => cache holds 41.26, store holds 42.00 (stale for up to 29996 ms)
+
+Order B: delete the cache, then update the store
+  1. W: first delete of the cache entry
+  2. R: cache miss
+  3. R: loaded 41.26 from the store
+  4. R: cached 41.26
+  5. W: updated the store to 42.00
+  => cache holds 41.26, store holds 42.00 (stale for up to 29998 ms)
+
+Order A + delayed second delete, reader slower than the delay
+  1. R: cache miss
+  2. R: loaded 41.26 from the store
+  3. W: updated the store to 42.00
+  4. W: first delete of the cache entry
+  5. W: second (after the delay) delete of the cache entry
+  6. R: cached 41.26
+  => cache holds 41.26, store holds 42.00: the second delete ran before R cached (stale for up to 29997 ms)
+
+Order A + delayed second delete
+  1. R: cache miss
+  2. R: loaded 41.26 from the store
+  3. W: updated the store to 42.00
+  4. W: first delete of the cache entry
+  5. R: cached 41.26
+  6. W: second (after the delay) delete of the cache entry
+  => cache empty; the next read loads 42.00
+
+Order B + delayed second delete
+  1. W: first delete of the cache entry
+  2. R: cache miss
+  3. R: loaded 41.26 from the store
+  4. R: cached 41.26
+  5. W: updated the store to 42.00
+  6. W: second (after the delay) delete of the cache entry
+  => cache empty; the next read loads 42.00
+
