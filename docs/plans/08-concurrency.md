@@ -82,7 +82,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 1 · Executor, properties and counters
+## [x] 1 · Executor, properties and counters
 
 **`bootstrap` `MarketDataExecutorProperties`**
 - `market-data.executor.{core,max,queue,policy,type,max-concurrent}`;
@@ -111,6 +111,17 @@ Failure modes the spec implies but no exercise is *about*.
 **Acceptance**
 - Tests pass; application starts with defaults.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The prefix is `ledger.marketdata.executor`, not `market-data.executor`.**
+  Every other stage-7 property for this source is under `ledger.marketdata`;
+  a second spelling would be a trap.
+- **`MarketDataPool` replaces the `ThreadPoolExecutor` bean plus a stats
+  supplier.** It wraps the pool, implements `Executor`, and has `stats()`.
+  `PoolStats` lives in `bootstrap.config`, not `application`: only wiring and
+  tests read it. Nothing casts to reach a counter (planning decision 3, in
+  a simpler form).
+- Worker threads are daemons, so a leaked pool cannot hold a test JVM open.
 
 ---
 

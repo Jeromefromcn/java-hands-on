@@ -33,7 +33,11 @@ import org.springframework.context.annotation.Import;
  * Boot; the container that proxies it is this module's concern.
  */
 @Configuration(proxyBeanMethods = false)
-@Import({PersistenceConfiguration.class, WebConfiguration.class})
+@Import({
+  PersistenceConfiguration.class,
+  WebConfiguration.class,
+  MarketDataExecutorConfiguration.class
+})
 public class LedgerConfiguration {
 
   @Bean
