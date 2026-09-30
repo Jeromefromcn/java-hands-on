@@ -35,11 +35,22 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JdbcAccrualCandidates implements AccrualCandidates {
 
-  private static final String ACTIVE =
-      " FROM loan_position p JOIN security s ON s.isin = p.isin"
-          + " WHERE p.status <> 'CLOSED'"
-          + " AND EXISTS (SELECT 1 FROM loan_trade t WHERE t.position_id = p.id"
-          + " AND t.direction = 'BORROW' AND t.settlement_date <= :date)";
+  /**
+   * The trade condition is repeated on the trade's own position id ({@code cursorOnTrade}): without
+   * it Postgres merges the ordered positions with the whole ordered index of trades and reads every
+   * trade entry below the cursor for each page, so a page costs more the deeper the scan is. With
+   * it the merge starts at the cursor. Measured in docs/evidence/11-chunk-size.txt.
+   */
+  private static String active(String cursorOnTrade) {
+    return " FROM loan_position p JOIN security s ON s.isin = p.isin"
+        + " WHERE p.status <> 'CLOSED'"
+        + " AND EXISTS (SELECT 1 FROM loan_trade t WHERE t.position_id = p.id"
+        + " AND t.direction = 'BORROW' AND t.settlement_date <= :date"
+        + cursorOnTrade
+        + ")";
+  }
+
+  private static final String ACTIVE = active("");
 
   private static final String COLUMNS =
       "SELECT p.id, p.counterparty_id, p.isin, p.original_quantity, p.outstanding_quantity,"
@@ -55,7 +66,13 @@ public class JdbcAccrualCandidates implements AccrualCandidates {
   @Override
   public List<AccrualCandidate> page(
       LocalDate businessDate, Slice slice, Optional<String> afterId, int limit) {
-    StringBuilder sql = new StringBuilder(COLUMNS).append(ACTIVE);
+    StringBuilder sql =
+        new StringBuilder(COLUMNS)
+            .append(
+                active(
+                    (afterId.isPresent() ? " AND t.position_id > :after" : "")
+                        + (slice.idFrom().isPresent() ? " AND t.position_id >= :from" : "")
+                        + (slice.idTo().isPresent() ? " AND t.position_id <= :to" : "")));
     Map<String, Object> params = new HashMap<>();
     params.put("date", businessDate);
     slice

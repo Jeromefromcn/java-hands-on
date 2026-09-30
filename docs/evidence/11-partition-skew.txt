@@ -1,0 +1,15 @@
+Stage 11, section 8: the accrual of 60000 active positions, 70% of them CP-001 and the
+rest spread over CP-002..CP-008, chunk size 500, four worker threads, Postgres 17 in
+a container on this machine. Median of 3 runs of the whole step (wall clock of
+RunAccrual.run); the partition rows and times are from the last run.
+
+NONE: step median 3836 ms of runs [3921, 3836, 3789]; 0 partitions; rows per partition []; ms per partition [];
+
+COUNTERPARTY: step median 2971 ms of runs [3244, 2971, 2871]; 8 partitions; rows per partition [42000, 2572, 2572, 2572, 2571, 2571, 2571, 2571]; ms per partition [2750, 303, 242, 305, 296, 269, 229, 329]; longest 2750 ms, mean 590 ms, longest/mean 4.7
+
+  start..end offset in the step (ms): [partition0 94..2845, partition1 94..398, partition2 407..648, partition3 94..399, partition4 95..391, partition5 407..676, partition6 653..882, partition7 397..726]
+
+BALANCED: step median 1649 ms of runs [1942, 1588, 1649]; 8 partitions; rows per partition [7500, 7500, 7500, 7500, 7500, 7500, 7500, 7500]; ms per partition [655, 654, 748, 679, 609, 843, 805, 858]; longest 858 ms, mean 731 ms, longest/mean 1.2
+
+  start..end offset in the step (ms): [partition0 119..774, partition1 120..774, partition2 779..1527, partition3 119..798, partition4 120..728, partition5 780..1623, partition6 805..1610, partition7 735..1593]
+

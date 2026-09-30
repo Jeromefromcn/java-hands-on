@@ -1,0 +1,28 @@
+Stage 11, section 8: the same accrual (2,000 positions, 70%% of them CP-001, chunk
+size 50, four worker threads) under each partition scheme. Every scheme books 2,000
+distinct entries; the worker rows are the partitions.
+
+-- NONE (0 partitions)
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 2000 | 2000 | 40 | 0 | 0 | 0 | 0 | COMPLETED
+
+-- COUNTERPARTY (8 partitions)
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 2000 | 2000 | 42 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition0 | COMPLETED | 1400 | 1400 | 28 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition1 | COMPLETED | 86 | 86 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition2 | COMPLETED | 86 | 86 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition3 | COMPLETED | 86 | 86 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition4 | COMPLETED | 86 | 86 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition5 | COMPLETED | 86 | 86 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition6 | COMPLETED | 85 | 85 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition7 | COMPLETED | 85 | 85 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+
+-- BALANCED (4 partitions)
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 2000 | 2000 | 40 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition0 | COMPLETED | 500 | 500 | 10 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition1 | COMPLETED | 500 | 500 | 10 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition2 | COMPLETED | 500 | 500 | 10 | 0 | 0 | 0 | 0 | COMPLETED
+accrualWorker:partition3 | COMPLETED | 500 | 500 | 10 | 0 | 0 | 0 | 0 | COMPLETED
+

@@ -6,6 +6,7 @@ import com.jerome.slledger.application.accrual.AccrueDay;
 import com.jerome.slledger.application.accrual.BookAccruals;
 import com.jerome.slledger.application.accrual.BookResult;
 import com.jerome.slledger.application.accrual.CorruptPositionException;
+import com.jerome.slledger.application.accrual.PartitionScheme;
 import com.jerome.slledger.application.accrual.RecordSkip;
 import com.jerome.slledger.application.accrual.Slice;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
@@ -23,6 +24,7 @@ import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.parameters.DefaultJobParametersValidator;
 import org.springframework.batch.core.listener.SkipListener;
+import org.springframework.batch.core.partition.Partitioner;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.StepExecution;
@@ -53,6 +55,7 @@ public class AccrualJobConfiguration {
 
   public static final String JOB = "dailyAccrual";
   public static final String STEP = "accrual";
+  public static final String WORKER_STEP = "accrualWorker";
 
   /** Context keys the writer keeps its running totals under, saved with every chunk. */
   public static final String INSERTED = "accrual.inserted";
@@ -70,6 +73,13 @@ public class AccrualJobConfiguration {
         .build();
   }
 
+  /**
+   * The accrual step. Unpartitioned, it is the chunk step itself under the name {@code accrual}.
+   * Partitioned, {@code accrual} is the manager: it asks {@link AccrualPartitioner} for slices and
+   * runs the same chunk step, named {@code accrualWorker}, once per slice on the worker threads.
+   * The manager's counts are the sum of its partitions', and the step ends when the slowest one
+   * does.
+   */
   @Bean
   Step accrualStep(
       JobRepository repository,
@@ -78,16 +88,56 @@ public class AccrualJobConfiguration {
       @Qualifier("accrualReader") ItemStreamReader<AccrualCandidate> accrualReader,
       ItemProcessor<AccrualCandidate, AccrualEntry> accrualProcessor,
       ItemWriter<AccrualEntry> accrualWriter,
-      SkipListener<AccrualCandidate, AccrualEntry> accrualSkipListener) {
+      SkipListener<AccrualCandidate, AccrualEntry> accrualSkipListener,
+      Partitioner accrualPartitioner,
+      AccrualPartitionPool pool) {
+    if (settings.partitionScheme() == PartitionScheme.NONE) {
+      return chunkStep(
+          STEP,
+          repository,
+          transactions,
+          settings,
+          accrualReader,
+          accrualProcessor,
+          accrualWriter,
+          accrualSkipListener);
+    }
+    Step worker =
+        chunkStep(
+            WORKER_STEP,
+            repository,
+            transactions,
+            settings,
+            accrualReader,
+            accrualProcessor,
+            accrualWriter,
+            accrualSkipListener);
+    return new StepBuilder(STEP, repository)
+        .partitioner(WORKER_STEP, accrualPartitioner)
+        .step(worker)
+        .taskExecutor(pool.executor())
+        .gridSize(settings.partitions())
+        .build();
+  }
+
+  private static Step chunkStep(
+      String name,
+      JobRepository repository,
+      PlatformTransactionManager transactions,
+      BatchSettings settings,
+      ItemStreamReader<AccrualCandidate> reader,
+      ItemProcessor<AccrualCandidate, AccrualEntry> processor,
+      ItemWriter<AccrualEntry> writer,
+      SkipListener<AccrualCandidate, AccrualEntry> skipListener) {
     ChunkOrientedStepBuilder<AccrualCandidate, AccrualEntry> step =
-        new StepBuilder(STEP, repository)
+        new StepBuilder(name, repository)
                 .<AccrualCandidate, AccrualEntry>chunk(settings.chunkSize())
                 .transactionManager(transactions)
-                .reader(accrualReader)
-                .processor(accrualProcessor)
-                .writer(accrualWriter)
-                .stream(accrualReader)
-                .skipListener(accrualSkipListener);
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .stream(reader)
+                .skipListener(skipListener);
     // A corrupt row and a refusal of the domain belong to one position: skipped, to the limit.
     return StepDefaults.faultTolerant(
             step,
@@ -96,6 +146,22 @@ public class AccrualJobConfiguration {
             CorruptPositionException.class,
             DomainException.class)
         .build();
+  }
+
+  @Bean
+  @StepScope
+  Partitioner accrualPartitioner(
+      AccrualCandidates candidates,
+      BatchSettings settings,
+      @Value("#{jobParameters['businessDate']}") LocalDate businessDate) {
+    return new AccrualPartitioner(
+        candidates, businessDate, settings.partitionScheme(), settings.partitions());
+  }
+
+  /** Threads that run the partitions; a holder type so no other component picks it up by type. */
+  @Bean(destroyMethod = "close")
+  AccrualPartitionPool accrualPartitionPool(BatchSettings settings) {
+    return new AccrualPartitionPool(settings.workerThreads());
   }
 
   /** Writes every skipped position to {@code batch_skip}, in a transaction of its own. */

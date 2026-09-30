@@ -234,7 +234,7 @@ test in the section named.
 
 ---
 
-## [ ] 8 · Partitioning, and the tail
+## [x] 8 · Partitioning, and the tail
 
 **Change**
 - `batch.accrual.PartitionSchemes` (`NONE`, `COUNTERPARTY`, `BALANCED`),
@@ -467,3 +467,25 @@ test in the section named.
   median, so a single cold run does not decide the number.
 - 5,000 is 18% faster than 200 (1.30 s against 1.60 s) for 25 times the rows a failure redoes, which
   is the trade the decision record weighs.
+
+**Section 8.** Three things measured here changed earlier sections' numbers.
+- *Statistics.* The first partition-skew run had the counterparty scheme *slower* than no
+  partitioning at all (11.1 s against 5.4 s), and the big partition alone took 10.8 s for 42,000 rows
+  where the reader by itself took 1.1 s for them. A thread sample of the run put 157 of 190 samples in
+  the reader's query. The cause was planner statistics: the ledger had just been bulk-loaded and not
+  analysed, and autovacuum's analyse runs up to a minute later. `BatchLedger` now runs `ANALYZE` after
+  seeding, as a real ledger has statistics; the first result is kept in
+  `11-partition-skew-no-statistics.txt`.
+- *The reader's cost depended on how deep it was.* With statistics, Postgres chose a merge semi join
+  between the ordered positions and the *whole* ordered index of trades, and read every trade entry
+  below the cursor for each page (EXPLAIN: `Index Only Scan ... rows=30500`, 9 ms, for a page at the
+  middle of 60,000). Repeating the cursor as a condition on the trade's own position id makes the merge
+  start at the cursor. Chunk size 10 went from 10.3 s to 6.1 s, size 200 from 1.72 s to 1.34 s, size 1
+  from 96 s to 49 s; size 5,000 (four pages) did not change. Section 7's evidence file is the final
+  one; the run before the predicate is `11-chunk-size-before-cursor-predicate.txt`.
+- Partitioning does not need `gridSize` here: the scheme decides the number of slices, so
+  `AccrualPartitioner` ignores it and `BatchSettings.partitions` is the balanced scheme's target.
+- The manager step is named `accrual` and the workers `accrualWorker:partitionN`, so the run
+  summary's rule "skip names containing `:partition`" counts each row once. With no partitioning
+  there is no manager: the chunk step is `accrual`, and every test that reads its context by that
+  name is unchanged.

@@ -61,7 +61,52 @@ final class BatchLedger implements AutoCloseable {
   /** {@code count} active positions {@code P000001…} of one counterparty, in HK0000000001. */
   BatchLedger seed(int count) {
     fixtures.bulkPositions("P", count, "HK0000000001", "'CP-001'").borrowTradesForAll("P", SETTLED);
+    analyse();
     return this;
+  }
+
+  /**
+   * {@code count} active positions where CP-001 holds {@code bigSharePercent} percent and the rest
+   * are spread evenly over CP-002 to CP-008, so a partition per counterparty is badly uneven.
+   */
+  BatchLedger seedSkewed(int count, int bigSharePercent) {
+    for (int i = 3; i <= 8; i++) {
+      fixtures.counterparty("CP-00" + i);
+    }
+    fixtures
+        .bulkPositions(
+            "P",
+            count,
+            "HK0000000001",
+            "CASE WHEN n % 100 < "
+                + bigSharePercent
+                + " THEN 'CP-001' ELSE 'CP-00' || (2 + n % 7) END")
+        .borrowTradesForAll("P", SETTLED);
+    analyse();
+    return this;
+  }
+
+  /**
+   * Statistics, as a real ledger has them. Right after a bulk insert a table has none until
+   * autovacuum's analyse runs, up to a minute later, and the planner then guesses: with the guess,
+   * a page of the counterparty-sliced reader took four times as long (see
+   * docs/evidence/11-partition-skew-no-statistics.txt).
+   */
+  private void analyse() {
+    jdbc.sql("ANALYZE").update();
+  }
+
+  /**
+   * The sum of a number in the execution contexts of a step's partitions (or of the step itself).
+   */
+  long workerContextSum(long jobExecutionId, String key) {
+    return bean(org.springframework.batch.core.repository.JobRepository.class)
+        .getJobExecution(jobExecutionId)
+        .getStepExecutions()
+        .stream()
+        .filter(step -> step.getExecutionContext().containsKey(key))
+        .mapToLong(step -> step.getExecutionContext().getLong(key))
+        .sum();
   }
 
   long count(String table) {

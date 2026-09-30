@@ -1,0 +1,15 @@
+Measured BEFORE the cursor predicate on loan_trade was added to the reader (see
+docs/decisions/11-batch.md, 'the page that got slower the deeper it read'), and after ANALYZE.
+The final numbers are in 11-chunk-size.txt.
+
+Stage 11, section 7: the accrual of 20000 active positions, one counterparty, one
+security, at four chunk sizes. Real Postgres 17 in a container on this machine, the
+application on JDK 21, reader page size = chunk size. Each run: empty accrual table,
+empty Batch metadata, the same date. Three runs per size (one for size 1), all shown,
+the median in the last column. Times are wall clock of RunAccrual.run, milliseconds.
+
+chunk size | commits | runs (ms)              | median (ms) | rows/s at the median
+         1 |   20000 | [96173]                |       96173 | 207
+        10 |    2000 | [12210, 10324, 10264]  |       10324 | 1937
+       200 |     100 | [1760, 1700, 1717]     |        1717 | 11648
+      5000 |       4 | [1155, 1168, 1165]     |        1165 | 17167

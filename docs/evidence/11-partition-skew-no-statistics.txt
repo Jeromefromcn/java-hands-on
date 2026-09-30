@@ -1,0 +1,21 @@
+Measured on a ledger that had just been bulk-loaded and NOT analysed (no planner statistics), with
+the reader as it was before the cursor predicate on loan_trade. The counterparty-sliced reader
+was planned badly: the 42,000-row partition took 10.8 s, alone, against 3.7 s once ANALYZE had
+run (11-partition-skew.txt has the final numbers). Kept as the evidence for 'a bulk load without
+ANALYZE flips the plan'.
+
+Stage 11, section 8: the accrual of 60000 active positions, 70% of them CP-001 and the
+rest spread over CP-002..CP-008, chunk size 500, four worker threads, Postgres 17 in
+a container on this machine. Median of 3 runs of the whole step (wall clock of
+RunAccrual.run); the partition rows and times are from the last run.
+
+NONE: step median 5731 ms of runs [8807, 5731, 5635]; 0 partitions; rows per partition []; ms per partition [];
+
+COUNTERPARTY: step median 11674 ms of runs [12000, 11674, 11171]; 8 partitions; rows per partition [42000, 2572, 2572, 2572, 2571, 2571, 2571, 2571]; ms per partition [10808, 376, 364, 325, 368, 334, 257, 281]; longest 10808 ms, mean 1639 ms, longest/mean 6.6
+
+  start..end offset in the step (ms): [partition0 336..11145, partition1 337..712, partition2 710..1074, partition3 336..662, partition4 337..705, partition5 720..1054, partition6 956..1212, partition7 669..950]
+
+BALANCED: step median 2825 ms of runs [2809, 2825, 2830]; 8 partitions; rows per partition [7500, 7500, 7500, 7500, 7500, 7500, 7500, 7500]; ms per partition [1021, 1056, 1321, 1116, 1050, 1209, 1161, 1199]; longest 1321 ms, mean 1142 ms, longest/mean 1.2
+
+  start..end offset in the step (ms): [partition0 421..1442, partition1 421..1477, partition2 1481..2803, partition3 421..1538, partition4 421..1471, partition5 1483..2692, partition6 1542..2704, partition7 1449..2648]
+

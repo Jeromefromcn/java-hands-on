@@ -5,7 +5,7 @@ empty Batch metadata, the same date. Three runs per size (one for size 1), all s
 the median in the last column. Times are wall clock of RunAccrual.run, milliseconds.
 
 chunk size | commits | runs (ms)              | median (ms) | rows/s at the median
-         1 |   20000 | [124652]               |      124652 | 160
-        10 |    2000 | [21583, 10283, 9982]   |       10283 | 1944
-       200 |     100 | [3357, 1573, 1595]     |        1595 | 12539
-      5000 |       4 | [1449, 1302, 1162]     |        1302 | 15360
+         1 |   20000 | [48777]                |       48777 | 410
+        10 |    2000 | [6410, 6139, 5856]     |        6139 | 3257
+       200 |     100 | [1476, 1336, 1331]     |        1336 | 14970
+      5000 |       4 | [1168, 1200, 1160]     |        1168 | 17123
