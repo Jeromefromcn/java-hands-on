@@ -37,8 +37,8 @@ public final class ReadThrough<K, V> {
 
   /**
    * Cross-instance mutual exclusion for a rebuild. A caller that cannot get the lock runs {@code
-   * pause}, then looks in the tiers again, up to {@code polls} times, and then loads anyway: the
-   * lock is an optimisation and must never make a read depend on it.
+   * pause}, then looks in the tiers again and tries the lock again, up to {@code polls} times, and
+   * then loads anyway: the lock is an optimisation and must never make a read depend on it.
    */
   public record Rebuild<K>(
       DistributedLock lock, Function<K, String> resource, Duration ttl, int polls, Runnable pause) {
@@ -166,17 +166,22 @@ public final class ReadThrough<K, V> {
     if (rebuild == null) {
       return load(key);
     }
-    Optional<DistributedLock.Lease> lease = tryLock(key);
-    if (lease.isPresent()) {
-      try {
-        // Another instance may have stored it while this one was getting the lock.
-        Optional<Entry<V>> already = readTiers(key);
-        return already.isPresent() ? new Outcome<>(asOptional(already.get()), false) : load(key);
-      } finally {
-        release(lease.get());
+    for (int attempt = 0; ; attempt++) {
+      Optional<DistributedLock.Lease> lease = tryLock(key);
+      if (lease.isPresent()) {
+        try {
+          // Another instance may have stored it while this one was getting the lock.
+          Optional<Entry<V>> already = readTiers(key);
+          return already.isPresent() ? new Outcome<>(asOptional(already.get()), false) : load(key);
+        } finally {
+          release(lease.get());
+        }
       }
-    }
-    for (int poll = 0; poll < rebuild.polls(); poll++) {
+      if (attempt >= rebuild.polls()) {
+        break;
+      }
+      // Someone else is rebuilding. Wait for their result, and take over if they fail: each pass
+      // tries the lock again, so a holder that died or threw does not strand the others.
       rebuild.pause().run();
       Optional<Entry<V>> already = readTiers(key);
       if (already.isPresent()) {

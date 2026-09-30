@@ -1,0 +1,8 @@
+Stage 9, section 9: source calls for one hot key requested by many callers at once.
+The loader parks until every caller is in the cache or in the loader, so a stampede
+cannot be hidden by one caller finishing early. Real Redis (tier and lock).
+
+2 instances, shared lock : 1 source call
+1 JVM, 50 threads, single-flight : 1 source call
+1 JVM, 50 threads, naive reader  : 50 source calls
+2 instances, no lock     : 2 source calls

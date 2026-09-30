@@ -364,7 +364,7 @@ test in the section named.
 
 ---
 
-## [ ] 9 · Breakdown across instances
+## [x] 9 · Breakdown across instances
 
 **`application.cache` `ReadThrough`**
 - With a `DistributedLock`: a miss takes the lock for `lock:price:{isin}`; the
@@ -385,6 +385,16 @@ Redis L2)**
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **A waiter tries the lock again on every poll**, not only once. With a single attempt
+  followed by polls of L2, a holder whose load failed would leave every waiter polling an
+  empty L2 until its polls ran out. Now the first waiter to see the lock free takes over
+  (`lockHolderFailureDoesNotBlockTheOthers`). The fallback after the last poll remains.
+- The tests use `Integer.MAX_VALUE` polls with `Thread.yield()` as the pause, so a waiter
+  really waits for the holder; the test releases the loader only after a waiter has polled
+  at least once, which is what "the second instance was blocked" means.
+- The evidence file is written in `@AfterAll`, because test methods run in no fixed order.
 
 ---
 
