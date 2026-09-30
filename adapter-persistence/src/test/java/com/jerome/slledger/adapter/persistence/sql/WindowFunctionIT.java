@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -32,6 +33,9 @@ class WindowFunctionIT {
 
   @AfterAll
   static void writeEvidence() {
+    if (CROSSOVER.isEmpty()) {
+      return; // the measurement tag was excluded: nothing was measured
+    }
     StringBuilder out = new StringBuilder();
     out.append(
         "Median of %d runs after %d warm-ups, wall ms, including fetching the result.%n"
@@ -86,6 +90,7 @@ class WindowFunctionIT {
     }
   }
 
+  @Tag("measurement")
   @ParameterizedTest(name = "{0} positions")
   @ValueSource(ints = {1_000, 10_000, 100_000})
   void crossover(int positions) throws Exception {

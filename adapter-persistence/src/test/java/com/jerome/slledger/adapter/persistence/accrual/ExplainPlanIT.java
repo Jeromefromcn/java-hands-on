@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.TestMethodOrder;
  *
  * <p>Ordered: runs 1 to 3 change the indexes of one throwaway database in turn.
  */
+@Tag("measurement")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ExplainPlanIT {
 

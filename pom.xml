@@ -77,6 +77,13 @@
          target; the m2e profile below switches IDE builds to target-ide.
          See the m2e profile for why. -->
     <build.directory.name>target</build.directory.name>
+
+    <!-- JUnit tags Failsafe leaves out. "measurement" marks tests whose job is
+         to produce numbers for a decision record (crossover timings,
+         throughput, EXPLAIN at volume): they assert correctness too, but take
+         minutes, and their numbers are only worth taking on purpose. The
+         measure profile below runs them. -->
+    <it.excludedGroups>measurement</it.excludedGroups>
   </properties>
 
   <!-- The single source of every version, internal and third-party alike.
@@ -204,6 +211,9 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${maven-failsafe-plugin.version}</version>
+          <configuration>
+            <excludedGroups>${it.excludedGroups}</excludedGroups>
+          </configuration>
           <executions>
             <execution>
               <goals>
@@ -393,6 +403,16 @@
           <value>!true</value>
         </property>
       </activation>
+    </profile>
+
+    <profile>
+      <!-- ./mvnw verify -Pmeasure: the gate plus every "measurement" test.
+           Run it when a decision record's numbers are being taken, then copy
+           target/evidence/ into docs/evidence/ by hand. -->
+      <id>measure</id>
+      <properties>
+        <it.excludedGroups></it.excludedGroups>
+      </properties>
     </profile>
 
     <profile>

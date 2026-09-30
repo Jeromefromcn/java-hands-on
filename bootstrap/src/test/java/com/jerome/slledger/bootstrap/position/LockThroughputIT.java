@@ -25,6 +25,7 @@ import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -38,6 +39,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * only; durations and counts go to evidence. Each (strategy, shape) gets its own application and
  * database, one discarded warm-up run and three measured runs; the median by wall time is reported.
  */
+@Tag("measurement")
 class LockThroughputIT {
 
   private static final int THREADS = 8;

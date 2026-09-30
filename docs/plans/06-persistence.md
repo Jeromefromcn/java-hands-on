@@ -1098,6 +1098,11 @@ Evidence: `docs/evidence/06-sql-streaks.txt`.
 
 ---
 
+**Closing change, after section 18.** The measurement tests (the three
+crossovers, `LockThroughputIT`, `ExplainPlanIT`) are tagged `measurement`, and
+Failsafe excludes them unless `-Pmeasure` is given. They took the gate from
+about 80 s to 3 min 46 s; without them it is 1 min 45 s.
+
 After section 18, `docs/decisions/06-persistence.md` is written as a
 separate commit. It covers every item the spec's "Done when" lists and the
 five deviations above, with numbers only from `docs/evidence/06-*.txt`.

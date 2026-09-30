@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,6 +39,9 @@ class RecursiveCteIT {
 
   @AfterAll
   static void writeEvidence() {
+    if (CROSSOVER.isEmpty()) {
+      return; // the measurement tag was excluded: nothing was measured
+    }
     StringBuilder out = new StringBuilder();
     out.append(
         "Median of %d runs after %d warm-ups, wall ms, including fetching the result.%n"
@@ -101,6 +105,7 @@ class RecursiveCteIT {
     }
   }
 
+  @Tag("measurement")
   @ParameterizedTest(name = "{0} pools")
   @ValueSource(ints = {1_000, 10_000, 100_000})
   void crossover(int pools) throws Exception {
