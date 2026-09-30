@@ -462,7 +462,7 @@ latch hooks stands in for the database)**
 
 ---
 
-## [ ] 12 · Wiring, configuration, end to end
+## [x] 12 · Wiring, configuration, end to end
 
 **`bootstrap` `CacheConfiguration`**, conditional on `ledger.cache.enabled=true`
 - `ledger.cache.{l1-max-size, l1-ttl, l2-ttl, negative-ttl, jitter, redis.*,
@@ -484,6 +484,27 @@ latch hooks stands in for the database)**
 **Acceptance**
 - The manual transcript is in `docs/evidence/09-manual-run.txt`.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Only `QuotePrice` is given the cached lookups.** The decorators are held in a
+  `CachedQuoteSources` record, not registered as `MarketPriceSource` or `SecurityDirectory`
+  beans. Opening and returning a position read the security inside their transaction and
+  use its market price for the credit check; a price up to a minute old is fine to show and
+  not fine to lend against. Registering them as `@Primary` would have changed that silently.
+- **The `local` profile now needs Redis**, like it needs Postgres and WireMock, so
+  `ConfigurationPrecedenceIT` (which starts it) switches the cache off explicitly. It was
+  the one existing test that broke.
+- **Redis restarted without persistence resets the fence counters below the tokens Postgres
+  has admitted.** The fence then refuses every write (fail closed) until `write_fence` is
+  cleared. Found while writing the compose comment; pinned by
+  `reproducesFenceRefusingEveryWriteAfterARedisRestartThatLostTheCounters` in section 8's
+  test class. The 100x section records the two ways out.
+- **The rebuild lock also creates a fence counter** (`sl:fence:price:{isin}`, no TTL) that
+  a cache rebuild does not need. Bounded by the number of securities that reach the source,
+  and visible in the manual run.
+- Staleness bound for the defaults: `l2-ttl + l1-ttl` = 35 s, up to 42 s with the 20% jitter.
+- The manual run used a scratch `REDIS_PASSWORD` appended to the ignored `infra/.env`;
+  `mvnw install -DskipTests` put the SNAPSHOT modules in `~/.m2` for `spring-boot:run`.
 
 ---
 

@@ -23,6 +23,7 @@ import com.jerome.slledger.application.quote.QuotePrice;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,7 +38,8 @@ import org.springframework.context.annotation.Import;
 @Import({
   PersistenceConfiguration.class,
   WebConfiguration.class,
-  MarketDataExecutorConfiguration.class
+  MarketDataExecutorConfiguration.class,
+  CacheConfiguration.class
 })
 public class LedgerConfiguration {
 
@@ -83,8 +85,15 @@ public class LedgerConfiguration {
   }
 
   @Bean
-  QuotePrice quotePrice(SecurityDirectory securities, MarketPriceSource source) {
-    return new QuotePrice(securities, source);
+  QuotePrice quotePrice(
+      SecurityDirectory securities,
+      MarketPriceSource source,
+      ObjectProvider<CachedQuoteSources> cached) {
+    // The cached lookups are for quotes only: a credit check must not read a cached price.
+    CachedQuoteSources sources = cached.getIfAvailable();
+    return sources == null
+        ? new QuotePrice(securities, source)
+        : new QuotePrice(sources.securities(), sources.prices());
   }
 
   @Bean

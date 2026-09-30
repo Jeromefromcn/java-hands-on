@@ -104,11 +104,15 @@ class ConfigurationPrecedenceIT {
     // measures is a different key, so its precedence is unaffected.
     // Since stage 7 the prod profile takes the market data URL from LEDGER_MARKETDATA_URL with no
     // default; a placeholder address stands in for it. Nothing here calls the source.
+    // Since stage 9 the local profile turns the quote cache on, which needs a Redis; this test is
+    // about which source wins, not about the cache, so the cache is switched off.
     String[] withDatabase =
         Stream.of(
                 Arrays.stream(args),
                 Arrays.stream(SharedPostgres.freshDatabase()).map(p -> "--" + p),
-                Stream.of("--ledger.marketdata.base-url=http://127.0.0.1:9"))
+                Stream.of(
+                    "--ledger.marketdata.base-url=http://127.0.0.1:9",
+                    "--ledger.cache.enabled=false"))
             .flatMap(s -> s)
             .toArray(String[]::new);
     return builder.run(withDatabase);

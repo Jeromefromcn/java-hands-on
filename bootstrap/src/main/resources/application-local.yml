@@ -17,8 +17,18 @@ spring:
   # Stage 7: synthetic counterparties and securities, so the endpoints can be tried by hand.
   flyway:
     locations: classpath:db/migration,classpath:db/seed-local
+  # Stage 9: infra/compose.yaml's Redis. The password comes from the environment (the same
+  # infra/.env that compose reads); there is no default.
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: ${LEDGER_REDIS_PASSWORD}
 
 # infra/compose.yaml's WireMock stub; the timeouts are the defaults from application.yml.
 ledger:
   marketdata:
     base-url: http://127.0.0.1:8089
+  # Stage 9: the quote cache is on for manual runs.
+  cache:
+    enabled: true

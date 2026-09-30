@@ -132,6 +132,28 @@ class WriteFenceIT {
   }
 
   @Test
+  void reproducesFenceRefusingEveryWriteAfterARedisRestartThatLostTheCounters() {
+    // See docs/decisions/09-caching.md
+    // A Redis without persistence restarts empty: the counters begin again at 1, below the token
+    // Postgres has already admitted. The fence fails closed, and stays closed until the counter
+    // passes the stored token or write_fence is cleared.
+    for (int i = 0; i < 3; i++) {
+      Lease lease = lock.tryAcquire(RESOURCE, TTL).orElseThrow();
+      write(lease, true);
+      lease.release();
+    }
+    assertThat(storedToken()).isEqualTo(3L);
+
+    SharedRedis.flushAll();
+    Lease afterRestart = lock.tryAcquire(RESOURCE, TTL).orElseThrow();
+
+    assertThat(afterRestart.fencingToken()).isEqualTo(1L);
+    assertThatThrownBy(() -> write(afterRestart, true))
+        .isInstanceOf(StaleFencingTokenException.class);
+    assertThat(total()).isEqualTo(300L);
+  }
+
+  @Test
   @Timeout(60)
   void reproducesDoubleWriteAfterHolderPause() throws Exception {
     // See docs/decisions/09-caching.md

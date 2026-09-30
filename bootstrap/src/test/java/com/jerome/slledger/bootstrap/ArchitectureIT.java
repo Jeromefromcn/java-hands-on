@@ -116,6 +116,27 @@ class ArchitectureIT {
   }
 
   @Test
+  @DisplayName("application depends on no cache, Redis or JSON library")
+  void applicationHasNoCacheLibrary() {
+    // Stage 9: the read-through, the ports and the decorators are plain Java. Caffeine, Lettuce,
+    // Spring Data Redis and Jackson are adapter-persistence's.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "com.github.benmanes.caffeine..",
+                "io.lettuce..",
+                "org.springframework.data.redis..",
+                "tools.jackson..",
+                "com.fasterxml.jackson..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
   @DisplayName("@Transactional lives only in application")
   void transactionalOnlyInApplication() {
     transactionalOnlyInApplicationRule().check(CLASSES);

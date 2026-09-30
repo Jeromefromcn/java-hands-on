@@ -1,0 +1,32 @@
+Stage 9, section 12: a manual run. Application on JDK 21.0.12-tem, profile local, port 18080, against infra/compose.yaml
+(Postgres, WireMock stub, Redis 7.4). Redis password redacted. Cache on, defaults: L1 5 s, L2 30 s, negative 2 s, jitter 0.2.
+
+$ curl -s -i localhost:18080/securities/HK0000000007/quote   # first call: a miss
+HTTP/1.1 200 
+X-Trace-Id: e8dbdadeee593bc75793c2ab1b13ea16
+Content-Type: application/json
+Content-Length: 67
+
+{"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}}
+[0.687366s]
+
+$ curl ... again   # served from L1
+{"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}}
+[0.009562s]
+
+$ redis-cli --scan --pattern "sl:*"
+sl:fence:price:HK0000000007
+sl:price:HK0000000007
+
+$ redis-cli get sl:price:HK0000000007
+{"state":"present","amount":"41.30","currency":"HKD"}
+$ redis-cli pttl sl:price:HK0000000007
+25259
+
+$ curl -s -o /dev/null -w "%{http_code}" localhost:18080/securities/HK0000000023/quote   # unknown ISIN, 5 times
+404 404 404 404 404 
+$ WireMock request count for the known ISIN (journal)
+{
+  "count" : 1,
+  "requestJournalDisabled" : false
+}
