@@ -1,0 +1,15 @@
+Stage 08 · section 2 — the CompletableFuture traps (PriceFanOutTest)
+
+A stage nobody joins.
+   supplyAsync(throwing task, pool), with no join, get or exceptionally:
+   isDone=true isCompletedExceptionally=true, and nothing was thrown to the submitting thread.
+   The failure exists only inside the future.
+   PriceFanOut on the same failure: Failed(UNAVAILABLE) for that security.
+supplyAsync with no executor.
+   ForkJoinPool.commonPool() parallelism on this machine: 3
+   A plain supplyAsync ran on thread: ForkJoinPool.commonPool-worker-1
+   With 3 blocking tasks occupying the common pool, an unrelated supplyAsync did not
+   complete within 500 ms (TimeoutException); after the block was released it completed.
+   The common pool is shared with every other user in the JVM (parallel streams, other
+   libraries); nothing in this service sizes it.
+

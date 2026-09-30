@@ -3,10 +3,15 @@ package com.jerome.slledger.application.context;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.application.context.RequestContext.Snapshot;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +19,20 @@ import org.junit.jupiter.api.Timeout;
 
 @Timeout(30)
 class RequestContextTest {
+
+  private static final StringBuilder EVIDENCE =
+      new StringBuilder("Stage 08 · section 7 — ThreadLocal in a pool (RequestContextTest)\n\n");
+
+  @AfterAll
+  static void writeEvidence() {
+    try {
+      Path directory = Path.of("target", "evidence");
+      Files.createDirectories(directory);
+      Files.writeString(directory.resolve("08-threadlocal-bleed.txt"), EVIDENCE.toString());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
 
   private final ExecutorService oneThread = Executors.newSingleThreadExecutor();
 
@@ -33,6 +52,11 @@ class RequestContextTest {
         oneThread.submit(RequestContext::current).get(10, TimeUnit.SECONDS);
 
     assertThat(seenByRequestB).contains(new Snapshot("request-A"));
+    EVIDENCE.append(
+        "1. One-thread pool. Task A set the context to request-A and did not clear it.\n"
+            + "   Task B, a different request, read: "
+            + seenByRequestB
+            + "\n\n");
   }
 
   @Test
@@ -50,6 +74,14 @@ class RequestContextTest {
 
     assertThat(seenInsideA).contains(new Snapshot("request-A"));
     assertThat(seenByRequestB).isEmpty();
+    EVIDENCE.append(
+        "2. The same shape through RequestContext.propagating (capture on submit, restore the\n"
+            + "   thread's previous value in finally).\n"
+            + "   Task A read: "
+            + seenInsideA
+            + "\n   Task B read: "
+            + seenByRequestB
+            + "\n\n");
   }
 
   @Test
@@ -80,5 +112,12 @@ class RequestContextTest {
 
     assertThat(first).isEqualTo("request-A");
     assertThat(second).as("request B's task still sees request A's value").isEqualTo("request-A");
+    EVIDENCE.append(
+        "3. InheritableThreadLocal set to request-A, then the pool creates its thread (first task).\n"
+            + "   First task read: "
+            + first
+            + "\n   The submitter then set request-B. Second task, on the same thread, read: "
+            + second
+            + "\n   The value is copied when the thread is created, not when the task is submitted.\n");
   }
 }

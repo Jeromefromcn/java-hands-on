@@ -1,0 +1,14 @@
+Stage 08 · section 7 — ThreadLocal in a pool (RequestContextTest)
+
+1. One-thread pool. Task A set the context to request-A and did not clear it.
+   Task B, a different request, read: Optional[Snapshot[traceId=request-A]]
+
+2. The same shape through RequestContext.propagating (capture on submit, restore the
+   thread's previous value in finally).
+   Task A read: Optional[Snapshot[traceId=request-A]]
+   Task B read: Optional.empty
+
+3. InheritableThreadLocal set to request-A, then the pool creates its thread (first task).
+   First task read: request-A
+   The submitter then set request-B. Second task, on the same thread, read: request-A
+   The value is copied when the thread is created, not when the task is submitted.

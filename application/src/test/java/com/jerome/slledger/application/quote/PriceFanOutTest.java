@@ -10,6 +10,10 @@ import com.jerome.slledger.application.port.SecurityDirectory;
 import com.jerome.slledger.domain.instrument.Isin;
 import com.jerome.slledger.domain.instrument.Security;
 import com.jerome.slledger.domain.money.Money;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Currency;
 import java.util.List;
@@ -27,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +45,20 @@ class PriceFanOutTest {
   private static final Isin A = new Isin("HK0000000001");
   private static final Isin B = new Isin("HK0000000002");
   private static final Isin C = new Isin("US0000000001");
+
+  private static final StringBuilder EVIDENCE =
+      new StringBuilder("Stage 08 · section 2 — the CompletableFuture traps (PriceFanOutTest)\n\n");
+
+  @AfterAll
+  static void writeEvidence() {
+    try {
+      Path directory = Path.of("target", "evidence");
+      Files.createDirectories(directory);
+      Files.writeString(directory.resolve("08-completablefuture-traps.txt"), EVIDENCE.toString());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
 
   private final ExecutorService pool = Executors.newFixedThreadPool(4);
   private final CountDownLatch release = new CountDownLatch(1);
@@ -235,6 +254,18 @@ class PriceFanOutTest {
         .isInstanceOf(TimeoutException.class);
     release.countDown();
     assertThat(unrelated.get(10, TimeUnit.SECONDS)).isEqualTo(2);
+    EVIDENCE.append(
+        """
+        supplyAsync with no executor.
+           ForkJoinPool.commonPool() parallelism on this machine: %d
+           A plain supplyAsync ran on thread: %s
+           With %d blocking tasks occupying the common pool, an unrelated supplyAsync did not
+           complete within 500 ms (TimeoutException); after the block was released it completed.
+           The common pool is shared with every other user in the JVM (parallel streams, other
+           libraries); nothing in this service sizes it.
+
+        """
+            .formatted(parallelism, thread.get(), parallelism));
   }
 
   @Test
@@ -262,6 +293,15 @@ class PriceFanOutTest {
             Duration.ofSeconds(5));
     assertThat(fanOut.quote(List.of(A)))
         .containsExactly(new QuoteOutcome.Failed(A, QuoteOutcome.Kind.UNAVAILABLE));
+    EVIDENCE.append(
+        """
+        A stage nobody joins.
+           supplyAsync(throwing task, pool), with no join, get or exceptionally:
+           isDone=%b isCompletedExceptionally=%b, and nothing was thrown to the submitting thread.
+           The failure exists only inside the future.
+           PriceFanOut on the same failure: Failed(UNAVAILABLE) for that security.
+        """
+            .formatted(unobserved.isDone(), unobserved.isCompletedExceptionally()));
   }
 
   private static void await(CountDownLatch latch) {
