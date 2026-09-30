@@ -109,7 +109,7 @@ test in the section named.
 
 ---
 
-## [ ] 2 · The read-through core
+## [x] 2 · The read-through core
 
 **`application.cache`**
 - `Entry<V>` sealed (`Present<V>`, `Absent`); `CacheTier<K,V>` (`get`, `put`
@@ -138,6 +138,20 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The TTL policy is per tier, not per cache.** `ReadThrough.Layer` pairs a tier
+  with its own `TtlPolicy`: L1 lives 5 s and L2 30 s, and a promotion into L1 uses
+  L1's policy, so a value copied out of L2 does not outlive L1's own bound.
+- **`DistributedLock`, `WriteFence` and `StaleFencingTokenException` are here already**
+  (planned for sections 7 and 8), because `ReadThrough.Rebuild` needs the lock port.
+  `WriteFence.admit` returns nothing and throws, so an enclosing transaction rolls back
+  on a refusal without the caller having to check.
+- **The evict-during-load guard takes a monitor, not a flag alone.** Marking the flight
+  stale and storing its result are both under the flight's monitor, so an evict cannot
+  slip between the stale check and the `put`.
+- The waiter tests find "everyone is parked" by polling thread states after each thread
+  has counted itself in, not by sleeping.
 
 ---
 
