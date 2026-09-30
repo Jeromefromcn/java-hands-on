@@ -1,0 +1,65 @@
+Stage 07 · section 12 — offset vs keyset on 500,000 positions (DeepPageIT, -Pmeasure)
+Page size 20; per point 5 warm-up requests, then the median of 20, over HTTP to the
+running application (Tomcat, Jackson, JdbcClient, Postgres in Testcontainers).
+Fixture inserted in 20793 ms.
+
+offset     offset (ms)    keyset (ms)  first id      
+0          36.30          6.17         LP-000001     
+250000     83.70          5.44         LP-250001     
+499980     131.57         4.50         LP-499981     
+
+Where the offset request's time goes, at offset 499,980:
+
+Offset page query:
+  SELECT * FROM loan_position ORDER BY id LIMIT 20 OFFSET 499980
+    Limit  (cost=21877.55..21878.42 rows=20 width=78) (actual time=142.073..142.079 rows=20 loops=1)
+      Buffers: shared hit=8585
+      ->  Index Scan using loan_position_pkey on loan_position  (cost=0.42..21878.42 rows=500000 width=78) (actual time=0.017..119.037 rows=500000 loops=1)
+            Buffers: shared hit=8585
+    Planning:
+      Buffers: shared hit=9
+    Planning Time: 0.149 ms
+    Execution Time: 142.100 ms
+
+Offset request's total, run on every page:
+  SELECT count(*) FROM loan_position
+    Finalize Aggregate  (cost=10271.38..10271.39 rows=1 width=8) (actual time=33.299..37.812 rows=1 loops=1)
+      Buffers: shared hit=6667
+      ->  Gather  (cost=10271.17..10271.38 rows=2 width=8) (actual time=33.128..37.804 rows=3 loops=1)
+            Workers Planned: 2
+            Workers Launched: 2
+            Buffers: shared hit=6667
+            ->  Partial Aggregate  (cost=9271.17..9271.18 rows=1 width=8) (actual time=29.564..29.565 rows=1 loops=3)
+                  Buffers: shared hit=6667
+                  ->  Parallel Seq Scan on loan_position  (cost=0.00..8750.33 rows=208333 width=0) (actual time=0.013..18.891 rows=166667 loops=3)
+                        Buffers: shared hit=6667
+    Planning Time: 0.057 ms
+    Execution Time: 37.839 ms
+
+Keyset query at the same row:
+  SELECT * FROM loan_position WHERE id > 'LP-499980' ORDER BY id LIMIT 21
+    Limit  (cost=0.42..1.42 rows=21 width=78) (actual time=0.016..0.023 rows=20 loops=1)
+      Buffers: shared hit=4
+      ->  Index Scan using loan_position_pkey on loan_position  (cost=0.42..237.71 rows=4988 width=78) (actual time=0.015..0.021 rows=20 loops=1)
+            Index Cond: (id > 'LP-499980'::text)
+            Buffers: shared hit=4
+    Planning:
+      Buffers: shared hit=4
+    Planning Time: 0.164 ms
+    Execution Time: 0.046 ms
+
+
+Reading it:
+- Offset page 0 already costs 36 ms, against 6 ms for the first keyset slice.
+  The difference at depth 0 is the count(*) every offset response carries:
+  a parallel sequential scan of all 500,000 rows, 37.8 ms on its own.
+- The offset query itself walks the primary-key index from the start and
+  discards 499,980 rows (actual rows=500000 on the Index Scan) to return 20:
+  142 ms and 8,585 buffers. The keyset query seeks to the cursor
+  (Index Cond: id > 'LP-499980') and reads 4 buffers.
+- The rows returned were asserted equal both ways at every depth.
+
+Correctness under insert (PaginationConsistencyIT, regular suite): with
+LP-0005 inserted between two offset requests, page 1 starts with LP-0100,
+which already ended page 0. The keyset walk returned each of the 30 original
+rows exactly once.

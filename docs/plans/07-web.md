@@ -605,7 +605,7 @@ inside its transaction, right after `book`, until a latch is released.
 
 ---
 
-## [ ] 12 · Keyset pagination and deep pages
+## [x] 12 · Keyset pagination and deep pages
 
 **`application.port`**: `PositionCursorQuery.after(Optional<LoanPositionId>
 after, int size) → PositionSlice(rows, Optional<LoanPositionId> next)`.
@@ -640,6 +640,19 @@ Sending `page` and `after` together is `400`.
 - `PaginationConsistencyIT` passes.
 - `DeepPageIT` passes under `-Pmeasure`, and its evidence is committed.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **One response type for both, `PositionListView`**, with the fields that
+  do not apply left out (`@JsonInclude(NON_NULL)`). One handler and one
+  schema for `GET /loans`, which section 16's contract test needs;
+  `PositionPageView` is gone.
+- **`after=` with no value starts a keyset walk.** Without it, a client
+  could not ask for the first keyset slice.
+- **Offset is slow at depth 0 too.** Its `count(*)` is a parallel
+  sequential scan of every row, 37.8 ms of the 36.3 ms median at offset 0
+  (the plan's `EXPLAIN` of the count ran without the HTTP path's warm-up).
+- `JdbcPositionCursorQuery` reads `size + 1` rows to know whether a next
+  slice exists.
 
 ---
 

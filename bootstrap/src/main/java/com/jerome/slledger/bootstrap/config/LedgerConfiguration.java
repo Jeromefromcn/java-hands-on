@@ -4,6 +4,7 @@ import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
+import com.jerome.slledger.application.port.PositionCursorQuery;
 import com.jerome.slledger.application.port.PositionDetailQuery;
 import com.jerome.slledger.application.port.PositionListQuery;
 import com.jerome.slledger.application.port.SecurityDirectory;
@@ -75,8 +76,8 @@ public class LedgerConfiguration {
   }
 
   @Bean
-  ListPositions listPositions(PositionListQuery query) {
-    return new ListPositions(query);
+  ListPositions listPositions(PositionListQuery query, PositionCursorQuery cursor) {
+    return new ListPositions(query, cursor);
   }
 
   @Bean

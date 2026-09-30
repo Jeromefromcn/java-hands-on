@@ -1,5 +1,6 @@
 package com.jerome.slledger.adapter.web.loan;
 
+import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.ListAccruals;
 import com.jerome.slledger.application.position.ListPositions;
 import com.jerome.slledger.application.position.ShowPosition;
@@ -7,6 +8,7 @@ import com.jerome.slledger.domain.loan.LoanPositionId;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
+import java.util.Optional;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,12 +33,27 @@ public class LoanReadController {
     this.accruals = accruals;
   }
 
-  /** Offset paging, with the total. */
+  /**
+   * The listing, by offset ({@code page}, with the total) or by keyset ({@code after}, with a
+   * cursor for the next slice; {@code after=} with no value starts from the first row). Keyset is
+   * the one that stays fast on deep pages and stable under concurrent inserts; see {@code
+   * docs/decisions/07-web.md}. Asking for both is a {@code 400}.
+   */
   @GetMapping
-  public PositionPageView page(
-      @RequestParam(defaultValue = "0") @Min(0) int page,
+  public PositionListView list(
+      @RequestParam(required = false) @Min(0) Integer page,
+      @RequestParam(required = false) String after,
       @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size) {
-    return PositionPageView.of(list.page(page, size));
+    if (after != null) {
+      if (page != null) {
+        throw new InvalidQueryException("page and after are two ways of paging; send one");
+      }
+      // An empty after= starts a keyset walk from the first row.
+      Optional<LoanPositionId> cursor =
+          after.isEmpty() ? Optional.empty() : Optional.of(new LoanPositionId(after));
+      return PositionListView.of(list.slice(cursor, size), size);
+    }
+    return PositionListView.of(list.page(page == null ? 0 : page, size));
   }
 
   @GetMapping("/{id}")
