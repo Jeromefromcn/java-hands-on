@@ -702,7 +702,7 @@ All test-only, in `adapter-web`'s tests, `@WebMvcTest` with
 
 ---
 
-## [ ] 14 · Market data source
+## [x] 14 · Market data source
 
 **`application`**
 - `port.MarketPriceSource.priceOf(Isin) → Money`. It throws
@@ -752,6 +752,24 @@ unscheduled (spec, fact 4).
     `allowEmptyShould` are updated.
 - `QuoteIT` passes.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **`UnknownReferenceException` says subject or reference**, replacing
+  decision 4's `kind()`-based mapping. The quote's security is in the URL,
+  so it must be a `404`, while an open's security is a body reference and a
+  `422`. Mapping by kind could not tell them apart. Factories `subject(…)`
+  and `reference(…)`; the handler maps `isSubject()` to `404`.
+- **Boot 4 moved `RestClient.Builder` out of the web starter.** Without
+  `spring-boot-starter-restclient` the application failed to start: no
+  `RestClient$Builder` bean.
+- **Timeouts are `MarketDataProperties`** (`ledger.marketdata.*`), with
+  `application.yml` defaults `connect-timeout: 1s`, `read-timeout: 2s`.
+  Absent or zero means unbounded; section 15 uses that to reproduce.
+- **The source's answer is also checked for the requested ISIN**; an answer
+  for another security is `502`.
+- `ArchitectureIT` rule 2 lost `allowEmptyShould`; the controller rule
+  forbids `LoanPositionRepository`, `TradeLedger`, `MarketPriceSource` and
+  every `*Query` port.
 
 ---
 

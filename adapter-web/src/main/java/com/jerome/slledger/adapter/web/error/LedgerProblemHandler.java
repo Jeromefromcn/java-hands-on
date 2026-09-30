@@ -1,6 +1,8 @@
 package com.jerome.slledger.adapter.web.error;
 
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
+import com.jerome.slledger.application.port.MarketDataRejectedException;
+import com.jerome.slledger.application.port.MarketDataUnavailableException;
 import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
@@ -56,7 +58,7 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(UnknownReferenceException.class)
   ProblemDetail unknownReference(UnknownReferenceException e) {
-    return "position".equals(e.kind())
+    return e.isSubject()
         ? Problems.of(HttpStatus.NOT_FOUND, "not-found", e.getMessage())
         : Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "unknown-reference", e.getMessage());
   }
@@ -95,6 +97,24 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(IllegalTransitionException.class)
   ProblemDetail illegalTransition(IllegalTransitionException e) {
     return Problems.of(HttpStatus.CONFLICT, "illegal-transition", e.getMessage());
+  }
+
+  /** The source did not answer in time, or at all: the gateway timed out. */
+  @ExceptionHandler(MarketDataUnavailableException.class)
+  ProblemDetail marketDataUnavailable(MarketDataUnavailableException e) {
+    return Problems.of(
+        HttpStatus.GATEWAY_TIMEOUT,
+        "market-data-unavailable",
+        "The market data source did not answer in time");
+  }
+
+  /** The source answered something this ledger will not pass on. */
+  @ExceptionHandler(MarketDataRejectedException.class)
+  ProblemDetail marketDataRejected(MarketDataRejectedException e) {
+    return Problems.of(
+        HttpStatus.BAD_GATEWAY,
+        "market-data-rejected",
+        "The market data source's answer could not be accepted");
   }
 
   /** Every other rule {@code domain} enforces: a well-formed request the ledger will not book. */

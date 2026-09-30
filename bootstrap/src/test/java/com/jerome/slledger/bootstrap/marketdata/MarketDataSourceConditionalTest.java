@@ -70,7 +70,9 @@ class MarketDataSourceConditionalTest {
               ReferenceRates rates = context.getBean(ReferenceRates.class);
               assertThatThrownBy(() -> rates.on(BUSINESS_DATE))
                   .isInstanceOf(UnsupportedOperationException.class)
-                  .hasMessage("real market data source not implemented until stage 7");
+                  .hasMessage(
+                      "a real reference rate source is not scheduled; stage 7 built a price source"
+                          + " instead");
             });
   }
 

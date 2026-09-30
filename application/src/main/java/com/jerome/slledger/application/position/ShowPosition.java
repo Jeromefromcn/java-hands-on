@@ -19,6 +19,8 @@ public class ShowPosition {
    */
   @Transactional(readOnly = true)
   public PositionRow show(LoanPositionId id) {
-    return query.find(id).orElseThrow(() -> new UnknownReferenceException("position", id.value()));
+    return query
+        .find(id)
+        .orElseThrow(() -> UnknownReferenceException.subject("position", id.value()));
   }
 }

@@ -46,7 +46,7 @@ public class ListAccruals {
           "the range covers %d days; at most %d are answered at once".formatted(days, MAX_DAYS));
     }
     if (positions.find(position).isEmpty()) {
-      throw new UnknownReferenceException("position", position.value());
+      throw UnknownReferenceException.subject("position", position.value());
     }
     return entries.of(position, from, to);
   }

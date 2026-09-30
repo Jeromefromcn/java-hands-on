@@ -4,6 +4,7 @@ import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
+import com.jerome.slledger.application.port.MarketPriceSource;
 import com.jerome.slledger.application.port.PositionCursorQuery;
 import com.jerome.slledger.application.port.PositionDetailQuery;
 import com.jerome.slledger.application.port.PositionListQuery;
@@ -17,6 +18,7 @@ import com.jerome.slledger.application.position.OpenPosition;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.ReturnPositionOnce;
 import com.jerome.slledger.application.position.ShowPosition;
+import com.jerome.slledger.application.quote.QuotePrice;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
@@ -73,6 +75,11 @@ public class LedgerConfiguration {
   IdempotentBooking idempotentBooking(
       OpenPosition open, ReturnPosition returns, FindBookedTrade booked) {
     return new IdempotentBooking(open, returns, booked);
+  }
+
+  @Bean
+  QuotePrice quotePrice(SecurityDirectory securities, MarketPriceSource source) {
+    return new QuotePrice(securities, source);
   }
 
   @Bean

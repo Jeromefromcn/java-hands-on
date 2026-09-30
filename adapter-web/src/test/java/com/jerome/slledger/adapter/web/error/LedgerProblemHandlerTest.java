@@ -49,11 +49,15 @@ class LedgerProblemHandlerTest {
 
   static Stream<Arguments> thrown() {
     return Stream.of(
-        Arguments.of(new UnknownReferenceException("position", "P-1"), 404, "not-found"),
+        Arguments.of(UnknownReferenceException.subject("position", "P-1"), 404, "not-found"),
         Arguments.of(
-            new UnknownReferenceException("counterparty", "CP-9"), 422, "unknown-reference"),
+            UnknownReferenceException.reference("counterparty", "CP-9"), 422, "unknown-reference"),
         Arguments.of(
-            new UnknownReferenceException("security", "HK0000000001"), 422, "unknown-reference"),
+            UnknownReferenceException.subject("security", "HK0000000007"), 404, "not-found"),
+        Arguments.of(
+            UnknownReferenceException.reference("security", "HK0000000001"),
+            422,
+            "unknown-reference"),
         Arguments.of(
             new MalformedIdentifierException("Isin", "x", "shape"), 400, "malformed-identifier"),
         Arguments.of(

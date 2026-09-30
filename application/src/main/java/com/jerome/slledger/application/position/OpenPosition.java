@@ -60,12 +60,13 @@ public class OpenPosition {
             .find(command.counterparty())
             .orElseThrow(
                 () ->
-                    new UnknownReferenceException("counterparty", command.counterparty().value()));
+                    UnknownReferenceException.reference(
+                        "counterparty", command.counterparty().value()));
     Security security =
         securities
             .find(command.security())
             .orElseThrow(
-                () -> new UnknownReferenceException("security", command.security().value()));
+                () -> UnknownReferenceException.reference("security", command.security().value()));
 
     Money requested = command.collateral();
     ExposureSummary exposure =

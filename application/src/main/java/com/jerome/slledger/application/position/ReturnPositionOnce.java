@@ -45,7 +45,7 @@ public class ReturnPositionOnce {
         positions
             .find(command.position())
             .orElseThrow(
-                () -> new UnknownReferenceException("position", command.position().value()));
+                () -> UnknownReferenceException.subject("position", command.position().value()));
     position.returnQuantity(command.quantity());
     positions.add(position);
 
@@ -53,7 +53,7 @@ public class ReturnPositionOnce {
         securities
             .find(position.security())
             .orElseThrow(
-                () -> new UnknownReferenceException("security", position.security().value()));
+                () -> UnknownReferenceException.reference("security", position.security().value()));
     LoanTrade returned =
         LoanTrade.builder()
             .idempotencyKey(command.key())

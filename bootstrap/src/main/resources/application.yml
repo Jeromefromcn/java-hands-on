@@ -36,3 +36,10 @@ marketdata:
 ledger:
   return:
     max-attempts: 3
+  # Stage 7: the external price source. Both timeouts are set on purpose: without a read timeout a
+  # hanging source holds a Tomcat worker per request until the pool is gone. See
+  # docs/decisions/07-web.md. Profiles point base-url at a real or stub source.
+  marketdata:
+    base-url: http://127.0.0.1:8089
+    connect-timeout: 1s
+    read-timeout: 2s

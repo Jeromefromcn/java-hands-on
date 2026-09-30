@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Three architecture rules, checked on the one classpath that has every module on it: {@code
+ * Five architecture rules, checked on the one classpath that has every module on it: {@code
  * bootstrap} depends (transitively) on all of {@code domain}, {@code application}, {@code
  * adapter-persistence}, {@code adapter-web} and {@code batch}.
  *
@@ -25,9 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
  * phase — these are architecture checks, not unit tests, and stay out of the fast inner loop.
  *
  * <p>Since stage 6, rules 1 and 3 check real classes: {@code adapter-persistence} holds the JPA
- * adapter, and {@code application} holds the {@code @Transactional} use cases. Rule 2 still passes
- * vacuously, because {@code adapter-web} is empty until stage 7; that is stated here rather than
- * hidden, per {@code docs/decisions/03-testing-foundation.md}.
+ * adapter, and {@code application} holds the {@code @Transactional} use cases. Since stage 7, rule
+ * 2 does too, and two more govern {@code adapter-web} itself: controllers reach the ledger only
+ * through {@code application}, and the outbound market data client is kept apart from the inbound
+ * side.
  *
  * <p>Test classes are not imported. The rules govern production code; test-only demos are exactly
  * where reproductions belong, and stage 5's {@code @Transactional} demos under {@code
@@ -58,22 +59,58 @@ class ArchitectureIT {
   }
 
   @Test
-  @DisplayName(
-      "adapter-web does not depend on adapter-persistence (vacuous until stage 7: adapter-web"
-          + " has no classes yet)")
+  @DisplayName("adapter-web does not depend on adapter-persistence")
   void webDoesNotDependOnPersistence() {
-    // allowEmptyShould(true): ArchUnit fails a rule by default when the "that()" selection is
-    // empty, on the theory that an empty selection usually means a typo'd package name. Here it
-    // really is empty — adapter-web has no classes yet — so the default is overridden explicitly
-    // rather than the rule silently never running.
+    // Stage 7 gave adapter-web its classes, so the allowEmptyShould(true) that let this rule pass
+    // on an empty package is gone: an empty selection would now mean a renamed package.
     ArchRule rule =
         noClasses()
             .that()
             .resideInAPackage("com.jerome.slledger.adapter.web..")
             .should()
             .dependOnClassesThat()
-            .resideInAPackage("com.jerome.slledger.adapter.persistence..")
-            .allowEmptyShould(true);
+            .resideInAPackage("com.jerome.slledger.adapter.persistence..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
+  @DisplayName("controllers reach the ledger only through application, never a port or domain port")
+  void controllersCallUseCasesOnly() {
+    ArchRule rule =
+        noClasses()
+            .that()
+            .areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
+            .should()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("com.jerome.slledger.domain.loan.LoanPositionRepository")
+            .orShould()
+            .dependOnClassesThat()
+            .haveSimpleNameEndingWith("Query")
+            .orShould()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("com.jerome.slledger.application.port.TradeLedger")
+            .orShould()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("com.jerome.slledger.application.port.MarketPriceSource");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
+  @DisplayName("nothing inbound in adapter-web depends on the outbound market data client")
+  void inboundDoesNotReachTheClient() {
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.adapter.web..")
+            .and()
+            .resideOutsideOfPackage("com.jerome.slledger.adapter.web.client..")
+            .and()
+            .doNotHaveFullyQualifiedName("com.jerome.slledger.adapter.web.WebConfiguration")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("com.jerome.slledger.adapter.web.client..");
 
     rule.check(CLASSES);
   }
