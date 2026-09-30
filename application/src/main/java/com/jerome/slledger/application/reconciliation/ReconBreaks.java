@@ -1,5 +1,6 @@
 package com.jerome.slledger.application.reconciliation;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -9,7 +10,9 @@ import java.util.List;
 public interface ReconBreaks {
 
   /**
+   * @param now when the breaks were found; a break for the settlement ladder has its first attempt
+   *     due then
    * @return how many were new; the rest were already recorded. In the caller's transaction.
    */
-  int save(List<ReconBreak> breaks);
+  int save(List<ReconBreak> breaks, Instant now);
 }

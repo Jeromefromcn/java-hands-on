@@ -11,6 +11,8 @@ import com.jerome.slledger.application.reconciliation.LoadHoldings;
 import com.jerome.slledger.application.reconciliation.MalformedHoldingException;
 import com.jerome.slledger.application.reconciliation.ReconBreak;
 import com.jerome.slledger.application.reconciliation.SaveBreaks;
+import com.jerome.slledger.application.reconciliation.SettlementAttempt;
+import com.jerome.slledger.application.reconciliation.SettlementRecovery;
 import com.jerome.slledger.batch.accrual.BatchSettings;
 import com.jerome.slledger.batch.support.CsvLinesReader;
 import com.jerome.slledger.batch.support.KeysetReader;
@@ -31,11 +33,14 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 
 /**
  * The reconciliation: a third job with its own inputs, not a part of the accrual. Two steps.
@@ -57,12 +62,17 @@ public class ReconciliationJobConfiguration {
   public static final String LOAD_STEP = "loadSnapshot";
   public static final String COMPARE_STEP = "compare";
   public static final String BREAKS_RECORDED = "reconciliation.breaksRecorded";
+  public static final String RECOVERY_STEP = "settlementRecovery";
+  public static final String ATTEMPTED = "ladder.attempted";
+  public static final String RESOLVED = "ladder.resolved";
+  public static final String ESCALATED = "ladder.escalated";
 
   @Bean
   Job reconciliation(
       JobRepository repository,
       @Qualifier("loadSnapshotStep") Step loadSnapshotStep,
       @Qualifier("compareStep") Step compareStep,
+      @Qualifier("settlementRecoveryStep") Step settlementRecoveryStep,
       BatchRunMetrics metrics) {
     return new JobBuilder(JOB, repository)
         .validator(
@@ -72,6 +82,42 @@ public class ReconciliationJobConfiguration {
         .listener(new RunSummaryListener(metrics))
         .start(loadSnapshotStep)
         .next(compareStep)
+        .next(settlementRecoveryStep)
+        .build();
+  }
+
+  /**
+   * Runs the settlement ladder's due attempts after the comparison has recorded its breaks, so a
+   * break found now gets its first attempt in the same run. No transaction of the step's own: each
+   * attempt is its own transaction, because the custodian has been asked by the time an attempt's
+   * outcome is recorded, and one attempt's failure must not roll back another's record.
+   */
+  @Bean
+  Step settlementRecoveryStep(
+      JobRepository repository,
+      PlatformTransactionManager transactions,
+      SettlementRecovery recovery) {
+    return new StepBuilder(RECOVERY_STEP, repository)
+        .tasklet(
+            (contribution, chunkContext) -> {
+              var results = recovery.run();
+              var context = contribution.getStepExecution().getExecutionContext();
+              context.putLong(ATTEMPTED, results.size());
+              context.putLong(
+                  RESOLVED,
+                  results.stream()
+                      .filter(r -> r.outcome() == SettlementAttempt.Outcome.RESOLVED)
+                      .count());
+              context.putLong(
+                  ESCALATED,
+                  results.stream()
+                      .filter(r -> r.outcome() == SettlementAttempt.Outcome.ESCALATED)
+                      .count());
+              return RepeatStatus.FINISHED;
+            },
+            transactions)
+        .transactionAttribute(
+            new DefaultTransactionAttribute(TransactionDefinition.PROPAGATION_NOT_SUPPORTED))
         .build();
   }
 

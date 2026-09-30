@@ -14,6 +14,10 @@ import com.jerome.slledger.application.reconciliation.CustodianHoldings;
 import com.jerome.slledger.application.reconciliation.LoadHoldings;
 import com.jerome.slledger.application.reconciliation.ReconBreaks;
 import com.jerome.slledger.application.reconciliation.SaveBreaks;
+import com.jerome.slledger.application.reconciliation.SettlementAttempt;
+import com.jerome.slledger.application.reconciliation.SettlementBreaks;
+import com.jerome.slledger.application.reconciliation.SettlementGateway;
+import com.jerome.slledger.application.reconciliation.SettlementRecovery;
 import com.jerome.slledger.batch.accrual.AccrualJobConfiguration;
 import com.jerome.slledger.batch.accrual.BatchSettings;
 import com.jerome.slledger.batch.accrual.RunAccrual;
@@ -21,6 +25,7 @@ import com.jerome.slledger.batch.accrual.RunDailyAccrual;
 import com.jerome.slledger.batch.reconciliation.ReconciliationJobConfiguration;
 import com.jerome.slledger.batch.reconciliation.RunReconciliation;
 import com.jerome.slledger.batch.support.FailurePoint;
+import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -122,8 +127,32 @@ public class BatchConfiguration {
   }
 
   @Bean
-  SaveBreaks saveBreaks(ReconBreaks breaks) {
-    return new SaveBreaks(breaks);
+  SaveBreaks saveBreaks(ReconBreaks breaks, Clock clock) {
+    return new SaveBreaks(breaks, clock);
+  }
+
+  /**
+   * No real custodian connection exists in this ledger: every resubmission is answered "no route".
+   */
+  @Bean
+  SettlementGateway settlementGateway() {
+    return positionId ->
+        new SettlementGateway.Rejected("no automated settlement route is configured");
+  }
+
+  @Bean
+  SettlementAttempt settlementAttempt(
+      SettlementBreaks breaks,
+      SettlementGateway gateway,
+      Clock clock,
+      ReconciliationProperties properties) {
+    return new SettlementAttempt(
+        breaks, gateway, clock, properties.maxAttempts(), properties.retryDelays());
+  }
+
+  @Bean
+  SettlementRecovery settlementRecovery(SettlementAttempt attempt) {
+    return new SettlementRecovery(attempt);
   }
 
   @Bean

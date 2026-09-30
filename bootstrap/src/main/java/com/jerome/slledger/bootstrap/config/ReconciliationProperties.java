@@ -17,7 +17,8 @@ import org.springframework.validation.annotation.Validated;
  *     rounding
  * @param relativeTolerance or up to this fraction of the ledger's value, whichever is larger
  * @param settlementWindowDays days after settling before a position the custodian lacks is a break
- * @param retryDelay the wait between resubmissions of a settlement the custodian lacks
+ * @param retryDelays the wait after the first failed resubmission of a settlement the custodian
+ *     lacks, after the second, and so on; the last repeats
  * @param maxAttempts resubmissions before a break goes to a person
  */
 @Validated
@@ -26,7 +27,7 @@ public record ReconciliationProperties(
     @DefaultValue("1.00") @NotNull @DecimalMin("0.00") BigDecimal absoluteTolerance,
     @DefaultValue("0.0001") @NotNull @DecimalMin("0.0") BigDecimal relativeTolerance,
     @DefaultValue("2") @Min(0) int settlementWindowDays,
-    @DefaultValue("4h") @NotNull java.time.Duration retryDelay,
+    @DefaultValue({"4h", "24h"}) @NotNull java.util.List<java.time.Duration> retryDelays,
     @DefaultValue("3") @Min(1) int maxAttempts) {
 
   ReconPolicy policy() {

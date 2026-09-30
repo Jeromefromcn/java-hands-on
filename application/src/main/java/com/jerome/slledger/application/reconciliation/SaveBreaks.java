@@ -1,5 +1,6 @@
 package com.jerome.slledger.application.reconciliation;
 
+import java.time.Clock;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -7,13 +8,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class SaveBreaks {
 
   private final ReconBreaks breaks;
+  private final Clock clock;
 
-  public SaveBreaks(ReconBreaks breaks) {
+  public SaveBreaks(ReconBreaks breaks, Clock clock) {
     this.breaks = breaks;
+    this.clock = clock;
   }
 
   @Transactional
   public int save(List<ReconBreak> chunk) {
-    return breaks.save(chunk);
+    return breaks.save(chunk, clock.instant());
   }
 }

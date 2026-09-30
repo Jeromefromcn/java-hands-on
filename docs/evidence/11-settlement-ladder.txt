@@ -1,0 +1,28 @@
+Stage 11, section 12: the settlement ladder. Ten positions settled on 2026-09-01; the
+custodian's snapshot has eight. P000009 and P000010 are ledger-only and past the window.
+Three attempts, waits of 4 h after the first failure and 24 h after the second. The
+clock is a test clock moved by hand; the gateway is scripted: P000009 is rejected once
+and then settles, P000010 is always rejected. Real Postgres.
+
+-- T+0h: reconciliation job (steps: load, compare, settlementRecovery)
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+loadSnapshot | COMPLETED | 8 | 8 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+compare | COMPLETED | 10 | 2 | 2 | 0 | 0 | 0 | 0 | COMPLETED
+settlementRecovery | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+position | disposition | attempts | next_attempt_at | detail
+P000009 | RETRY_SETTLEMENT | 1 | 2026-09-30 14:00:00+08 | settled 2026-09-01, the custodian does not have it | attempt 1 failed: custodian busy
+P000010 | RETRY_SETTLEMENT | 1 | 2026-09-30 14:00:00+08 | settled 2026-09-01, the custodian does not have it | attempt 1 failed: no route
+
+-- T+1h: ladder.run(): nothing is due
+
+-- T+4h: ladder.run(): attempt 2 for both
+position | disposition | attempts | next_attempt_at | detail
+P000009 | RESOLVED | 2 | null | settled 2026-09-01, the custodian does not have it | attempt 1 failed: custodian busy | settled on attempt 2
+P000010 | RETRY_SETTLEMENT | 2 | 2026-10-01 14:00:00+08 | settled 2026-09-01, the custodian does not have it | attempt 1 failed: no route | attempt 2 failed: no route
+
+-- T+28h: ladder.run(): attempt 3 for P000010, which escalates
+position | disposition | attempts | next_attempt_at | detail
+P000009 | RESOLVED | 2 | null | settled 2026-09-01, the custodian does not have it | attempt 1 failed: custodian busy | settled on attempt 2
+P000010 | ESCALATED | 3 | null | settled 2026-09-01, the custodian does not have it | attempt 1 failed: no route | attempt 2 failed: no route | attempt 3 failed: no route | escalated
+
+-- T+30d: ladder.run(): nothing; the escalated break stays in the queue (gateway asked 5 times in all)

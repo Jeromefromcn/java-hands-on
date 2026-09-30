@@ -324,7 +324,7 @@ test in the section named.
 
 ---
 
-## [ ] 12 · Settlement failure: the ladder
+## [x] 12 · Settlement failure: the ladder
 
 **Change**
 - `application.reconciliation.SettlementRecovery`, `SettlementGateway` port
@@ -559,3 +559,19 @@ test in the section named.
   on the 1st (asserted on both sides of the boundary; the first test of it expected the wrong day).
 - `ReconPolicy` defaults (1.00, 0.01%, two days) and the `ledger.reconciliation.*` names are in
   `ReconciliationProperties`; the decision record says what they would have to be based on.
+
+**Section 12.**
+- The ladder is split like stage 10's relay and stage 5's lesson demand: `SettlementRecovery` loops and
+  is not transactional, `SettlementAttempt.attemptNext` is one transaction (claim with `FOR UPDATE SKIP
+  LOCKED`, ask, record). One class calling its own `@Transactional` method would bypass the proxy.
+- The job's third step is a tasklet with `PROPAGATION_NOT_SUPPORTED`: Spring Batch wraps a tasklet in a
+  transaction by default, and one transaction around every attempt would roll back the record of an
+  attempt the custodian had already been told about if a later one failed.
+- `ReconBreaks.save` takes the time the breaks were found, so a break's first attempt is due on the
+  application's clock and not on the database's `now()`: the ladder compares against the same clock it
+  schedules with, and the test moves that clock.
+- The gateway in `bootstrap` answers every resubmission "no route configured", so in a real run every
+  ledger-only break past its window walks the ladder and ends escalated. That is the honest answer for
+  a ledger with no custodian connection, and the decision record says so instead of making the stub
+  settle things.
+- `maxAttempts` is three; with delays of 4 h and 24 h the last attempt is 28 h after the first.
