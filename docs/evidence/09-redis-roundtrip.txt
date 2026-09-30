@@ -1,0 +1,7 @@
+Stage 9, section 5: Money through Redis as JSON with a string amount.
+Measured against a real redis:7.4-alpine (Testcontainers), 16 integer digits.
+
+currency  stored JSON in Redis                                                back
+HKD       {"state":"present","amount":"1234567890123456.78","currency":"HKD"}            1234567890123456.78 HKD
+JPY       {"state":"present","amount":"1234567890123456","currency":"JPY"}               1234567890123456 JPY
+BHD       {"state":"present","amount":"1234567890123456.789","currency":"BHD"}           1234567890123456.789 BHD

@@ -1,0 +1,10 @@
+Stage 9, section 5: the same amount through a double and through a string.
+Measured on this machine, JDK 21.0.12.
+
+amount stored                : 12345678901234567.89 HKD
+written as a JSON number,
+read back as a double        : 12345678901234568
+written as a JSON string,
+read back with PriceCodec    : 12345678901234567.89
+
+The double is off by 0.11.

@@ -218,7 +218,7 @@ test in the section named.
 
 ---
 
-## [ ] 5 · Redis tier and serialization
+## [x] 5 · Redis tier and serialization
 
 **`adapter.persistence.cache`**
 - `PriceCodec`: encode/decode `Entry<Money>` as JSON per the spec. Decode
@@ -240,6 +240,18 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The TTL check covers the `price:` prefix only.** Section 7's fencing counters
+  (`INCR fence:{resource}`) must never expire: a counter that expired could hand out a
+  token lower than one already admitted. "No key without a TTL" is true of the price
+  keys and false, on purpose, of the fence keys.
+- **`PriceCodec.decodeStrict` throws and `decode` maps it to empty**, so a test can assert
+  the refusal and the tier can treat it as a miss with one method each.
+- The double-codec reproduction uses a 19-significant-digit amount; the loss is 0.11.
+  16 integer digits with two decimals is already beyond a double's 15–17 digits.
+- A `Duration` below one millisecond is rounded up to 1 ms in `RedisPriceTier.put`:
+  `SET ... PX 0` is an error, and a zero TTL from a jitter draw must not fail a read.
 
 ---
 
