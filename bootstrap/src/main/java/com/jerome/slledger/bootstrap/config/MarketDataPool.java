@@ -1,5 +1,6 @@
 package com.jerome.slledger.bootstrap.config;
 
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionHandler;
@@ -8,6 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.MDC;
 
 /**
  * The bounded pool behind the price fan-out: named threads, a bounded queue, a configured rejection
@@ -55,7 +57,33 @@ public final class MarketDataPool implements Executor, AutoCloseable {
 
   @Override
   public void execute(Runnable task) {
-    pool.execute(task);
+    pool.execute(withSubmittersMdc(task));
+  }
+
+  /**
+   * The task with the submitting thread's MDC, so its log lines carry the request's trace id. The
+   * executing thread's own MDC is put back afterwards rather than cleared: under caller-runs that
+   * thread is the request's, and clearing would drop its trace id mid-request.
+   */
+  private static Runnable withSubmittersMdc(Runnable task) {
+    Map<String, String> captured = MDC.getCopyOfContextMap();
+    return () -> {
+      Map<String, String> before = MDC.getCopyOfContextMap();
+      restore(captured);
+      try {
+        task.run();
+      } finally {
+        restore(before);
+      }
+    };
+  }
+
+  private static void restore(Map<String, String> context) {
+    if (context == null) {
+      MDC.clear();
+    } else {
+      MDC.setContextMap(context);
+    }
   }
 
   public PoolStats stats() {

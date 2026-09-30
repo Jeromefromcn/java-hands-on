@@ -1,5 +1,6 @@
 package com.jerome.slledger.application.quote;
 
+import com.jerome.slledger.application.context.RequestContext;
 import com.jerome.slledger.application.port.MarketDataRejectedException;
 import com.jerome.slledger.application.port.MarketDataUnavailableException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
@@ -35,6 +36,8 @@ import org.apache.commons.logging.LogFactory;
  *   <li>Every stage's failure is turned into that security's outcome. A stage whose future nobody
  *       reads fails silently.
  *   <li>One security failing, timing out or being refused never discards the others.
+ *   <li>Each task carries the submitter's {@link RequestContext}; a pooled thread never inherits
+ *       one by accident.
  * </ul>
  *
  * <p>Not transactional: each task reads the security in its own short read and then waits on the
@@ -98,7 +101,8 @@ public class PriceFanOut {
 
   private CompletableFuture<QuoteOutcome> submit(Isin isin) {
     try {
-      return CompletableFuture.supplyAsync(() -> quote.quote(isin), executor)
+      return CompletableFuture.supplyAsync(
+              RequestContext.propagating(() -> quote.quote(isin)), executor)
           .handle((price, failure) -> outcome(isin, price, failure));
     } catch (RejectedExecutionException refused) {
       return CompletableFuture.completedFuture(
@@ -139,7 +143,11 @@ public class PriceFanOut {
       case MarketDataRejectedException e ->
           new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.REJECTED);
       default -> {
-        log.error("Unexpected failure pricing " + isin.value(), cause);
+        log.error(
+            "Unexpected failure pricing "
+                + isin.value()
+                + RequestContext.current().map(c -> " [trace " + c.traceId() + "]").orElse(""),
+            cause);
         yield new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.ERROR);
       }
     };

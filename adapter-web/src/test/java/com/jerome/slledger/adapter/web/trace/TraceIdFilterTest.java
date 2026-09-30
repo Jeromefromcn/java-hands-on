@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.jerome.slledger.adapter.web.testing.ProbeController;
+import com.jerome.slledger.application.context.RequestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,28 @@ class TraceIdFilterTest {
 
     assertThat(status).isEqualTo(500);
     assertThat(MDC.get(TraceIdFilter.MDC_KEY)).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "the use cases see the same id through RequestContext, and the thread is clean afterwards")
+  void requestContextIsSetDuringAndClearedAfter() throws Exception {
+    ProbeController.answer(() -> RequestContext.current().map(c -> c.traceId()).orElse("none"));
+
+    var response = mvc.perform(get("/probe")).andReturn().getResponse();
+
+    assertThat(response.getContentAsString()).isEqualTo(response.getHeader(TraceIdFilter.HEADER));
+    assertThat(RequestContext.current()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("a request whose handler throws leaves no RequestContext on the thread")
+  void requestContextClearedAfterException() throws Exception {
+    ProbeController.throwing(new IllegalStateException("boom"));
+
+    mvc.perform(get("/probe"));
+
+    assertThat(RequestContext.current()).isEmpty();
   }
 
   private String traceIdOf(String path) throws Exception {

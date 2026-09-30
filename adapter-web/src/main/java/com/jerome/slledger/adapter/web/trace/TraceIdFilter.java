@@ -1,5 +1,6 @@
 package com.jerome.slledger.adapter.web.trace;
 
+import com.jerome.slledger.application.context.RequestContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,11 +43,13 @@ public class TraceIdFilter extends OncePerRequestFilter {
     request.setAttribute(ATTRIBUTE, traceId);
     response.setHeader(HEADER, traceId);
     MDC.put(MDC_KEY, traceId);
+    RequestContext.set(new RequestContext.Snapshot(traceId));
     try {
       chain.doFilter(request, response);
     } finally {
       // Worker threads are pooled: an id left behind would label the next request's logs.
       MDC.remove(MDC_KEY);
+      RequestContext.clear();
     }
   }
 

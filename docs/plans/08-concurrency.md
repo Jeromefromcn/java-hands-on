@@ -312,7 +312,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 7 · Request context and the `ThreadLocal` leak
+## [x] 7 · Request context and the `ThreadLocal` leak
 
 **`application` `RequestContext`**
 - A holder over a `ThreadLocal<Snapshot>` with `capture()`, `restore(snapshot)`
@@ -335,6 +335,20 @@ Failure modes the spec implies but no exercise is *about*.
 
 **Acceptance**
 - All pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Two layers carry two contexts.** `RequestContext` (in `application`, set by
+  `TraceIdFilter`) is wrapped by `PriceFanOut`; the MDC, which `application`
+  cannot see (no SLF4J), is wrapped by `MarketDataPool.execute`.
+- **Both restore the executing thread's previous value; neither clears.** A
+  plain `clear()` in `finally` is the textbook fix and is wrong under
+  caller-runs: the task runs on the request's own thread, and clearing erases
+  the context the request is still using. Pinned by
+  `callerRunsKeepsTheSubmittersContext` and `callerRunsKeepsSubmittersMdc`.
+- `TraceIdFilter` clears `RequestContext` in its `finally`, next to the MDC;
+  it is the outermost layer, so a clear there is correct.
+- The context has one field, the trace id. The fan-out uses it in the log line
+  for an unexpected failure.
 
 ---
 
