@@ -547,7 +547,7 @@ Testcontainers Redis.
 
 ---
 
-## [ ] 14 · Decision record and roadmap
+## [x] 14 · Decision record and roadmap
 
 - `docs/decisions/09-caching.md` per the spec's list, every number from an
   evidence file.
