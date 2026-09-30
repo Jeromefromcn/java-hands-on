@@ -287,7 +287,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 6 · Pool parameters: the queue that hides the maximum
+## [x] 6 · Pool parameters: the queue that hides the maximum
 
 **`bootstrap` `PoolSizingIT`**
 - `reproducesPoolNeverGrowingPastCore`: `core=2, max=8, queue=100`, hanging
@@ -301,6 +301,14 @@ Failure modes the spec implies but no exercise is *about*.
 **Acceptance**
 - Both pass; evidence exists.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- The test is `PoolSizingTest`, driving `MarketDataPool` directly (no server
+  is needed to show a `ThreadPoolExecutor` rule). Measured with 20 blocking
+  tasks: `core=2 max=8 queue=100` ends at `largestPoolSize=2, queued=18,
+  rejected=0`; `core=2 max=8 queue=2` ends at `largestPoolSize=8, queued=2,
+  rejected=10`. The short queue buys the bigger pool at the price of refusing
+  half the load, which is why max only matters when the queue is short.
 
 ---
 

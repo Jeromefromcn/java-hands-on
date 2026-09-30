@@ -1,0 +1,10 @@
+Stage 08 · section 6 — core, max and queue length (PoolSizingTest)
+
+20 tasks that all block are submitted to each configuration (policy=abort).
+
+ThreadPoolExecutor's rule: below core, a new thread per task; at core, offer to the
+queue; only if the queue refuses the offer, a new thread up to max; then reject.
+A queue that never refuses means max is never used.
+
+core=2 max=8 queue=2   -> PoolStats[poolSize=8, largestPoolSize=8, active=8, queued=2, completed=0, rejected=10]
+core=2 max=8 queue=100 -> PoolStats[poolSize=2, largestPoolSize=2, active=2, queued=18, completed=0, rejected=0]
