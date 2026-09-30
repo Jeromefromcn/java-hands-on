@@ -5,12 +5,16 @@ import com.jerome.slledger.application.accrual.AccrualCandidates;
 import com.jerome.slledger.application.accrual.AccrueDay;
 import com.jerome.slledger.application.accrual.BookAccruals;
 import com.jerome.slledger.application.accrual.BookResult;
+import com.jerome.slledger.application.accrual.CorruptPositionException;
+import com.jerome.slledger.application.accrual.RecordSkip;
 import com.jerome.slledger.application.accrual.Slice;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
 import com.jerome.slledger.batch.support.FailurePoint;
 import com.jerome.slledger.batch.support.KeysetReader;
 import com.jerome.slledger.batch.support.RunSummaryListener;
+import com.jerome.slledger.batch.support.StepDefaults;
 import com.jerome.slledger.domain.accrual.AccrualEntry;
+import com.jerome.slledger.domain.error.DomainException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -18,9 +22,11 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.parameters.DefaultJobParametersValidator;
+import org.springframework.batch.core.listener.SkipListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.StepExecution;
+import org.springframework.batch.core.step.builder.ChunkOrientedStepBuilder;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
@@ -71,15 +77,53 @@ public class AccrualJobConfiguration {
       BatchSettings settings,
       @Qualifier("accrualReader") ItemStreamReader<AccrualCandidate> accrualReader,
       ItemProcessor<AccrualCandidate, AccrualEntry> accrualProcessor,
-      ItemWriter<AccrualEntry> accrualWriter) {
-    return new StepBuilder(STEP, repository)
-            .<AccrualCandidate, AccrualEntry>chunk(settings.chunkSize())
-            .transactionManager(transactions)
-            .reader(accrualReader)
-            .processor(accrualProcessor)
-            .writer(accrualWriter)
-            .stream(accrualReader)
-            .build();
+      ItemWriter<AccrualEntry> accrualWriter,
+      SkipListener<AccrualCandidate, AccrualEntry> accrualSkipListener) {
+    ChunkOrientedStepBuilder<AccrualCandidate, AccrualEntry> step =
+        new StepBuilder(STEP, repository)
+                .<AccrualCandidate, AccrualEntry>chunk(settings.chunkSize())
+                .transactionManager(transactions)
+                .reader(accrualReader)
+                .processor(accrualProcessor)
+                .writer(accrualWriter)
+                .stream(accrualReader)
+                .skipListener(accrualSkipListener);
+    // A corrupt row and a refusal of the domain belong to one position: skipped, to the limit.
+    return StepDefaults.faultTolerant(
+            step,
+            settings.skipLimit(),
+            settings.retryLimit(),
+            CorruptPositionException.class,
+            DomainException.class)
+        .build();
+  }
+
+  /** Writes every skipped position to {@code batch_skip}, in a transaction of its own. */
+  @Bean
+  @StepScope
+  SkipListener<AccrualCandidate, AccrualEntry> accrualSkipListener(
+      RecordSkip skips, @Value("#{jobParameters['businessDate']}") LocalDate businessDate) {
+    String scope = businessDate.toString();
+    return new SkipListener<>() {
+      @Override
+      public void onSkipInRead(Throwable t) {
+        skips.record(JOB, scope, "read:" + t.getClass().getSimpleName(), "read", describe(t));
+      }
+
+      @Override
+      public void onSkipInProcess(AccrualCandidate item, Throwable t) {
+        skips.record(JOB, scope, item.positionId(), "process", describe(t));
+      }
+
+      @Override
+      public void onSkipInWrite(AccrualEntry item, Throwable t) {
+        skips.record(JOB, scope, item.position().value(), "write", describe(t));
+      }
+    };
+  }
+
+  private static String describe(Throwable t) {
+    return t.getClass().getSimpleName() + ": " + t.getMessage();
   }
 
   @Bean

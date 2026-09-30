@@ -1,0 +1,25 @@
+Stage 11, section 6: Spring Batch skip against stage 5's REQUIRES_NEW loop.
+Same ledger for both: 200 active positions, five of them corrupt (P000010, P000050,
+P000090, P000130, P000170). Real Postgres. "Write transactions" is the difference in
+pg_current_xact_id() around each run: every transaction that writes consumes one id.
+
+-- the same 200 positions, five corrupt
+Spring Batch skip (chunks of 20)  : 195 entries, 28 write transactions (chunks, job
+                                    repository updates and skip records included),
+                                    397 ms, 5 skips recorded in batch_skip
+REQUIRES_NEW loop (one per row)   : 195 entries, 196 write transactions, 265 ms, skips
+                                    recorded: none (a counter in the caller)
+Spring Batch step row:
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 200 | 195 | 10 | 0 | 0 | 5 | 0 | COMPLETED
+
+
+-- each run fails midway (the batch in chunk 6, the loop at its 100th row)
+REQUIRES_NEW loop : 96 entries committed; run rows left by the outer transaction: 0
+                    (rolled back with it: nothing says a run started, where it stopped, or
+                    what it skipped; a rerun starts from the first row)
+Spring Batch      : 97 entries committed; the repository says:
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | FAILED | 120 | 97 | 5 | 1 | 0 | 3 | 0 | FAILED
+
+                    saved cursor: P000100; a launch of the same date resumes after it

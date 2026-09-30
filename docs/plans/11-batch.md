@@ -201,7 +201,7 @@ test in the section named.
 
 ---
 
-## [ ] 6 · Skip and retry
+## [x] 6 · Skip and retry
 
 **Change**
 - `StepDefaults` skip and retry classification; `SkippedItems` port and
@@ -441,3 +441,20 @@ test in the section named.
   Asserted, and stated in the decision record as the price of a keyset cursor.
 - The kill test uses the running JVM's own classpath for the child (`java.class.path` under
   failsafe is a manifest-only jar, which `java -cp` follows), so there is no second packaging.
+
+**Section 6.**
+- `retryLimit(3)` means three retries after the first attempt: a failure that never clears is four
+  attempts at the chunk (measured, six writer calls for chunks 1 and 2 plus four). And a retried chunk
+  leaves `ROLLBACK_COUNT` at 0: the row does not show that a retry happened; the count of writer
+  attempts, which only the test can see, does.
+- A skipped item does not roll its chunk back: five skips in 200 rows is ten commits and no
+  rollback. The eleventh skip, past the limit, rolls back the chunk it is in and fails the step
+  with `FatalStepExecutionException: Unable to process chunk`; the entry that tripped the limit has
+  no `batch_skip` row (the limit was already spent).
+- `pg_stat_database.xact_commit`, planned for the transaction count, lags a run by many seconds
+  (each backend flushes its counters only after being idle for some time), so the comparison counts
+  write transactions with `pg_current_xact_id()` instead. It counts transactions that wrote, which
+  is the cost being compared.
+- At 200 rows the `REQUIRES_NEW` loop was not slower than the batch (265 ms against 397 ms): the job
+  repository's own bookkeeping is a fixed cost that 200 rows do not amortise. The per-row commit is
+  what section 7's chunk-size-1 run prices at 20,000 rows.

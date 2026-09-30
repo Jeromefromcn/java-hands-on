@@ -1,0 +1,31 @@
+Stage 11, section 6: skip and retry on the accrual step. 200 active positions, chunk
+size 20 (10 chunks), skip limit 10, retry limit 3 (three retries after the first attempt). Real Postgres. Step rows are read from
+BATCH_STEP_EXECUTION.
+
+-- a transient failure on the first two attempts at chunk 3
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 200 | 200 | 10 | 0 | 0 | 0 | 0 | COMPLETED
+
+writer attempts: 12 (10 chunks + 2 retries); accrual_entry rows: 200
+
+-- a transient failure that never clears: 6 writer attempts (chunks 1 and 2, then four
+attempts at chunk 3: the first and three retries), then the step failed with 40 entries
+booked (chunks 1 and 2)
+
+-- a stale fencing token at chunk 3: 3 writer attempts (no retry), batch_skip rows 0
+(not skipped), step FAILED with 40 entries booked
+
+-- five corrupt rows (rule_type FLOATING, which the ledger cannot store or restore)
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 200 | 195 | 10 | 0 | 0 | 5 | 0 | COMPLETED
+
+accrual_entry rows: 195; batch_skip rows: 5
+read (200) = written (195) + skipped (5)
+
+-- eleven corrupt rows against a limit of 10
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | FAILED | 120 | 90 | 5 | 1 | 0 | 10 | 0 | FAILED
+
+accrual_entry rows: 90; batch_skip rows: 10; step exit message: org.springframework.batch.core.step.FatalStepExecutionException: Unable to process chunk
+	
+
