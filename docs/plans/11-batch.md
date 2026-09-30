@@ -376,7 +376,7 @@ test in the section named.
 
 ---
 
-## [ ] 15 · Decision record, roadmap, README
+## [x] 15 · Decision record, roadmap, README
 
 **Change**
 - `docs/decisions/11-batch.md` per the spec's "Done when"; the fence
@@ -461,7 +461,8 @@ test in the section named.
 
 **Section 7.**
 - Chunk size 1 was added to the three planned sizes, run once, as the price of a commit per row.
-  It took 124.7 s for 20,000 rows (160 rows/s) against 1.6 s at 200 (12,539 rows/s).
+  (The first figures, 124.7 s at size 1 and 1.6 s at 200, were superseded in section 8 after statistics
+  and a reader predicate changed them: the final table is in `11-chunk-size.txt`.)
 - The first run of each context is slower than the next two (21.6 s against 10.3 and 10.0 s at chunk
   size 10; 3.4 s against 1.6 s at 200): JIT and pool warm-up. The table shows all runs and takes the
   median, so a single cold run does not decide the number.
