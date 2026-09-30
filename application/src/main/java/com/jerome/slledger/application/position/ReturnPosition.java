@@ -1,5 +1,6 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.domain.loan.LoanTrade;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 /**
@@ -28,13 +29,13 @@ public class ReturnPosition {
   }
 
   /**
+   * @return the return trade booked
    * @throws OptimisticLockingFailureException the last attempt's, once every attempt lost a race
    */
-  public void apply(ReturnCommand command) {
+  public LoanTrade apply(ReturnCommand command) {
     for (int attempt = 1; ; attempt++) {
       try {
-        once.apply(command);
-        return;
+        return once.apply(command);
       } catch (OptimisticLockingFailureException lostRace) {
         if (attempt == maxAttempts) {
           throw lostRace;

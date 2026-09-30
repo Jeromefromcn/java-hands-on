@@ -8,6 +8,8 @@ import com.jerome.slledger.application.port.PositionDetailQuery;
 import com.jerome.slledger.application.port.PositionListQuery;
 import com.jerome.slledger.application.port.SecurityDirectory;
 import com.jerome.slledger.application.port.TradeLedger;
+import com.jerome.slledger.application.position.FindBookedTrade;
+import com.jerome.slledger.application.position.IdempotentBooking;
 import com.jerome.slledger.application.position.ListAccruals;
 import com.jerome.slledger.application.position.ListPositions;
 import com.jerome.slledger.application.position.OpenPosition;
@@ -59,6 +61,17 @@ public class LedgerConfiguration {
   ReturnPosition returnPosition(
       ReturnPositionOnce once, @Value("${ledger.return.max-attempts:3}") int maxAttempts) {
     return new ReturnPosition(once, maxAttempts);
+  }
+
+  @Bean
+  FindBookedTrade findBookedTrade(TradeLedger trades) {
+    return new FindBookedTrade(trades);
+  }
+
+  @Bean
+  IdempotentBooking idempotentBooking(
+      OpenPosition open, ReturnPosition returns, FindBookedTrade booked) {
+    return new IdempotentBooking(open, returns, booked);
   }
 
   @Bean

@@ -1,6 +1,7 @@
 package com.jerome.slledger.application.position;
 
 import com.jerome.slledger.application.port.CounterpartyDirectory;
+import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.SecurityDirectory;
 import com.jerome.slledger.application.port.TradeLedger;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
@@ -47,8 +48,13 @@ public class OpenPosition {
     this.calendar = calendar;
   }
 
+  /**
+   * @return the borrow trade booked, which names the new position
+   * @throws DuplicateRequestException if the command's key is already booked; this transaction has
+   *     then rolled back, and {@link IdempotentBooking} decides what the caller is told
+   */
   @Transactional
-  public LoanPositionId open(OpenPositionCommand command) {
+  public LoanTrade open(OpenPositionCommand command) {
     Counterparty counterparty =
         counterparties
             .find(command.counterparty())
@@ -79,7 +85,7 @@ public class OpenPosition {
             command.rule());
     positions.add(position);
 
-    trades.book(
+    LoanTrade borrow =
         LoanTrade.builder()
             .idempotencyKey(command.key())
             .position(position.id())
@@ -90,8 +96,8 @@ public class OpenPosition {
             .unitPrice(security.marketPrice())
             .tradeDate(command.tradeDate())
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
-            .build(),
-        command.fingerprint());
-    return position.id();
+            .build();
+    trades.book(borrow, command.fingerprint());
+    return borrow;
   }
 }

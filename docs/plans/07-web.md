@@ -397,7 +397,7 @@ body, an unknown id (`404`), and a bad range (`400`).
 
 ---
 
-## [ ] 7 · Idempotent use cases
+## [x] 7 · Idempotent use cases
 
 **`application.position`**
 - `OpenPosition.open` returns `OpenedPosition(LoanPositionId, LoanTrade)`
@@ -436,6 +436,20 @@ reads the position (spec decision 2).
 **Acceptance**
 - The ITs pass under both lock strategies.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **One wrapper, not two, and the trade is the result.** `IdempotentBooking`
+  has `open` and `returnQuantity`, sharing one replay path.
+  `OpenPosition.open` and `ReturnPosition.apply` return the booked
+  `LoanTrade`, which names the position. That trade is exactly what a
+  replay rebuilds, so `Outcome(LoanTrade, replayed)` needs no second
+  result type.
+- **Decision 9 was unnecessary.** `OpenPosition` itself still refuses a
+  duplicate, so stage 6's three duplicate tests stay as they were, and the
+  replay tests were added beside them. No test changed meaning.
+- A mutation that skipped the fingerprint comparison turned 2 tests red
+  under each lock strategy: the reused key for a different open, and the
+  open's key reused for a return.
 
 ---
 

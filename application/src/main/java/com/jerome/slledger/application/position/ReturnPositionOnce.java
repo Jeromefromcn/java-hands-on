@@ -36,8 +36,11 @@ public class ReturnPositionOnce {
     this.calendar = calendar;
   }
 
+  /**
+   * @return the return trade booked
+   */
   @Transactional
-  public void apply(ReturnCommand command) {
+  public LoanTrade apply(ReturnCommand command) {
     LoanPosition position =
         positions
             .find(command.position())
@@ -51,7 +54,7 @@ public class ReturnPositionOnce {
             .find(position.security())
             .orElseThrow(
                 () -> new UnknownReferenceException("security", position.security().value()));
-    trades.book(
+    LoanTrade returned =
         LoanTrade.builder()
             .idempotencyKey(command.key())
             .position(position.id())
@@ -62,7 +65,8 @@ public class ReturnPositionOnce {
             .unitPrice(security.marketPrice())
             .tradeDate(command.tradeDate())
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
-            .build(),
-        command.fingerprint());
+            .build();
+    trades.book(returned, command.fingerprint());
+    return returned;
   }
 }

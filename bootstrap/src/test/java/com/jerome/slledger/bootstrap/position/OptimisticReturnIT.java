@@ -87,7 +87,8 @@ class OptimisticReturnIT {
                     100,
                     Money.of("4126.00", HKD),
                     new FlatRate(Rate.of("0.0365")),
-                    TRADE_DATE));
+                    TRADE_DATE))
+            .position();
     threads = Executors.newFixedThreadPool(2);
   }
 

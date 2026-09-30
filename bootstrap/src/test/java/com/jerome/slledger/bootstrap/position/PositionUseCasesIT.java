@@ -6,9 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.PositionPage;
 import com.jerome.slledger.application.port.PositionRow;
+import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
+import com.jerome.slledger.application.position.IdempotentBooking;
 import com.jerome.slledger.application.position.ListPositions;
 import com.jerome.slledger.application.position.OpenPosition;
 import com.jerome.slledger.application.position.OpenPositionCommand;
+import com.jerome.slledger.application.position.Outcome;
 import com.jerome.slledger.application.position.ReturnCommand;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.UnknownReferenceException;
@@ -98,7 +101,7 @@ class PositionUseCasesIT {
 
   @Test
   void anOpenedPositionIsListedWithItsBorrowTrade() {
-    LoanPositionId id = open.open(openHkd("K-1", 1_000, "50000.00"));
+    LoanPositionId id = open(openHkd("K-1", 1_000, "50000.00"));
 
     PositionPage page = list.page(0, 10);
 
@@ -143,7 +146,7 @@ class PositionUseCasesIT {
   /** Review focus 4: a key identifies a submission, whichever direction it was first used for. */
   @Test
   void aReturnReusingAnOpensKeyIsADuplicate() {
-    LoanPositionId id = open.open(openHkd("K-1", 1_000, "50000.00"));
+    LoanPositionId id = open(openHkd("K-1", 1_000, "50000.00"));
 
     assertThatExceptionOfType(DuplicateRequestException.class)
         .isThrownBy(() -> returns.apply(new ReturnCommand(key("K-1"), id, 100, TRADE_DATE)));
@@ -154,7 +157,7 @@ class PositionUseCasesIT {
 
   @Test
   void anOpenReusingAReturnsKeyIsADuplicate() {
-    LoanPositionId id = open.open(openHkd("K-1", 1_000, "50000.00"));
+    LoanPositionId id = open(openHkd("K-1", 1_000, "50000.00"));
     returns.apply(new ReturnCommand(key("K-2"), id, 100, TRADE_DATE));
 
     assertThatExceptionOfType(DuplicateRequestException.class)
@@ -195,7 +198,7 @@ class PositionUseCasesIT {
 
   @Test
   void aPartialAndThenAFullReturnClosesThePosition() {
-    LoanPositionId id = open.open(openHkd("K-1", 1_000, "50000.00"));
+    LoanPositionId id = open(openHkd("K-1", 1_000, "50000.00"));
 
     returns.apply(new ReturnCommand(key("K-2"), id, 400, TRADE_DATE));
     returns.apply(new ReturnCommand(key("K-3"), id, 600, TRADE_DATE));
@@ -214,6 +217,94 @@ class PositionUseCasesIT {
                 returns.apply(
                     new ReturnCommand(key("K-1"), new LoanPositionId("LP-NONE"), 1, TRADE_DATE)))
         .withMessageContaining("LP-NONE");
+  }
+
+  // --- Stage 7: the same submissions through IdempotentBooking. OpenPosition itself still refuses
+  // a duplicate (above); the wrapper turns the refusal into a replay or a reuse error.
+
+  @Test
+  void theSameOpenSubmittedTwiceIsReplayed() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+
+    Outcome first = booking.open(openHkd("K-1", 1_000, "50000.00"));
+    Outcome second = booking.open(openHkd("K-1", 1_000, "50000.00"));
+
+    assertThat(first.replayed()).isFalse();
+    assertThat(second.replayed()).isTrue();
+    assertThat(second.trade()).isEqualTo(first.trade());
+    assertThat(count("loan_position")).isEqualTo(1);
+    assertThat(count("loan_trade")).isEqualTo(1);
+  }
+
+  /**
+   * Review focus 1: a replay answers what the first call answered, not the position's state now.
+   */
+  @Test
+  void aReplayAfterAReturnStillAnswersTheOriginalOpen() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+    Outcome first = booking.open(openHkd("K-1", 1_000, "50000.00"));
+    booking.returnQuantity(new ReturnCommand(key("K-2"), first.trade().position(), 10, TRADE_DATE));
+
+    Outcome replay = booking.open(openHkd("K-1", 1_000, "50000.00"));
+
+    assertThat(replay.replayed()).isTrue();
+    assertThat(replay.trade()).isEqualTo(first.trade());
+    assertThat(replay.trade().quantity()).isEqualTo(1_000);
+    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(990);
+  }
+
+  @Test
+  void theSameReturnSubmittedTwiceReturnsOnce() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+    LoanPositionId id = booking.open(openHkd("K-1", 1_000, "50000.00")).trade().position();
+
+    Outcome first = booking.returnQuantity(new ReturnCommand(key("K-2"), id, 100, TRADE_DATE));
+    Outcome second = booking.returnQuantity(new ReturnCommand(key("K-2"), id, 100, TRADE_DATE));
+
+    assertThat(second.replayed()).isTrue();
+    assertThat(second.trade()).isEqualTo(first.trade());
+    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(900);
+  }
+
+  @Test
+  void theSameKeyForADifferentOpenIsRefused() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+    booking.open(openHkd("K-1", 1_000, "50000.00"));
+
+    assertThatExceptionOfType(IdempotencyKeyReusedException.class)
+        .isThrownBy(() -> booking.open(openHkd("K-1", 1_001, "50000.00")))
+        .withMessageContaining("K-1");
+    assertThat(count("loan_position")).isEqualTo(1);
+  }
+
+  /** Review focus 2 at the use-case level: an open's key reused for a return is not a replay. */
+  @Test
+  void anOpensKeyReusedForAReturnIsRefused() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+    LoanPositionId id = booking.open(openHkd("K-1", 1_000, "50000.00")).trade().position();
+
+    assertThatExceptionOfType(IdempotencyKeyReusedException.class)
+        .isThrownBy(
+            () -> booking.returnQuantity(new ReturnCommand(key("K-1"), id, 1_000, TRADE_DATE)));
+    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(1_000);
+  }
+
+  @Test
+  void aRefusedOpenRetriedAfterTheLimitWasRaisedSucceeds() {
+    IdempotentBooking booking = context.getBean(IdempotentBooking.class);
+    assertThatExceptionOfType(InsufficientCreditException.class)
+        .isThrownBy(() -> booking.open(openHkd("K-1", 1_000, "2000000.00")));
+
+    jdbc.sql("UPDATE counterparty SET credit_limit_amount = 5000000.00 WHERE id = 'CP-001'")
+        .update();
+    Outcome retried = booking.open(openHkd("K-1", 1_000, "2000000.00"));
+
+    assertThat(retried.replayed()).isFalse();
+    assertThat(count("loan_position")).isEqualTo(1);
+  }
+
+  private LoanPositionId open(OpenPositionCommand command) {
+    return open.open(command).position();
   }
 
   private long count(String table) {
