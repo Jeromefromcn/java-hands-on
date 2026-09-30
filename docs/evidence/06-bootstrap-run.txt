@@ -58,3 +58,16 @@ Consider defining a bean named 'entityManagerFactory' in your configuration.
 
 $ grep -c -F "$LEDGER_DB_PASSWORD" run.log
 0
+
+## Run 3 - after section 14 added V3, same Compose database (already at V2)
+
+2026-09-30T12:29:35.670+08:00  INFO <pid> --- [sl-ledger] [           main] c.j.s.bootstrap.SlLedgerApplication      : The following 1 profile is active: "local"
+2026-09-30T12:29:37.092+08:00  INFO <pid> --- [sl-ledger] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5432/ledger (PostgreSQL 17.11)
+2026-09-30T12:29:37.221+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 3 migrations (execution time 00:00.040s)
+2026-09-30T12:29:37.241+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 2
+2026-09-30T12:29:37.262+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "3 - accrual entry business date index"
+2026-09-30T12:29:37.314+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 1 migration to schema "public", now at version v3 (execution time 00:00.030s)
+2026-09-30T12:29:40.060+08:00  INFO <pid> --- [sl-ledger] [           main] c.j.s.bootstrap.SlLedgerApplication      : Started SlLedgerApplication in 4.858 seconds (process running for 5.226)
+
+$ grep -c -F "$LEDGER_DB_PASSWORD" run3.log
+0
