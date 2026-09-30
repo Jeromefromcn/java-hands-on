@@ -1,0 +1,62 @@
+Stage 07 · section 13 — filter, interceptor, aspect on one request (LayerOrderTest)
+Real Tomcat on a random port. TraceIdFilter runs first; the recording filter
+runs right after it.
+
+A handler that returns:
+  filter      > GET /probe (raw request: headers [Connection, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, RestTestClient-Request-Id])
+  interceptor > preHandle, handler ProbeController#probe
+  aspect      > ProbeController.probe() args []
+  aspect      < returned ok
+  interceptor   postHandle, response committed true
+  interceptor < afterCompletion, exception null, status 200
+  filter      < status 200, committed true
+
+Invalid body (400):
+  filter      > POST /probe (raw request: headers [Connection, Content-Length, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, Content-Type, RestTestClient-Request-Id])
+  interceptor > preHandle, handler ProbeController#post
+  interceptor < afterCompletion, exception null, status 400
+  filter      < status 400, committed true
+
+Wrong method (405):
+  filter      > POST /probe/header (raw request: headers [Connection, Content-Length, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, RestTestClient-Request-Id])
+  filter      < status 405, committed true
+
+Wrong content type (415):
+  filter      > POST /probe (raw request: headers [Connection, Content-Length, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, Content-Type, RestTestClient-Request-Id])
+  filter      < status 415, committed true
+
+A handler that throws:
+  filter      > GET /probe (raw request: headers [Connection, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, RestTestClient-Request-Id])
+  interceptor > preHandle, handler ProbeController#probe
+  aspect      > ProbeController.probe() args []
+  aspect      ! threw IllegalStateException: boom
+  interceptor < afterCompletion, exception null, status 500
+  filter      < status 500, committed true
+
+Unknown path (404):
+  filter      > GET /no-such-path (raw request: headers [Connection, Host, HTTP2-Settings, Upgrade, User-Agent, Accept-Encoding, RestTestClient-Request-Id])
+  interceptor > preHandle, handler ResourceHttpRequestHandler
+  interceptor < afterCompletion, exception null, status 404
+  filter      < status 404, committed true
+
+The same success request under MockMvc (@WebMvcTest), from the first draft of
+this test, before it moved to a real server:
+  interceptor   postHandle, response committed false
+  filter      < status 200, committed false
+MockMvc buffers the whole response, so a test there would suggest postHandle
+can still add a header. On Tomcat the @ResponseBody is already written and
+flushed when postHandle runs.
+
+The order, as observed:
+
+  TraceIdFilter ─┐ recording filter ─┐ DispatcherServlet
+                 │                   │   handler lookup ── 405/415 end here: no interceptor, no aspect
+                 │                   │   interceptor.preHandle(handler)
+                 │                   │   argument binding + @Valid ── 400 ends here: no aspect
+                 │                   │   aspect around the controller method (sees args, result, exception)
+                 │                   │   message converter writes the body   (response committed)
+                 │                   │   interceptor.postHandle               (skipped if the handler threw)
+                 │                   │   @RestControllerAdvice resolves an exception into a ProblemDetail
+                 │                   │   interceptor.afterCompletion(ex = null once the advice resolved it)
+                 │                   └ recording filter exits
+                 └ TraceIdFilter exits, MDC cleared

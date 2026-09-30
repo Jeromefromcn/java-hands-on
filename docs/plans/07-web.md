@@ -657,7 +657,7 @@ Sending `page` and `after` together is `400`.
 
 ---
 
-## [ ] 13 · Filter, interceptor, aspect
+## [x] 13 · Filter, interceptor, aspect
 
 All test-only, in `adapter-web`'s tests, `@WebMvcTest` with
 `@EnableAspectJAutoProxy`:
@@ -683,6 +683,22 @@ All test-only, in `adapter-web`'s tests, `@WebMvcTest` with
 **Acceptance**
 - The test passes.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The test runs on a real Tomcat, not MockMvc.** Under MockMvc the
+  response was not committed at `postHandle`; on Tomcat it was. A MockMvc
+  test would have taught that `postHandle` can still add a header to a
+  `@ResponseBody` response. It cannot. The test starts a minimal Boot
+  application with the probe controller and the production web pieces, and
+  no use cases.
+- **An unknown path has a handler**: the static resource handler. The
+  interceptor sees it; only the aspect does not. The plan's "only the filter
+  sees a request with no handler" holds for `405` and `415`, which fail
+  during handler lookup.
+- **`afterCompletion` gets `null`** when the handler threw, because the
+  advice resolved the exception first. Only the aspect sees it.
+- **An invalid body never reaches the aspect**: binding and `@Valid` run
+  before the controller method is invoked.
 
 ---
 
