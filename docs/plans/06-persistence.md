@@ -1059,7 +1059,7 @@ Evidence: `docs/evidence/06-sql-recursive.txt`.
 
 ---
 
-## [ ] 18 · Exercise 10c — consecutive holding days (self-join + date ranges)
+## [x] 18 · Exercise 10c — consecutive holding days (self-join + date ranges)
 
 The query, `sql/holding-streaks.sql`, uses self-joins on `accrual_entry`,
 as the roadmap asks:
@@ -1085,6 +1085,16 @@ Evidence: `docs/evidence/06-sql-streaks.txt`.
 **Acceptance**
 - The streak assertions pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The self-join grows with the square of the streaks per position.** Each
+  start is joined to every end on or after it before `min` picks one. At 100k
+  entries (1,667 streaks per position), the join filter discards 4,628,703
+  rows, and the query takes 1,974 ms, against 130 ms for the window form and
+  70 ms for Java's single pass.
+- **The window form's timing is recorded, and its result is asserted equal**
+  at every size. Equality is cheap to check, and a rewrite that was only
+  timed could be fast and wrong.
 
 ---
 

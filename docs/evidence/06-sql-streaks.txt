@@ -1,0 +1,207 @@
+# Stage 6, exercise 10c: consecutive holding days, self-join vs window vs Java (HoldingStreakIT)
+# Postgres 17.11 in a Testcontainers container on the same 4-core host (loopback).
+# Fixture: 10 positions, each held 6 days then 1 day not, repeated; entries split evenly. All three results asserted equal.
+
+Median of 5 runs after 2 warm-ups, wall ms, including fetching the result.
+   entries   selfJoinMs   windowMs     javaMs    streaks
+      1000          3.9        3.2        3.2        170
+     10000         72.6       12.9       10.1       1670
+    100000       1974.1      130.5       70.3      16670
+
+EXPLAIN self-join at 1000 entries:
+  Sort  (cost=574.45..574.70 rows=100 width=15) (actual time=2.430..2.441 rows=170 loops=1)
+    Sort Key: e.position_id, e.business_date
+    Sort Method: quicksort  Memory: 30kB
+    Buffers: shared hit=28
+    ->  HashAggregate  (cost=569.63..571.13 rows=100 width=15) (actual time=2.278..2.307 rows=170 loops=1)
+          Group Key: e.position_id, e.business_date
+          Batches: 1  Memory Usage: 48kB
+          Buffers: shared hit=28
+          ->  Hash Join  (cost=116.19..507.12 rows=8334 width=11) (actual time=1.147..1.883 rows=1530 loops=1)
+                Hash Cond: (e.position_id = e_1.position_id)
+                Join Filter: (e_1.business_date >= e.business_date)
+                Rows Removed by Join Filter: 1360
+                Buffers: shared hit=28
+                ->  Hash Anti Join  (cost=32.00..77.94 rows=500 width=7) (actual time=0.349..0.695 rows=170 loops=1)
+                      Hash Cond: ((e.position_id = p.position_id) AND ((e.business_date - 1) = p.business_date))
+                      Buffers: shared hit=14
+                      ->  Seq Scan on accrual_entry e  (cost=0.00..17.00 rows=1000 width=7) (actual time=0.007..0.079 rows=1000 loops=1)
+                            Buffers: shared hit=7
+                      ->  Hash  (cost=17.00..17.00 rows=1000 width=7) (actual time=0.330..0.331 rows=1000 loops=1)
+                            Buckets: 1024  Batches: 1  Memory Usage: 48kB
+                            Buffers: shared hit=7
+                            ->  Seq Scan on accrual_entry p  (cost=0.00..17.00 rows=1000 width=7) (actual time=0.005..0.106 rows=1000 loops=1)
+                                  Buffers: shared hit=7
+                ->  Hash  (cost=77.94..77.94 rows=500 width=7) (actual time=0.791..0.792 rows=170 loops=1)
+                      Buckets: 1024  Batches: 1  Memory Usage: 15kB
+                      Buffers: shared hit=14
+                      ->  Hash Anti Join  (cost=32.00..77.94 rows=500 width=7) (actual time=0.322..0.752 rows=170 loops=1)
+                            Hash Cond: ((e_1.position_id = n.position_id) AND ((e_1.business_date + 1) = n.business_date))
+                            Buffers: shared hit=14
+                            ->  Seq Scan on accrual_entry e_1  (cost=0.00..17.00 rows=1000 width=7) (actual time=0.003..0.073 rows=1000 loops=1)
+                                  Buffers: shared hit=7
+                            ->  Hash  (cost=17.00..17.00 rows=1000 width=7) (actual time=0.295..0.296 rows=1000 loops=1)
+                                  Buckets: 1024  Batches: 1  Memory Usage: 48kB
+                                  Buffers: shared hit=7
+                                  ->  Seq Scan on accrual_entry n  (cost=0.00..17.00 rows=1000 width=7) (actual time=0.004..0.102 rows=1000 loops=1)
+                                        Buffers: shared hit=7
+  Planning:
+    Buffers: shared hit=2
+  Planning Time: 0.487 ms
+  Execution Time: 2.576 ms
+
+EXPLAIN window form at 1000 entries:
+  Sort  (cost=112.47..112.97 rows=200 width=19) (actual time=1.693..1.703 rows=170 loops=1)
+    Sort Key: accrual_entry.position_id, (min(accrual_entry.business_date))
+    Sort Method: quicksort  Memory: 31kB
+    Buffers: shared hit=7
+    ->  HashAggregate  (cost=101.83..104.83 rows=200 width=19) (actual time=1.554..1.583 rows=170 loops=1)
+          Group Key: accrual_entry.position_id, (accrual_entry.business_date - (row_number() OVER (?))::integer)
+          Batches: 1  Memory Usage: 48kB
+          Buffers: shared hit=7
+          ->  WindowAgg  (cost=66.85..91.83 rows=1000 width=11) (actual time=0.901..1.296 rows=1000 loops=1)
+                Buffers: shared hit=7
+                ->  Sort  (cost=66.83..69.33 rows=1000 width=7) (actual time=0.893..0.944 rows=1000 loops=1)
+                      Sort Key: accrual_entry.position_id, accrual_entry.business_date
+                      Sort Method: quicksort  Memory: 48kB
+                      Buffers: shared hit=7
+                      ->  Seq Scan on accrual_entry  (cost=0.00..17.00 rows=1000 width=7) (actual time=0.009..0.111 rows=1000 loops=1)
+                            Buffers: shared hit=7
+  Planning Time: 0.072 ms
+  Execution Time: 1.792 ms
+
+EXPLAIN self-join at 10000 entries:
+  Sort  (cost=42187.08..42189.58 rows=1000 width=15) (actual time=86.780..86.871 rows=1670 loops=1)
+    Sort Key: e.position_id, e.business_date
+    Sort Method: quicksort  Memory: 101kB
+    Buffers: shared hit=256
+    ->  HashAggregate  (cost=42122.25..42137.25 rows=1000 width=15) (actual time=84.830..85.197 rows=1670 loops=1)
+          Group Key: e.position_id, e.business_date
+          Batches: 1  Memory Usage: 193kB
+          Buffers: shared hit=256
+          ->  Hash Join  (cost=1087.62..35872.25 rows=833334 width=11) (actual time=10.324..51.289 rows=140280 loops=1)
+                Hash Cond: (e.position_id = e_1.position_id)
+                Join Filter: (e_1.business_date >= e.business_date)
+                Rows Removed by Join Filter: 138610
+                Buffers: shared hit=256
+                ->  Hash Anti Join  (cost=314.00..711.12 rows=5000 width=7) (actual time=3.297..8.062 rows=1670 loops=1)
+                      Hash Cond: ((e.position_id = p.position_id) AND ((e.business_date - 1) = p.business_date))
+                      Buffers: shared hit=128
+                      ->  Seq Scan on accrual_entry e  (cost=0.00..164.00 rows=10000 width=7) (actual time=0.010..0.974 rows=10000 loops=1)
+                            Buffers: shared hit=64
+                      ->  Hash  (cost=164.00..164.00 rows=10000 width=7) (actual time=3.237..3.238 rows=10000 loops=1)
+                            Buckets: 16384  Batches: 1  Memory Usage: 519kB
+                            Buffers: shared hit=64
+                            ->  Seq Scan on accrual_entry p  (cost=0.00..164.00 rows=10000 width=7) (actual time=0.007..1.061 rows=10000 loops=1)
+                                  Buffers: shared hit=64
+                ->  Hash  (cost=711.12..711.12 rows=5000 width=7) (actual time=6.991..6.994 rows=1670 loops=1)
+                      Buckets: 8192  Batches: 1  Memory Usage: 128kB
+                      Buffers: shared hit=128
+                      ->  Hash Anti Join  (cost=314.00..711.12 rows=5000 width=7) (actual time=3.198..6.660 rows=1670 loops=1)
+                            Hash Cond: ((e_1.position_id = n.position_id) AND ((e_1.business_date + 1) = n.business_date))
+                            Buffers: shared hit=128
+                            ->  Seq Scan on accrual_entry e_1  (cost=0.00..164.00 rows=10000 width=7) (actual time=0.007..0.760 rows=10000 loops=1)
+                                  Buffers: shared hit=64
+                            ->  Hash  (cost=164.00..164.00 rows=10000 width=7) (actual time=3.120..3.120 rows=10000 loops=1)
+                                  Buckets: 16384  Batches: 1  Memory Usage: 519kB
+                                  Buffers: shared hit=64
+                                  ->  Seq Scan on accrual_entry n  (cost=0.00..164.00 rows=10000 width=7) (actual time=0.005..1.026 rows=10000 loops=1)
+                                        Buffers: shared hit=64
+  Planning:
+    Buffers: shared hit=2
+  Planning Time: 0.536 ms
+  Execution Time: 87.490 ms
+
+EXPLAIN window form at 10000 entries:
+  Sort  (cost=923.03..925.53 rows=1000 width=19) (actual time=12.228..12.315 rows=1670 loops=1)
+    Sort Key: accrual_entry.position_id, (min(accrual_entry.business_date))
+    Sort Method: quicksort  Memory: 114kB
+    Buffers: shared hit=671
+    ->  HashAggregate  (cost=858.20..873.20 rows=1000 width=19) (actual time=10.554..10.893 rows=1670 loops=1)
+          Group Key: accrual_entry.position_id, (accrual_entry.business_date - (row_number() OVER (?))::integer)
+          Batches: 1  Memory Usage: 321kB
+          Buffers: shared hit=671
+          ->  WindowAgg  (cost=0.36..758.20 rows=10000 width=11) (actual time=0.062..7.641 rows=10000 loops=1)
+                Buffers: shared hit=671
+                ->  Index Only Scan using accrual_entry_pkey on accrual_entry  (cost=0.29..533.20 rows=10000 width=7) (actual time=0.047..3.601 rows=10000 loops=1)
+                      Heap Fetches: 10000
+                      Buffers: shared hit=671
+  Planning Time: 0.127 ms
+  Execution Time: 12.593 ms
+
+EXPLAIN self-join at 100000 entries:
+  Finalize GroupAggregate  (cost=878096.28..880729.77 rows=10000 width=15) (actual time=2400.014..2419.381 rows=16670 loops=1)
+    Group Key: e.position_id, e.business_date
+    Buffers: shared hit=5976
+    ->  Gather Merge  (cost=878096.28..880429.77 rows=20000 width=11) (actual time=2399.978..2415.198 rows=16670 loops=1)
+          Workers Planned: 2
+          Workers Launched: 2
+          Buffers: shared hit=5976
+          ->  Sort  (cost=877096.25..877121.25 rows=10000 width=11) (actual time=2377.554..2378.005 rows=5557 loops=3)
+                Sort Key: e.position_id, e.business_date
+                Sort Method: quicksort  Memory: 366kB
+                Buffers: shared hit=5976
+                Worker 0:  Sort Method: quicksort  Memory: 367kB
+                Worker 1:  Sort Method: quicksort  Memory: 366kB
+                ->  Partial HashAggregate  (cost=876331.87..876431.87 rows=10000 width=11) (actual time=2371.394..2372.495 rows=5557 loops=3)
+                      Group Key: e.position_id, e.business_date
+                      Batches: 1  Memory Usage: 913kB
+                      Buffers: shared hit=5944
+                      Worker 0:  Batches: 1  Memory Usage: 913kB
+                      Worker 1:  Batches: 1  Memory Usage: 913kB
+                      ->  Parallel Hash Join  (cost=12005.44..615860.83 rows=34729472 width=11) (actual time=405.500..1421.804 rows=4634260 loops=3)
+                            Hash Cond: (e.position_id = e_1.position_id)
+                            Join Filter: (e_1.business_date >= e.business_date)
+                            Rows Removed by Join Filter: 4628703
+                            Buffers: shared hit=5944
+                            ->  Hash Anti Join  (cost=3137.29..8607.74 rows=20833 width=7) (actual time=36.434..65.806 rows=5557 loops=3)
+                                  Hash Cond: ((e.position_id = p.position_id) AND ((e.business_date - 1) = p.business_date))
+                                  Buffers: shared hit=3081
+                                  ->  Parallel Index Only Scan using accrual_entry_business_date_idx on accrual_entry e  (cost=0.29..3483.71 rows=41667 width=7) (actual time=0.028..13.122 rows=33333 loops=3)
+                                        Heap Fetches: 100000
+                                        Buffers: shared hit=1170
+                                  ->  Hash  (cost=1637.00..1637.00 rows=100000 width=7) (actual time=35.966..35.967 rows=100000 loops=3)
+                                        Buckets: 131072  Batches: 1  Memory Usage: 4931kB
+                                        Buffers: shared hit=1911
+                                        ->  Seq Scan on accrual_entry p  (cost=0.00..1637.00 rows=100000 width=7) (actual time=0.034..9.826 rows=100000 loops=3)
+                                              Buffers: shared hit=1911
+                            ->  Parallel Hash  (cost=8607.74..8607.74 rows=20833 width=7) (actual time=368.532..368.535 rows=5557 loops=3)
+                                  Buckets: 65536  Batches: 1  Memory Usage: 1248kB
+                                  Buffers: shared hit=2863
+                                  ->  Hash Anti Join  (cost=3137.29..8607.74 rows=20833 width=7) (actual time=329.168..347.006 rows=5557 loops=3)
+                                        Hash Cond: ((e_1.position_id = n.position_id) AND ((e_1.business_date + 1) = n.business_date))
+                                        Buffers: shared hit=2863
+                                        ->  Parallel Index Only Scan using accrual_entry_business_date_idx on accrual_entry e_1  (cost=0.29..3483.71 rows=41667 width=7) (actual time=0.029..7.575 rows=33333 loops=3)
+                                              Heap Fetches: 100000
+                                              Buffers: shared hit=912
+                                        ->  Hash  (cost=1637.00..1637.00 rows=100000 width=7) (actual time=328.676..328.677 rows=100000 loops=3)
+                                              Buckets: 131072  Batches: 1  Memory Usage: 4931kB
+                                              Buffers: shared hit=1951
+                                              ->  Seq Scan on accrual_entry n  (cost=0.00..1637.00 rows=100000 width=7) (actual time=291.461..301.774 rows=100000 loops=3)
+                                                    Buffers: shared hit=1951
+  Planning:
+    Buffers: shared hit=2
+  Planning Time: 0.571 ms
+  JIT:
+    Functions: 93
+    Options: Inlining true, Optimization true, Expressions true, Deforming true
+    Timing: Generation 5.922 ms (Deform 1.429 ms), Inlining 163.192 ms, Optimization 340.405 ms, Emission 370.848 ms, Total 880.366 ms
+  Execution Time: 2424.606 ms
+
+EXPLAIN window form at 100000 entries:
+  Sort  (cost=8555.87..8560.87 rows=2000 width=19) (actual time=119.768..120.830 rows=16670 loops=1)
+    Sort Key: accrual_entry.position_id, (min(accrual_entry.business_date))
+    Sort Method: quicksort  Memory: 1420kB
+    Buffers: shared hit=6651
+    ->  HashAggregate  (cost=8416.22..8446.22 rows=2000 width=19) (actual time=99.641..103.695 rows=16670 loops=1)
+          Group Key: accrual_entry.position_id, (accrual_entry.business_date - (row_number() OVER (?))::integer)
+          Batches: 1  Memory Usage: 2321kB
+          Buffers: shared hit=6651
+          ->  WindowAgg  (cost=0.36..7416.22 rows=100000 width=11) (actual time=0.079..70.044 rows=100000 loops=1)
+                Buffers: shared hit=6651
+                ->  Index Only Scan using accrual_entry_pkey on accrual_entry  (cost=0.29..5166.22 rows=100000 width=7) (actual time=0.065..30.906 rows=100000 loops=1)
+                      Heap Fetches: 100000
+                      Buffers: shared hit=6651
+  Planning Time: 0.111 ms
+  Execution Time: 122.795 ms
+
