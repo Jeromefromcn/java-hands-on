@@ -164,7 +164,7 @@ public final class ReadThrough<K, V> {
 
   private Optional<V> lead(K key, Flight<V> flight) {
     try {
-      Outcome<V> outcome = produce(key);
+      Outcome<V> outcome = produce(key, flight);
       if (outcome.store()) {
         flight.storeUnlessStale(() -> store(key, outcome.value()));
       }
@@ -179,7 +179,7 @@ public final class ReadThrough<K, V> {
     }
   }
 
-  private Outcome<V> produce(K key) {
+  private Outcome<V> produce(K key, Flight<V> flight) {
     if (rebuild == null) {
       return load(key);
     }
@@ -189,7 +189,18 @@ public final class ReadThrough<K, V> {
         try {
           // Another instance may have stored it while this one was getting the lock.
           Optional<Entry<V>> already = readTiers(key);
-          return already.isPresent() ? new Outcome<>(asOptional(already.get()), false) : load(key);
+          if (already.isPresent()) {
+            return new Outcome<>(asOptional(already.get()), false);
+          }
+          Outcome<V> loaded = load(key);
+          // Stored here, before the lock is released, and not by the caller afterwards: an instance
+          // that was waiting on the lock must find the value the moment it gets in. Storing after
+          // the release left a window in which a waiter took the lock, found the tiers empty and
+          // loaded again (found in stage 10 by an intermittent failure of HotKeyRebuildIT).
+          if (loaded.store()) {
+            flight.storeUnlessStale(() -> store(key, loaded.value()));
+          }
+          return new Outcome<>(loaded.value(), false);
         } finally {
           release(lease.get());
         }

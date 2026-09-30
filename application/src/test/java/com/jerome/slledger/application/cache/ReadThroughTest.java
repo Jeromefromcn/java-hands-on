@@ -339,4 +339,109 @@ class ReadThroughTest {
     }
     throw new IllegalStateException("threads did not all park");
   }
+
+  /** An in-process stand-in for a lock two "instances" share. */
+  private static final class SharedLock implements DistributedLock {
+    private final java.util.Set<String> held = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    @Override
+    public Optional<Lease> tryAcquire(String resource, Duration ttl) {
+      if (!held.add(resource)) {
+        return Optional.empty();
+      }
+      return Optional.of(
+          new Lease() {
+            @Override
+            public String resource() {
+              return resource;
+            }
+
+            @Override
+            public long fencingToken() {
+              return 1;
+            }
+
+            @Override
+            public void release() {
+              held.remove(resource);
+            }
+          });
+    }
+  }
+
+  @Test
+  @Timeout(30)
+  void theRebuildLockIsHeldUntilTheValueIsStored() throws Exception {
+    // The instance that loaded is still writing the value to the shared tier when a second instance
+    // asks. If the lock had already been released, the second would take it, find the tier empty
+    // and load again.
+    FakeTier<String, String> shared = new FakeTier<>(clock);
+    CountDownLatch storing = new CountDownLatch(1);
+    CountDownLatch finishStoring = new CountDownLatch(1);
+    CacheTier<String, String> slowShared =
+        new CacheTier<>() {
+          @Override
+          public Optional<Entry<String>> get(String key) {
+            return shared.get(key);
+          }
+
+          @Override
+          public void put(String key, Entry<String> entry, Duration ttl) {
+            storing.countDown();
+            await(finishStoring);
+            shared.put(key, entry, ttl);
+          }
+
+          @Override
+          public void evict(String key) {
+            shared.evict(key);
+          }
+        };
+    SharedLock lock = new SharedLock();
+    AtomicInteger sourceCalls = new AtomicInteger();
+    AtomicInteger pauses = new AtomicInteger();
+    Function<String, Optional<String>> source =
+        key -> {
+          sourceCalls.incrementAndGet();
+          return Optional.of("hot");
+        };
+    ReadThrough<String, String> first =
+        new ReadThrough<>(
+            List.of(
+                new ReadThrough.Layer<>(new FakeTier<String, String>(clock), NEAR),
+                new ReadThrough.Layer<>(slowShared, FAR)),
+            source,
+            new Random(1),
+            new ReadThrough.Rebuild<>(
+                lock, key -> "r:" + key, Duration.ofSeconds(10), 100, () -> {}));
+    ReadThrough<String, String> second =
+        new ReadThrough<>(
+            List.of(
+                new ReadThrough.Layer<>(new FakeTier<String, String>(clock), NEAR),
+                new ReadThrough.Layer<>(shared, FAR)),
+            source,
+            new Random(2),
+            new ReadThrough.Rebuild<>(
+                lock,
+                key -> "r:" + key,
+                Duration.ofSeconds(10),
+                100,
+                () -> {
+                  pauses.incrementAndGet();
+                  finishStoring
+                      .countDown(); // the first instance's write completes while this one waits
+                }));
+
+    Thread loader = Thread.ofPlatform().start(() -> first.get("hot"));
+    try {
+      assertThat(storing.await(20, TimeUnit.SECONDS)).isTrue();
+      Optional<String> answer = second.get("hot");
+
+      assertThat(answer).contains("hot");
+      assertThat(sourceCalls).hasValue(1);
+    } finally {
+      finishStoring.countDown();
+      loader.join(TimeUnit.SECONDS.toMillis(20));
+    }
+  }
 }

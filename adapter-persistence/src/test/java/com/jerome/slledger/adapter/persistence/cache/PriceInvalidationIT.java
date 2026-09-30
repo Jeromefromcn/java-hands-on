@@ -204,6 +204,9 @@ class PriceInvalidationIT {
     redis.template().convertAndSend(CHANNEL, "not an isin");
     redis.template().convertAndSend(CHANNEL, ISIN.value());
     awaitEmpty(a);
+    // The listener container hands messages to a thread pool, so the ISIN's eviction can be seen
+    // before the refusal of the message sent ahead of it has been counted.
+    awaitRefused(a, 1);
 
     assertThat(a.bus.refused()).isEqualTo(1);
   }
@@ -218,6 +221,16 @@ class PriceInvalidationIT {
         B at TTL-1ns: old price. B at TTL: new price.
         """
         .formatted(served, mode, bound);
+  }
+
+  private static void awaitRefused(Node node, long expected) {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+    while (node.bus.refused() < expected) {
+      if (System.nanoTime() > deadline) {
+        throw new IllegalStateException("the refusal was never counted");
+      }
+      Thread.onSpinWait();
+    }
   }
 
   private static void awaitEmpty(Node node) {
