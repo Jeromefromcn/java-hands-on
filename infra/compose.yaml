@@ -36,9 +36,8 @@ services:
 
   # Stage 9: the shared cache tier, the rebuild lock and the invalidation channel. Password from
   # infra/.env, loopback only. No persistence: a cache and a lock lease are worth nothing after a
-  # restart. The fencing counters are not: a restart resets them below what Postgres's write_fence
-  # has admitted, and writes are then refused until write_fence is cleared. See
-  # docs/decisions/09-caching.md.
+  # restart. Fencing tokens no longer live here: stage 11 draws them from a Postgres sequence (V11),
+  # so a restart cannot lower one. See docs/decisions/09-caching.md.
   redis:
     image: redis:7.4-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in infra/.env}", "--save", "", "--appendonly", "no"]

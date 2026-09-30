@@ -37,3 +37,8 @@ ledger:
   messaging:
     enabled: true
     bootstrap-servers: 127.0.0.1:9092
+  # Stage 11: batch on for manual runs. The timers are off: a manual run launches a job by name
+  # (ledger.batch.command.job=accrual|reconciliation|retention) and exits, or leaves the
+  # application running with ledger.batch.schedulers-enabled=true.
+  batch:
+    enabled: true

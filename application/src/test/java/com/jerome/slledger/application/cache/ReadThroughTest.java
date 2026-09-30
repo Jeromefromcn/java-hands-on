@@ -430,6 +430,16 @@ class ReadThroughTest {
                   pauses.incrementAndGet();
                   finishStoring
                       .countDown(); // the first instance's write completes while this one waits
+                  try {
+                    // A real pause takes time. With none, the 100 polls can all run before the
+                    // other
+                    // thread is scheduled again, the lock is never seen released, and the read
+                    // falls
+                    // back to the source (found in stage 11 by an intermittent failure under load).
+                    Thread.sleep(2);
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                  }
                 }));
 
     Thread loader = Thread.ofPlatform().start(() -> first.get("hot"));

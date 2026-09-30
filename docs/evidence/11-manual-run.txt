@@ -1,0 +1,55 @@
+Stage 11, section 14: a manual run. Application on JDK 21.0.12-tem, profile local, against infra/compose.yaml
+(Postgres 17, Redis, Kafka apache/kafka:4.1.0, WireMock), V1-V15 migrated at start-up. Passwords come from infra/.env
+and do not appear here. Batch is on (local profile), the timers are off, no web server; each job is launched by name
+with ledger.batch.command.job and the application exits with the job's result (0 completed or already done, 1 otherwise).
+The ledger holds the two positions stage 10's manual run left: one open, one partly returned, both settled 2026-09-03.
+
+$ java ... --ledger.batch.command.job=accrual --ledger.batch.command.date=2026-09-30
+exit code: 0
+com.jerome.slledger.batch.runs           : job=dailyAccrual status=COMPLETED parameters={fencingToken=1, businessDate=2026-09-30} duration=PT0.180651165S read=1 written=1 filtered=0 skipped=0 commits=1 rollbacks=0
+c.j.s.b.config.BatchCommandRunner        : accrual 2026-09-30: COMPLETED
+$ psql: select position_id, business_date, fee_amount, fee_currency from accrual_entry order by 1
+e2989574-6bd9-4cb1-be18-fd9fa7fcba25|2026-09-30|6.000000|HKD
+
+$ java ... --ledger.batch.command.job=accrual --ledger.batch.command.date=2026-09-30
+exit code: 0
+c.j.s.b.config.BatchCommandRunner        : accrual 2026-09-30: ALREADY_DONE
+$ psql: accrual_entry rows, batch_job_execution rows
+1
+1
+
+$ java ... --ledger.batch.command.job=accrual --ledger.batch.command.date=2026-09-30 --ledger.batch.command.rerun=1
+exit code: 0
+com.jerome.slledger.batch.runs           : job=dailyAccrual status=COMPLETED parameters={businessDate=2026-09-30, rerun=1} duration=PT0.177149601S read=1 written=1 filtered=0 skipped=0 commits=1 rollbacks=0
+c.j.s.b.config.BatchCommandRunner        : accrual 2026-09-30: COMPLETED
+$ psql: a rerun instance books nothing new: accrual_entry rows, job instances
+1
+2
+
+snapshot.csv: one position with a different quantity, one the ledger does not know, one malformed line; e2989574... is absent
+$ java ... --ledger.batch.command.job=reconciliation --ledger.batch.command.date=2026-09-30 --ledger.batch.command.snapshot-id=MANUAL-20260930 --ledger.batch.command.snapshot-file=/tmp/claude-1001/snap.csv
+exit code: 0
+com.jerome.slledger.batch.runs           : job=reconciliation status=COMPLETED parameters={businessDate=2026-09-30, snapshotId=MANUAL-20260930, snapshotFile=/tmp/claude-1001/snap.csv} duration=PT0.246629776S read=5 written=4 filtered=0 skipped=1 commits=3 roll
+c.j.s.b.config.BatchCommandRunner        : reconciliation 2026-09-30 MANUAL-20260930: COMPLETED
+$ psql: select position_id, kind, disposition, attempts from recon_break
+X-UNKNOWN-1|THEIRS_ONLY|MANUAL|0
+e2989574-6bd9-4cb1-be18-fd9fa7fcba25|OURS_ONLY|RETRY_SETTLEMENT|1
+$ psql: select item_key, reason from batch_skip
+bad-line|Line 4 of the custodian's file is not a valid holding: quantity 'abc' is not a whole number
+
+$ java ... --ledger.batch.command.job=retention --ledger.batch.command.date=2026-09-30
+exit code: 0
+com.jerome.slledger.batch.runs           : job=retention status=COMPLETED parameters={businessDate=2026-09-30} duration=PT0.359611689S read=0 written=0 filtered=0 skipped=0 commits=5 rollbacks=0
+c.j.s.b.config.BatchCommandRunner        : retention 2026-09-30: COMPLETED
+$ psql: job executions
+dailyAccrual|COMPLETED
+dailyAccrual|COMPLETED
+reconciliation|COMPLETED
+retention|COMPLETED
+
+Notes: only e2989574... was accrued and reconciled. The other position (4e4e783a...) has no BORROW trade row (stage 10's
+manual run created it by a path that left none), so it is not "active on a date" by the ledger's rule and is left out of
+both jobs; its line in the snapshot is therefore not compared either. The OURS_ONLY break got its first settlement
+attempt in the same run (attempts = 1, answered "no automated settlement route is configured" by the stub gateway) and
+will walk the ladder to ESCALATED if the ladder timer runs. The first accrual carried fencingToken=1 (a Postgres
+sequence value: the launch went through the Redis lock); the rerun did not, because an explicit rerun bypasses the lock.

@@ -359,7 +359,7 @@ test in the section named.
 
 ---
 
-## [ ] 14 · Off unless configured, schedulers, manual run
+## [x] 14 · Off unless configured, schedulers, manual run
 
 **Change**
 - `BatchSchedulers` (accrual cron, revaluation dispatcher, retention),
@@ -592,3 +592,21 @@ test in the section named.
   (`ledger.retention.tombstones` must be longer): configuration that would make a late Try get through
   refuses to start. `reproducesTombstonePurgedTooEarly` is the reason: with the tombstone gone, a late
   Try froze 100.00 HKD for an attempt that had been cancelled.
+
+**Section 14.**
+- No HTTP launch endpoint was built (the spec listed one "disabled"): a command runner launches a job by
+  name at start-up and exits with its result, which is what a cron entry or a Kubernetes Job uses and
+  needs no authentication surface (stage 13's). `ledger.batch.command.*`.
+- The timers are a property of their own (`ledger.batch.schedulers-enabled`, default false) inside
+  batch-on. They wait for the accrual time and the retention time in Hong Kong, poll for revaluation
+  requests and due settlement retries, and never schedule the reconciliation (it needs a file).
+- Without Redis the scheduled accrual runs unfenced and says so at start-up: the lock belongs to the
+  cache configuration, so `RunDailyAccrual` exists only with `ledger.cache.enabled`.
+- Manual run: the local profile starts batch; the web server had to be disabled for it because port 8080
+  was taken on this machine. Two positions existed from stage 10; one of them has no BORROW trade and
+  so is invisible to the accrual and the reconciliation, which the transcript says.
+- The full build of section 13's commit stopped in the first module on an intermittent failure of stage
+  9's `ReadThroughTest.theRebuildLockIsHeldUntilTheValueIsStored`: its pause callback was instant, so
+  the 100 lock polls could all run before the other thread was scheduled, the lock was never seen
+  released and the read fell back to the source (a second source call, by design). The test's pause now
+  takes 2 ms. A real race in the test, not the product.

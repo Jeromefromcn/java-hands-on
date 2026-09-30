@@ -21,6 +21,7 @@ import com.jerome.slledger.application.reconciliation.SettlementAttempt;
 import com.jerome.slledger.application.reconciliation.SettlementBreaks;
 import com.jerome.slledger.application.reconciliation.SettlementGateway;
 import com.jerome.slledger.application.reconciliation.SettlementRecovery;
+import com.jerome.slledger.application.revaluation.RevaluationDispatcher;
 import com.jerome.slledger.batch.accrual.AccrualJobConfiguration;
 import com.jerome.slledger.batch.accrual.BatchSettings;
 import com.jerome.slledger.batch.accrual.RunAccrual;
@@ -39,9 +40,11 @@ import org.springframework.batch.core.configuration.annotation.EnableJdbcJobRepo
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -61,7 +64,8 @@ import org.springframework.core.env.Environment;
 @EnableConfigurationProperties({
   BatchProperties.class,
   ReconciliationProperties.class,
-  RetentionProperties.class
+  RetentionProperties.class,
+  BatchCommandProperties.class
 })
 @Import({
   AccrualJobConfiguration.class,
@@ -205,5 +209,44 @@ public class BatchConfiguration {
   @Bean
   RunRetentionJob runRetentionJob(JobOperator operator, @Qualifier("retention") Job retention) {
     return new RunRetentionJob(operator, retention);
+  }
+
+  /** The timers, only when asked: a batch that starts itself must be switched on for it. */
+  @Bean
+  @ConditionalOnProperty(prefix = "ledger.batch", name = "schedulers-enabled", havingValue = "true")
+  BatchSchedulers batchSchedulers(
+      Clock clock,
+      ObjectProvider<RunDailyAccrual> fencedAccrual,
+      RunAccrual accrual,
+      RunRetentionJob retention,
+      ObjectProvider<RevaluationDispatcher> dispatcher,
+      SettlementRecovery ladder,
+      BatchProperties properties) {
+    return new BatchSchedulers(
+        clock,
+        fencedAccrual.getIfAvailable(),
+        accrual,
+        retention,
+        dispatcher.getIfAvailable(() -> null),
+        ladder,
+        properties.accrualTime(),
+        properties.retentionTime(),
+        properties.dispatchInterval(),
+        properties.ladderInterval());
+  }
+
+  /** One job at start-up, for cron and Kubernetes Jobs: only when a job is named. */
+  @Bean
+  @ConditionalOnProperty(prefix = "ledger.batch.command", name = "job")
+  BatchCommandRunner batchCommandRunner(
+      BatchCommandProperties command,
+      Clock clock,
+      ObjectProvider<RunDailyAccrual> fencedAccrual,
+      RunAccrual accrual,
+      RunReconciliation reconciliation,
+      RunRetentionJob retention,
+      ConfigurableApplicationContext context) {
+    return new BatchCommandRunner(
+        command, clock, fencedAccrual, accrual, reconciliation, retention, context);
   }
 }
