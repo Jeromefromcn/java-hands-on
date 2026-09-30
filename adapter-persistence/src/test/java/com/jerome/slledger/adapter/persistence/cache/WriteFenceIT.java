@@ -68,7 +68,11 @@ class WriteFenceIT {
     jdbc.sql("DELETE FROM write_fence").update();
     jdbc.sql("INSERT INTO accrual_total VALUES ('P1', 0)").update();
     redis = SharedRedis.client();
-    lock = new RedisLock(redis.template(), "lock:", "fence:");
+    lock =
+        new RedisLock(
+            redis.template(),
+            "lock:",
+            context.getBean(com.jerome.slledger.application.cache.FencingTokens.class));
   }
 
   @AfterEach
@@ -132,25 +136,45 @@ class WriteFenceIT {
   }
 
   @Test
-  void reproducesFenceRefusingEveryWriteAfterARedisRestartThatLostTheCounters() {
-    // See docs/decisions/09-caching.md
-    // A Redis without persistence restarts empty: the counters begin again at 1, below the token
-    // Postgres has already admitted. The fence fails closed, and stays closed until the counter
-    // passes the stored token or write_fence is cleared.
+  void writesContinueAfterARedisRestart() {
+    // See docs/decisions/11-batch.md
+    // Stage 9 reproduced the opposite: with the token counted in Redis, a Redis that restarted
+    // empty began again at 1, below the token Postgres had admitted, and every later write was
+    // refused. The token now comes from a Postgres sequence, which a Redis restart cannot reset.
+    long highest = 0;
     for (int i = 0; i < 3; i++) {
       Lease lease = lock.tryAcquire(RESOURCE, TTL).orElseThrow();
       write(lease, true);
+      highest = lease.fencingToken();
       lease.release();
     }
-    assertThat(storedToken()).isEqualTo(3L);
+    assertThat(storedToken()).isEqualTo(highest);
 
     SharedRedis.flushAll();
     Lease afterRestart = lock.tryAcquire(RESOURCE, TTL).orElseThrow();
 
-    assertThat(afterRestart.fencingToken()).isEqualTo(1L);
-    assertThatThrownBy(() -> write(afterRestart, true))
-        .isInstanceOf(StaleFencingTokenException.class);
-    assertThat(total()).isEqualTo(300L);
+    assertThat(afterRestart.fencingToken()).isGreaterThan(highest);
+    write(afterRestart, true);
+    assertThat(total()).isEqualTo(400L);
+    Evidence.write(
+        "11-fence-redis-restart.txt",
+        """
+        Stage 11, section 1: three fenced writes, then FLUSHALL on Redis (a restart without
+        persistence), then a fourth. Real Redis and Postgres.
+
+        token stored by the third write : %d
+        token after the restart         : %d
+        fourth write                    : admitted (total %d)
+        stage 9 result with a Redis counter: token 1 after the restart, write refused
+        """
+            .formatted(highest, afterRestart.fencingToken(), total()));
+  }
+
+  @Test
+  void aRebuildLockLeavesNoFenceKeyInRedis() {
+    lock.tryAcquire("price:HK0000000001", TTL).orElseThrow().release();
+
+    assertThat(redis.template().keys("*")).isEmpty();
   }
 
   @Test
@@ -221,10 +245,7 @@ class WriteFenceIT {
       aMayResume.countDown();
       holderA.join(TimeUnit.SECONDS.toMillis(20));
     }
-    Lease b = lock.tryAcquire("never-used", TTL).orElseThrow();
-    b.release();
-    return new Timeline(
-        leaseA.get().fencingToken(), leaseA.get().fencingToken() + 1, aOutcome.get(), total());
+    return new Timeline(leaseA.get().fencingToken(), tokenB, aOutcome.get(), total());
   }
 
   private void write(Lease lease, boolean fenced) {

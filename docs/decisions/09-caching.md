@@ -321,7 +321,7 @@ that is not an insert (a running balance, a counter) has no key to protect it.
 The fence is checked against who holds the lock now, not against what already
 exists.
 
-### Redis restart resets the fence: found late, pinned, not fixed
+### Redis restart resets the fence: found late, pinned, fixed in stage 11
 
 The fence counters live in Redis and never expire. If Redis restarts without
 persistence, they begin again at 1, below the token Postgres has admitted.
@@ -337,6 +337,23 @@ take the second. It was not built because the lock has no caller until stage 11.
 **Scheduled: stage 11, first plan section** (see `ROADMAP.md`). That change also
 removes the never-expiring `sl:fence:price:*` key the cache rebuild lock leaves
 behind, since the rebuild path will no longer take a token from Redis.
+
+**Resolved in stage 11, section 1.** The token is a value of a Postgres sequence
+(`fencing_token_seq`, V11) and Redis keeps no counter. The order inside `RedisLock` is: take the
+lock, draw the token, then check that the lock still belongs to this owner. The check is what
+replaces the Lua script that took the lock and the counter together: a holder paused between the
+lock and the draw returns after the lock has passed to someone else, draws a token higher than that
+holder's, and finds the lock is not its own, so it gets no lease
+(`RedisLockIT.pausedHolderGetsNoLease`; the two-step acquire without the check hands the paused
+holder token 2 against the current holder's 1, `reproducesPausedHolderWithARedisCounter`,
+[`docs/evidence/11-fence-paused-holder.txt`](../evidence/11-fence-paused-holder.txt)). After
+`FLUSHALL` the next token is above the stored one and the write is admitted
+([`docs/evidence/11-fence-redis-restart.txt`](../evidence/11-fence-redis-restart.txt)); a rebuild
+lock leaves no key behind (`WriteFenceIT.aRebuildLockLeavesNoFenceKeyInRedis`). The reproduction
+above was replaced by `writesContinueAfterARedisRestart`. What it costs: one Postgres round trip and
+one more Redis round trip per acquisition, and a lock cannot be taken while the database is away.
+`ReadThrough` treats a failing lock as "someone else holds it", so a cache rebuild degrades to the
+loader (counted as a lock fallback) and does not fail.
 
 ## What I rejected, and why
 

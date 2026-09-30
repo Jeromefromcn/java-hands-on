@@ -67,7 +67,11 @@ class HotKeyRebuildIT {
   @BeforeEach
   void connect() {
     redis = SharedRedis.client();
-    lock = new RedisLock(redis.template(), "lock:", "fence:");
+    lock =
+        new RedisLock(
+            redis.template(),
+            "lock:",
+            new java.util.concurrent.atomic.AtomicLong()::incrementAndGet);
     shared = new RedisPriceTier(redis.template(), "price:", new PriceCodec());
   }
 

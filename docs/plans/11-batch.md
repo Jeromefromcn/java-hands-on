@@ -76,7 +76,7 @@ test in the section named.
 
 ---
 
-## [ ] 1 · The fencing token moves to Postgres
+## [x] 1 · The fencing token moves to Postgres
 
 **Change**
 - V11: `CREATE SEQUENCE fencing_token_seq`.

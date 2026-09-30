@@ -8,6 +8,7 @@ import com.jerome.slledger.adapter.persistence.cache.RedisPriceTier;
 import com.jerome.slledger.application.cache.CachingMarketPriceSource;
 import com.jerome.slledger.application.cache.CachingSecurityDirectory;
 import com.jerome.slledger.application.cache.DistributedLock;
+import com.jerome.slledger.application.cache.FencingTokens;
 import com.jerome.slledger.application.cache.ReadThrough;
 import com.jerome.slledger.application.cache.TtlPolicy;
 import com.jerome.slledger.application.port.MarketPriceSource;
@@ -35,9 +36,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class CacheConfiguration {
 
   @Bean
-  DistributedLock quoteRebuildLock(StringRedisTemplate redis, CacheProperties properties) {
-    return new RedisLock(
-        redis, properties.keyPrefix() + "lock:", properties.keyPrefix() + "fence:");
+  DistributedLock quoteRebuildLock(
+      StringRedisTemplate redis, CacheProperties properties, FencingTokens tokens) {
+    return new RedisLock(redis, properties.keyPrefix() + "lock:", tokens);
   }
 
   @Bean(destroyMethod = "close")

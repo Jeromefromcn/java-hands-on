@@ -1,0 +1,7 @@
+Stage 11, section 1: three fenced writes, then FLUSHALL on Redis (a restart without
+persistence), then a fourth. Real Redis and Postgres.
+
+token stored by the third write : 5
+token after the restart         : 6
+fourth write                    : admitted (total 400)
+stage 9 result with a Redis counter: token 1 after the restart, write refused

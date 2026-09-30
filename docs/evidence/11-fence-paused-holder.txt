@@ -1,0 +1,5 @@
+Stage 11, section 1: a holder is paused between taking the lock and drawing its token.
+Its lock expires, a second holder takes the lock and draws, the first wakes and draws.
+The pause is a latch in the test. Real Redis.
+
+two-step acquire, no check : first holder token 2, second holder token 1  (first holder has a lease)
