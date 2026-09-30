@@ -391,7 +391,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 9 · Lab scaffold and the four memory-model exercises
+## [x] 9 · Lab scaffold and the four memory-model exercises
 
 **`labs/08-concurrency/`**
 - `pom.xml` standalone (decision 2), Java 21 release, JMH and its annotation
@@ -421,7 +421,24 @@ Failure modes the spec implies but no exercise is *about*.
 - Each command in the README runs and writes its evidence file.
 - `./mvnw clean verify` at the root is unchanged and green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- **One shaded jar, `target/labs.jar`,** carries JMH's `Main` and every lab
+  class, so each exercise is `java -cp labs.jar labs.concurrency.<Name>` and
+  the JMH runs in section 10 use the same jar. The lab's POM has its own
+  versions and is outside the root build, as planned.
+- **Visibility reproduced every time:** 8 of 8 plain rounds never saw the
+  write; 0 of 8 volatile rounds hung. On this machine (aarch64, JDK 21) the
+  loop is compiled within the 200 ms pause, so the "sporadic" character the
+  roadmap describes is absent here; it depends on when the JIT compiles.
+- **`volatile count++` lost 54% to 69% of 8,000,000 increments** across five
+  rounds; `AtomicInteger` lost none.
+- **DCL did not reproduce:** 0 partially constructed objects in 40,000,000
+  checks per variant, on aarch64. The evidence records the zero. Not weakened
+  and not removed.
+- **`computeIfAbsent` re-entry on JDK 21:** the single-thread recursive case
+  throws `IllegalStateException: Recursive update` rather than hanging; the
+  crossed-key case with two threads is a real deadlock, and
+  `findDeadlockedThreads()` reported both threads.
 
 ---
 

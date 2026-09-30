@@ -1,0 +1,24 @@
+Visibility — a stop flag with and without volatile
+java.version=21.0.12  vm=OpenJDK 64-Bit Server VM
+arch=aarch64  cpus=4
+rounds=8, each bounded at 1000 ms after the write
+
+plain    round  1: reader never saw the write
+plain    round  2: reader never saw the write
+plain    round  3: reader never saw the write
+plain    round  4: reader never saw the write
+plain    round  5: reader never saw the write
+plain    round  6: reader never saw the write
+plain    round  7: reader never saw the write
+plain    round  8: reader never saw the write
+volatile round  1: stopped
+volatile round  2: stopped
+volatile round  3: stopped
+volatile round  4: stopped
+volatile round  5: stopped
+volatile round  6: stopped
+volatile round  7: stopped
+volatile round  8: stopped
+
+plain:    8 of 8 rounds did not terminate
+volatile: 0 of 8 rounds did not terminate

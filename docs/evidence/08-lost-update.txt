@@ -1,0 +1,15 @@
+LostUpdate — volatile int count++ against AtomicInteger
+java.version=21.0.12  vm=OpenJDK 64-Bit Server VM
+arch=aarch64  cpus=4
+8 threads x 1000000 increments, 5 rounds; expected total 8000000
+
+volatile round 1: observed 3134973, lost 4865027 (60.8%)
+volatile round 2: observed 3671118, lost 4328882 (54.1%)
+volatile round 3: observed 3355019, lost 4644981 (58.1%)
+volatile round 4: observed 2521562, lost 5478438 (68.5%)
+volatile round 5: observed 2878143, lost 5121857 (64.0%)
+atomic   round 1: observed 8000000, lost 0
+atomic   round 2: observed 8000000, lost 0
+atomic   round 3: observed 8000000, lost 0
+atomic   round 4: observed 8000000, lost 0
+atomic   round 5: observed 8000000, lost 0

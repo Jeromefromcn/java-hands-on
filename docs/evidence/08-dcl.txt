@@ -1,0 +1,12 @@
+DoubleCheckedLocking — a singleton with and without volatile
+java.version=21.0.12  vm=OpenJDK 64-Bit Server VM
+arch=aarch64  cpus=4
+5 rounds, 2000000 holders per round, 4 racing readers
+
+round 1: partially constructed objects seen: broken=0 fixed=0
+round 2: partially constructed objects seen: broken=0 fixed=0
+round 3: partially constructed objects seen: broken=0 fixed=0
+round 4: partially constructed objects seen: broken=0 fixed=0
+round 5: partially constructed objects seen: broken=0 fixed=0
+
+total over 5 rounds (40000000 checks each variant): broken=0 fixed=0

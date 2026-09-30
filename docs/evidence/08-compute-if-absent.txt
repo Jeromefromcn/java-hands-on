@@ -1,0 +1,15 @@
+RecursiveComputeIfAbsent — a mapping function that re-enters the map
+java.version=21.0.12  vm=OpenJDK 64-Bit Server VM
+arch=aarch64  cpus=4
+
+1. one thread, fib(n) memoised with computeIfAbsent calling itself:
+   threw java.lang.IllegalStateException: Recursive update
+
+2. two threads, crossed keys:
+   both threads still running after 3 s: true
+   findDeadlockedThreads(): [20, 21] (2 threads)
+   t1 is BLOCKED, owned by t2
+   t2 is BLOCKED, owned by t1
+
+3. the fix: compute outside the map call, publish with putIfAbsent:
+   fib(30) = 832040
