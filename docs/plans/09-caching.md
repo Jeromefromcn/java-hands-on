@@ -255,7 +255,7 @@ test in the section named.
 
 ---
 
-## [ ] 6 · Decorators and penetration
+## [x] 6 · Decorators and penetration
 
 **`application.cache`**
 - `CachingMarketPriceSource implements MarketPriceSource` over a
@@ -276,6 +276,15 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `QuotePrice` and `PriceFanOut` have no diff.
+
+**Found while implementing**
+- **The decorators take their layers and `Random` in the constructor**, and the price
+  decorator also an optional `Rebuild` (null for none); `QuotePrice` and `PriceFanOut`
+  are untouched (`git diff` empty).
+- **`MarketDataUnavailableException` and `MarketDataRejectedException` are not cached;
+  `UnknownReferenceException` from the source is.** A source's "no such security" is an
+  answer, its outage is not.
+- The decorators also expose `evict(Isin)`, which section 10's invalidation calls.
 
 ---
 

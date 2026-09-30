@@ -1,0 +1,7 @@
+Stage 9, section 6: 1,000 requests for one ISIN the ledger does not hold.
+Counted at the directory (the database read). Deterministic by construction.
+
+no cache                       : 1000 directory reads
+negative entry (2 s TTL)       : 1 directory read
+
+The Bloom filter comparison is measured in labs/09-caching.
