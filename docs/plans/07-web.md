@@ -649,8 +649,9 @@ Sending `page` and `after` together is `400`.
 - **`after=` with no value starts a keyset walk.** Without it, a client
   could not ask for the first keyset slice.
 - **Offset is slow at depth 0 too.** Its `count(*)` is a parallel
-  sequential scan of every row, 37.8 ms of the 36.3 ms median at offset 0
-  (the plan's `EXPLAIN` of the count ran without the HTTP path's warm-up).
+  sequential scan of every row. Under `EXPLAIN ANALYZE` it took 37.8 ms
+  alone, about the whole 36.3 ms median of an offset-0 request; the first
+  keyset slice took 6.2 ms.
 - `JdbcPositionCursorQuery` reads `size + 1` rows to know whether a next
   slice exists.
 
