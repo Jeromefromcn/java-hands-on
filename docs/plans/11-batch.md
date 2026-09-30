@@ -303,7 +303,7 @@ test in the section named.
 
 ---
 
-## [ ] 11 · Reconciliation
+## [x] 11 · Reconciliation
 
 **Change**
 - V15: `custodian_holding(snapshot_id, position_id, quantity, value_amount,
@@ -540,3 +540,22 @@ test in the section named.
   foreign key to `security`, which that test truncates. The same lesson as stage 10's outbox-era FK.
   Dropped in V14 (not yet released), with the reason in the migration; a request for a security that
   is gone runs a job over no positions and completes.
+
+**Section 11.**
+- A malformed line is skipped *and its position is left out of the compare step*. Without that, a
+  line refused for a missing currency would leave its position looking like one the custodian does
+  not hold, and the job would report a break that is really a data problem. The compare reader's
+  query excludes positions with a `batch_skip` row for this snapshot on both sides of the join;
+  the price is that the compare step reads `batch_skip`, which ties the two steps together through a
+  table instead of through the step context. The alternative (a `custodian_holding_rejected` table)
+  is the same coupling with one more table.
+- The CSV reader hands out raw lines with their numbers and leaves parsing to the processor: a line
+  that cannot be parsed is then a skippable processor failure that still knows which line it was.
+  Line 23 (an empty position id) is filed as `line:23`; a line that names a position is filed under
+  it. `CsvLinesReader` saves the number of lines handed out and a reopened reader skips that many.
+- Position ids in the snapshot are the ledger's own ids. A real custodian has its own identifiers
+  and a mapping to maintain; that is out of scope and named in the decision record.
+- The settlement window is inclusive: settled on the 29th with a window of two days is still inside
+  on the 1st (asserted on both sides of the boundary; the first test of it expected the wrong day).
+- `ReconPolicy` defaults (1.00, 0.01%, two days) and the `ledger.reconciliation.*` names are in
+  `ReconciliationProperties`; the decision record says what they would have to be based on.

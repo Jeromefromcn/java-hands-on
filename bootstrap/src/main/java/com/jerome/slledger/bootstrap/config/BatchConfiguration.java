@@ -9,10 +9,17 @@ import com.jerome.slledger.application.batch.FencedRun;
 import com.jerome.slledger.application.batch.RunSummary;
 import com.jerome.slledger.application.cache.DistributedLock;
 import com.jerome.slledger.application.cache.WriteFence;
+import com.jerome.slledger.application.reconciliation.BreakClassifier;
+import com.jerome.slledger.application.reconciliation.CustodianHoldings;
+import com.jerome.slledger.application.reconciliation.LoadHoldings;
+import com.jerome.slledger.application.reconciliation.ReconBreaks;
+import com.jerome.slledger.application.reconciliation.SaveBreaks;
 import com.jerome.slledger.batch.accrual.AccrualJobConfiguration;
 import com.jerome.slledger.batch.accrual.BatchSettings;
 import com.jerome.slledger.batch.accrual.RunAccrual;
 import com.jerome.slledger.batch.accrual.RunDailyAccrual;
+import com.jerome.slledger.batch.reconciliation.ReconciliationJobConfiguration;
+import com.jerome.slledger.batch.reconciliation.RunReconciliation;
 import com.jerome.slledger.batch.support.FailurePoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +46,8 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(prefix = "ledger.batch", name = "enabled", havingValue = "true")
 @EnableBatchProcessing
 @EnableJdbcJobRepository(dataSourceRef = "dataSource", transactionManagerRef = "transactionManager")
-@EnableConfigurationProperties(BatchProperties.class)
-@Import(AccrualJobConfiguration.class)
+@EnableConfigurationProperties({BatchProperties.class, ReconciliationProperties.class})
+@Import({AccrualJobConfiguration.class, ReconciliationJobConfiguration.class})
 public class BatchConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger("com.jerome.slledger.batch.runs");
@@ -107,5 +114,26 @@ public class BatchConfiguration {
   @Bean
   FailurePoint failurePoint() {
     return FailurePoint.NONE;
+  }
+
+  @Bean
+  LoadHoldings loadHoldings(CustodianHoldings holdings) {
+    return new LoadHoldings(holdings);
+  }
+
+  @Bean
+  SaveBreaks saveBreaks(ReconBreaks breaks) {
+    return new SaveBreaks(breaks);
+  }
+
+  @Bean
+  BreakClassifier breakClassifier(ReconciliationProperties properties) {
+    return new BreakClassifier(properties.policy());
+  }
+
+  @Bean
+  RunReconciliation runReconciliation(
+      JobOperator operator, @Qualifier("reconciliation") Job reconciliation) {
+    return new RunReconciliation(operator, reconciliation);
   }
 }

@@ -1,0 +1,25 @@
+Stage 11, section 11: reconciliation of the ledger (21 positions of 1,000 shares at 41.26
+HKD, so 41,260.00 each) against a custodian snapshot for 2026-09-30, with one break of each
+class planted and five lines that must not get in. Chunk size 5. Real Postgres.
+
+-- steps
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+loadSnapshot | COMPLETED | 22 | 17 | 5 | 0 | 0 | 5 | 0 | COMPLETED
+compare | COMPLETED | 19 | 6 | 4 | 0 | 0 | 0 | 0 | COMPLETED
+
+-- recon_break (position | kind | disposition | detail)
+P000015 | QUANTITY_MISMATCH | MANUAL | the ledger holds 1000, the custodian 900
+P000016 | VALUE_MISMATCH | AUTO_ACCEPTED | values differ by 0.50 HKD, tolerance 4.126
+P000017 | VALUE_MISMATCH | MANUAL | values differ by 260.00 HKD, tolerance 4.126
+P000018 | OURS_ONLY | RETRY_SETTLEMENT | settled 2026-09-01, the custodian does not have it
+P000019 | OURS_ONLY | PENDING_SETTLEMENT | settled 2026-09-29, the custodian does not have it (inside the settlement window)
+X000001 | THEIRS_ONLY | MANUAL | the custodian holds 500, the ledger has no such position
+
+-- lines refused and recorded in batch_skip (item | reason)
+P000013 | Line 14 of the custodian's file is not a valid holding: the currency is missing
+P000020 | Line 19 of the custodian's file is not a valid holding: quantity 'abc' is not a whole number
+P000021 | Line 20 of the custodian's file is not a valid holding: value 41260.005 has 3 decimals, HKD allows 2
+Q000001 | Line 22 of the custodian's file is not a valid holding: unknown currency 'ABC'
+line:23 | Line 23 of the custodian's file is not a valid holding: the position id is empty
+
+custodian_holding rows loaded: 17 of 22 lines (5 refused)
