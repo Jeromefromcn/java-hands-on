@@ -342,7 +342,7 @@ test in the section named.
 
 ---
 
-## [ ] 13 · Retention and saga recovery
+## [x] 13 · Retention and saga recovery
 
 **Change**
 - `application.batch.Retention` port and adapters; `batch.retention.RetentionJob`
@@ -575,3 +575,20 @@ test in the section named.
   a ledger with no custodian connection, and the decision record says so instead of making the stub
   settle things.
 - `maxAttempts` is three; with delays of 4 h and 24 h the last attempt is 28 h after the first.
+
+**Section 13.**
+- `credit_reservation` has no timestamp, so a reservation is purged with its saga: the saga's terminal
+  `saga_log` entry carries the time, and the purge deletes a finished saga's spent reservations and log
+  in one statement (data-modifying CTEs). A reservation still `RESERVED` is never removed.
+- The purge loops are `RunRetention` (not transactional) over `RetentionPurges` (one bounded batch, one
+  transaction), again to keep each batch behind the proxy. The test sets a batch size of two so the
+  loop runs several times over three rows.
+- Steps are tasklets with no transaction of their own (`Tasklets.step`), so a purge of millions of rows is
+  many short transactions and not one that holds locks for the length of the table.
+- Recovery runs first, so a saga it finishes carries a fresh terminal entry and survives the same run's
+  purge. `OpenPositionSaga` still has no caller in the product; the recovery is wired so that the day it
+  has one, a saga a dead process left unfinished is finished by this job and not by nothing.
+- The retention of a TCC tombstone is checked at start-up against the messaging topic retention
+  (`ledger.retention.tombstones` must be longer): configuration that would make a late Try get through
+  refuses to start. `reproducesTombstonePurgedTooEarly` is the reason: with the tombstone gone, a late
+  Try froze 100.00 HKD for an attempt that had been cancelled.

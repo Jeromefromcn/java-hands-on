@@ -1,0 +1,22 @@
+Stage 11, section 13: the retention job on rows of every age. Defaults: outbox 7 days, TCC
+rows and sagas 30 days, consumed ids 8 days; purge batches of 2 rows (the test sets it to
+see the loop). Real Postgres.
+
+before: outbox 3 published 10 d old + 2 published 1 d old + 2 unpublished 10 d old;
+        tcc: CONFIRMED 40 d, CANCELLED 40 d, CANCELLED 1 d, TRIED 40 d;
+        sagas: finished 40 d ago, finished 1 d ago, unfinished since 40 d ago;
+        consumed ids: 2 of 9 d, 1 of 1 d.
+steps:
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+recoverSagas | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+purgeSagas | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+purgeTombstones | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+purgeOutbox | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+purgeConsumedIds | COMPLETED | 0 | 0 | 1 | 0 | 0 | 0 | 0 | COMPLETED
+
+counts saved by the steps: recovered 1 sagas; purged 1 saga(s), 2 tcc row(s), 3 outbox
+row(s), 2 consumed id(s)
+after : outbox 4 rows (2 unpublished, 2 recent published); tcc rows that remain: X-new
+        (recent tombstone), T-old (in flight) and the tombstone the recovery wrote;
+        saga S-old gone with its reservation, S-new kept, S-stuck recovered (reservation now
+        RELEASED) and kept by its new terminal entry; consumed ids 1.

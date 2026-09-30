@@ -1,0 +1,8 @@
+Stage 11, section 13: why a TCC tombstone has a retention longer than a late message can be.
+X-early is cancelled before its Try and a purge with no retention removes its tombstone;
+X-kept is cancelled after that purge, so its tombstone is intact. Then each one's late Try
+arrives.
+
+X-early (tombstone purged)  : Try accepted; frozen collateral of CP-001 = 100.00 HKD, held for
+                              an attempt that was cancelled, which nothing will release
+X-kept  (tombstone intact)  : Try refused (CollateralRefusedException); frozen stays 100.00

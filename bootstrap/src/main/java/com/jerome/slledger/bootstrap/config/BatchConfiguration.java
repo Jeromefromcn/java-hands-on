@@ -6,6 +6,9 @@ import com.jerome.slledger.application.accrual.RecordSkip;
 import com.jerome.slledger.application.accrual.SkippedItems;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
 import com.jerome.slledger.application.batch.FencedRun;
+import com.jerome.slledger.application.batch.Retention;
+import com.jerome.slledger.application.batch.RetentionPurges;
+import com.jerome.slledger.application.batch.RunRetention;
 import com.jerome.slledger.application.batch.RunSummary;
 import com.jerome.slledger.application.cache.DistributedLock;
 import com.jerome.slledger.application.cache.WriteFence;
@@ -24,8 +27,11 @@ import com.jerome.slledger.batch.accrual.RunAccrual;
 import com.jerome.slledger.batch.accrual.RunDailyAccrual;
 import com.jerome.slledger.batch.reconciliation.ReconciliationJobConfiguration;
 import com.jerome.slledger.batch.reconciliation.RunReconciliation;
+import com.jerome.slledger.batch.retention.RetentionJobConfiguration;
+import com.jerome.slledger.batch.retention.RunRetentionJob;
 import com.jerome.slledger.batch.support.FailurePoint;
 import java.time.Clock;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -39,6 +45,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 /**
  * Spring Batch and the ledger's jobs. Only present when {@code ledger.batch.enabled=true}.
@@ -51,8 +58,16 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(prefix = "ledger.batch", name = "enabled", havingValue = "true")
 @EnableBatchProcessing
 @EnableJdbcJobRepository(dataSourceRef = "dataSource", transactionManagerRef = "transactionManager")
-@EnableConfigurationProperties({BatchProperties.class, ReconciliationProperties.class})
-@Import({AccrualJobConfiguration.class, ReconciliationJobConfiguration.class})
+@EnableConfigurationProperties({
+  BatchProperties.class,
+  ReconciliationProperties.class,
+  RetentionProperties.class
+})
+@Import({
+  AccrualJobConfiguration.class,
+  ReconciliationJobConfiguration.class,
+  RetentionJobConfiguration.class
+})
 public class BatchConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger("com.jerome.slledger.batch.runs");
@@ -164,5 +179,31 @@ public class BatchConfiguration {
   RunReconciliation runReconciliation(
       JobOperator operator, @Qualifier("reconciliation") Job reconciliation) {
     return new RunReconciliation(operator, reconciliation);
+  }
+
+  @Bean
+  RetentionPurges retentionPurges(
+      Retention retention, Clock clock, RetentionProperties properties, Environment environment) {
+    // A cancelled TCC row refuses a Try that arrives late; purged sooner than a message can be
+    // redelivered, it would stop refusing it. The topic retention is messaging's property.
+    Duration topicRetention =
+        environment.getProperty(
+            "ledger.messaging.topic-retention", Duration.class, Duration.ofDays(7));
+    if (properties.tombstones().compareTo(topicRetention) <= 0) {
+      throw new IllegalStateException(
+          "ledger.retention.tombstones (%s) must be longer than ledger.messaging.topic-retention (%s)"
+              .formatted(properties.tombstones(), topicRetention));
+    }
+    return new RetentionPurges(retention, clock, properties.policy());
+  }
+
+  @Bean
+  RunRetention runRetention(RetentionPurges purges) {
+    return new RunRetention(purges);
+  }
+
+  @Bean
+  RunRetentionJob runRetentionJob(JobOperator operator, @Qualifier("retention") Job retention) {
+    return new RunRetentionJob(operator, retention);
   }
 }
