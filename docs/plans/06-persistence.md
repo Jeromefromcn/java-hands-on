@@ -621,7 +621,7 @@ Evidence: `docs/evidence/06-persistence-context.txt`.
 
 ---
 
-## [ ] 9 · Exercise 2 — N+1 and the pagination trap
+## [x] 9 · Exercise 2 — N+1 and the pagination trap
 
 The fixture is 100 positions with 5 entries each.
 
@@ -652,6 +652,30 @@ and the two SQL texts.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The pagination trap, as planned, does not reproduce on Hibernate 7.4.5.**
+  `join fetch` (with or without `distinct`, inner or left) and the entity
+  graph, each with `setMaxResults(10)`, are rewritten: the page is taken over
+  positions in a subquery (`from (select … fetch first ? rows only)`), then
+  joined to entries. 10 positions, 60 entities, no warning.
+- **It still fires when the order refers to the fetched collection**
+  (`order by p.id, e.businessDate`): no `limit`, 600 entities hydrated for 10
+  positions, `HHH90003004`. That is `reproducesInMemoryPaginationWithJoinFetch`
+  now. The strict setting throws `org.hibernate.HibernateException`.
+- **A worse failure, not predicted: a page silently ignored.** The rewrite is
+  decided when a query string is first interpreted and cached per session
+  factory. If the same `join fetch` string ran once without a page, every later
+  `setMaxResults(10)` on it returns all 100 positions, with no warning.
+  `hibernate.query.plan_cache_enabled=false` restores 10. Pinned as
+  `reproducesPageIgnoredAfterTheSameQueryRanUnpaged`. The reverse order is
+  correct. No production query is affected: `JpaPositionListQuery` is a
+  projection with no fetch.
+- **The entity graph is built with the JPA API, and batch fetching is
+  `hibernate.default_batch_fetch_size=25` in its own context**, not
+  `@EntityGraph` / `@BatchSize` on production types. Either annotation on
+  `LoanPositionEntity` or its repository would change what the N+1
+  reproduction measures. The mechanism is the same.
 
 ---
 
