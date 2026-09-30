@@ -62,6 +62,7 @@ public class ReturnPositionOnce {
             .unitPrice(security.marketPrice())
             .tradeDate(command.tradeDate())
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
-            .build());
+            .build(),
+        command.fingerprint());
   }
 }

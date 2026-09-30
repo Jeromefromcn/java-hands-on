@@ -90,7 +90,8 @@ public class OpenPosition {
             .unitPrice(security.marketPrice())
             .tradeDate(command.tradeDate())
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
-            .build());
+            .build(),
+        command.fingerprint());
     return position.id();
   }
 }

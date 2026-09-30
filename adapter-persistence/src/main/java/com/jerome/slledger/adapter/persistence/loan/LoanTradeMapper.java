@@ -1,6 +1,8 @@
 package com.jerome.slledger.adapter.persistence.loan;
 
 import com.jerome.slledger.adapter.persistence.support.MoneyColumns;
+import com.jerome.slledger.application.port.BookedTrade;
+import com.jerome.slledger.application.port.RequestFingerprint;
 import com.jerome.slledger.domain.instrument.Isin;
 import com.jerome.slledger.domain.loan.IdempotencyKey;
 import com.jerome.slledger.domain.loan.LoanPositionId;
@@ -11,8 +13,9 @@ public final class LoanTradeMapper {
 
   private LoanTradeMapper() {}
 
-  public static LoanTradeEntity toEntity(LoanTrade trade) {
+  public static LoanTradeEntity toEntity(LoanTrade trade, RequestFingerprint fingerprint) {
     LoanTradeEntity entity = new LoanTradeEntity();
+    entity.requestFingerprint = fingerprint.sha256();
     entity.idempotencyKey = trade.idempotencyKey().value();
     entity.positionId = trade.position().value();
     entity.counterpartyId = trade.counterparty().value();
@@ -24,6 +27,14 @@ public final class LoanTradeMapper {
     entity.tradeDate = trade.tradeDate();
     entity.settlementDate = trade.settlementDate();
     return entity;
+  }
+
+  public static BookedTrade toBooked(LoanTradeEntity entity) {
+    return new BookedTrade(
+        toDomain(entity),
+        entity.requestFingerprint == null
+            ? null
+            : new RequestFingerprint(entity.requestFingerprint));
   }
 
   public static LoanTrade toDomain(LoanTradeEntity entity) {

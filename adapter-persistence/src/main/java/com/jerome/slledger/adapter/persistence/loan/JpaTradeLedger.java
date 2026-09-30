@@ -1,8 +1,12 @@
 package com.jerome.slledger.adapter.persistence.loan;
 
+import com.jerome.slledger.application.port.BookedTrade;
 import com.jerome.slledger.application.port.DuplicateRequestException;
+import com.jerome.slledger.application.port.RequestFingerprint;
 import com.jerome.slledger.application.port.TradeLedger;
+import com.jerome.slledger.domain.loan.IdempotencyKey;
 import com.jerome.slledger.domain.loan.LoanTrade;
+import java.util.Optional;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -28,15 +32,20 @@ public class JpaTradeLedger implements TradeLedger {
   }
 
   @Override
-  public void book(LoanTrade trade) {
+  public void book(LoanTrade trade, RequestFingerprint fingerprint) {
     try {
-      jpa.saveAndFlush(LoanTradeMapper.toEntity(trade));
+      jpa.saveAndFlush(LoanTradeMapper.toEntity(trade, fingerprint));
     } catch (DataIntegrityViolationException e) {
       if (violates(e, IDEMPOTENCY_CONSTRAINT)) {
         throw new DuplicateRequestException(trade.idempotencyKey(), e);
       }
       throw e;
     }
+  }
+
+  @Override
+  public Optional<BookedTrade> findByKey(IdempotencyKey key) {
+    return jpa.findByIdempotencyKey(key.value()).map(LoanTradeMapper::toBooked);
   }
 
   private static boolean violates(Throwable failure, String constraint) {

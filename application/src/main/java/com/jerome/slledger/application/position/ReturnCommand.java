@@ -1,5 +1,6 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.application.port.RequestFingerprint;
 import com.jerome.slledger.domain.loan.IdempotencyKey;
 import com.jerome.slledger.domain.loan.LoanPositionId;
 import java.time.LocalDate;
@@ -13,5 +14,12 @@ public record ReturnCommand(
     Objects.requireNonNull(key, "key");
     Objects.requireNonNull(position, "position");
     Objects.requireNonNull(tradeDate, "tradeDate");
+  }
+
+  /** Every field but the key, in a fixed order. */
+  public RequestFingerprint fingerprint() {
+    return RequestFingerprint.of(
+        String.join(
+            "|", "RETURN", position.value(), Long.toString(quantity), tradeDate.toString()));
   }
 }

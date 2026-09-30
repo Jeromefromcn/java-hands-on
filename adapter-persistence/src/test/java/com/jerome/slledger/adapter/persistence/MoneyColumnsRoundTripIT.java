@@ -15,6 +15,7 @@ import com.jerome.slledger.adapter.persistence.loan.UnsupportedAccrualRuleExcept
 import com.jerome.slledger.adapter.persistence.party.CounterpartyEntity;
 import com.jerome.slledger.adapter.persistence.party.CounterpartyMapper;
 import com.jerome.slledger.adapter.persistence.testing.LedgerDb;
+import com.jerome.slledger.application.port.RequestFingerprint;
 import com.jerome.slledger.domain.accrual.AccrualEntry;
 import com.jerome.slledger.domain.accrual.FlatRate;
 import com.jerome.slledger.domain.accrual.FloatingRate;
@@ -301,7 +302,7 @@ class MoneyColumnsRoundTripIT {
             em.persist(CounterpartyMapper.toEntity(counterparty));
             em.persist(SecurityMapper.toEntity(security));
             em.persist(LoanPositionMapper.toEntity(position));
-            em.persist(LoanTradeMapper.toEntity(trade));
+            em.persist(LoanTradeMapper.toEntity(trade, RequestFingerprint.of("round-trip")));
             em.persist(AccrualEntryMapper.toEntity(entry));
             em.flush();
             return null;

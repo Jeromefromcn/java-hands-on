@@ -349,7 +349,7 @@ body, an unknown id (`404`), and a bad range (`400`).
 
 ---
 
-## [ ] 6 · V4 fingerprint and trade lookup by key
+## [x] 6 · V4 fingerprint and trade lookup by key
 
 **`application.port`**
 - `RequestFingerprint`, a record holding a SHA-256 hex string, with a
@@ -383,6 +383,17 @@ body, an unknown id (`404`), and a bad range (`400`).
 **Acceptance**
 - The tests pass. Stage 6's tests pass with the new `book` signature.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The fingerprint factories live on the commands**
+  (`OpenPositionCommand.fingerprint()`, `ReturnCommand.fingerprint()`), not
+  on `RequestFingerprint`: the port package must not depend on the use-case
+  package that depends on it. `AccrualRules.canonical` gives each rule type
+  its text; a flat rate keeps its scale, as `Rate` does.
+- `application` gets its first tests, and with them `junit-jupiter` and
+  `assertj-core` at test scope.
+- `MoneyColumnsRoundTripIT` persists a trade entity directly, so it now
+  passes a fingerprint too.
 
 ---
 

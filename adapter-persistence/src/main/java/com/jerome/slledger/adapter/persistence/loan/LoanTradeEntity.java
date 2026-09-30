@@ -52,5 +52,10 @@ public class LoanTradeEntity {
 
   LocalDate settlementDate;
 
+  /** SHA-256 hex of the booking request; null for trades booked before V4. */
+  @JdbcTypeCode(SqlTypes.CHAR)
+  @Column(length = 64)
+  String requestFingerprint;
+
   protected LoanTradeEntity() {}
 }
