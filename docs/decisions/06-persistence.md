@@ -171,13 +171,16 @@ hydrated for 10 positions**, and `HHH90003004` logged as a warning.
 `hibernate.query.fail_on_pagination_over_collection_fetch=true` turns that
 into a `HibernateException`.
 
-**A worse failure was found instead: a page silently ignored.** The
+**A worse failure was observed instead: a page silently ignored.** The
 subquery rewrite is decided when a query string is first interpreted, and
 cached per session factory. If the same `join fetch` string ran once without
 a page, every later `setMaxResults(10)` on it returns **all 100 positions**:
 no subquery, no in-memory page, no warning. With
 `hibernate.query.plan_cache_enabled=false` the page is 10 again. The reverse
-order (a page first, then unpaged) is correct.
+order (a page first, then unpaged) is correct. This is behaviour observed on
+7.4.5. A search on 2026-09-30 found no matching Hibernate issue, and it has not
+been reported upstream, so whether it is a known bug or already fixed is not
+established.
 `reproducesPageIgnoredAfterTheSameQueryRanUnpaged` pins it. No production
 query is exposed: the listing is a projection with no fetch. The rule for this
 project is that a page over a collection is always two queries (ids with
@@ -446,6 +449,20 @@ the obvious loop (every-pool roll-up, the self-join). Over a real network the
 row-shipping side pays more. The loopback numbers above understate that, and
 by how much was not measured.
 
+## The gate and the measurements
+
+The exercises took `./mvnw clean verify` from about 80 seconds to 3 min 46 s,
+most of it spent producing numbers: the three crossover timings, lock
+throughput, and `EXPLAIN` over 500,000 rows. Those tests are tagged
+`measurement`, and Failsafe excludes that tag by default. `./mvnw verify` stays
+the gate and still runs every correctness test at fixture size: the three
+queries' discriminating fixtures, every `reproduces…` test, and both lock
+strategies' contract and use-case suites. `./mvnw verify -Pmeasure` adds the
+measurement tests. The numbers in this record come from those runs, copied
+from `target/evidence/` by hand. What the gate no longer checks on every build
+is V3's plan at volume. Every Flyway-managed test context still applies V3.
+Measured: the gate takes 1 min 45 s, and `-Pmeasure` takes 3 min 41 s.
+
 ## What I rejected, and why
 
 - **`Propagation.MANDATORY` as the overwrite guard.** It passes the exact
@@ -560,4 +577,5 @@ by how much was not measured.
   cross-node invalidation, so it is stage 9's Redis.
 - **Hibernate's query plan cache and the ignored page.** More distinct query
   strings mean more interpretations cached per factory. The ignored page is a
-  correctness bug, not a scale one, and the two-query rule is what keeps it out.
+  correctness problem, not a scale one, and the two-query rule is what keeps it
+  out.

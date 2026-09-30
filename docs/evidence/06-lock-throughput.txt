@@ -2,7 +2,7 @@
 # HOT: 1 position of 10,000, 400 returns of 1. SPREAD: 40 positions, 10 returns of 1 each (round-robin).
 # ok = returns that landed; optFails = Hibernate Statistics optimistic failures (each one a retry or an exhaustion);
 # exhausted = returns that lost 5 attempts; lockTmo = pessimistic lock-wait timeouts (3000 ms).
-# Postgres 17 in Testcontainers on the same 4-core host. Measured by the ./mvnw clean verify run of this commit.
+# Postgres 17 in Testcontainers on the same 4-core host. One ./mvnw clean verify run on 2026-09-30, copied by hand.
 
 cores=4, JDK 21.0.12+8-LTS, 8 threads, ledger.return.max-attempts=5, pool=Hikari default (10)
 one warm-up run discarded, then 3 measured runs; the row is the median by wall time
