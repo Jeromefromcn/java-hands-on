@@ -52,7 +52,8 @@ import org.springframework.context.annotation.Import;
   WebConfiguration.class,
   MarketDataExecutorConfiguration.class,
   CacheConfiguration.class,
-  MessagingConfiguration.class
+  MessagingConfiguration.class,
+  BatchConfiguration.class
 })
 public class LedgerConfiguration {
 

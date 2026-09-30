@@ -1,0 +1,18 @@
+Stage 11, section 2: dependencyConvergence after adding spring-batch-core (and slf4j-api) to the
+batch module. Measured with `./mvnw clean verify` on JDK 21.0.12-tem; tree from
+`./mvnw dependency:tree -pl batch`.
+
+Result: the enforcer rule passed with no new dependencyManagement entry. spring-batch-core and
+spring-batch-infrastructure 6.0.5 come from spring-batch-bom, imported by the Spring Boot 4.1.1 BOM;
+micrometer 1.17.1 and spring-retry 2.0.13 arrive through spring-batch-infrastructure.
+
+Only spring-batch-core is declared, not spring-boot-starter-batch(-jdbc): the starter brings Boot's
+Batch auto-configuration, which creates a job repository whether or not ledger.batch.enabled is set.
+
+batch
++- application (compile)
++- org.springframework.batch:spring-batch-core:6.0.5 (compile)
+|  +- spring-batch-infrastructure:6.0.5 -> spring-retry:2.0.13
+|  +- spring-aop, spring-beans, spring-context, spring-jdbc:7.0.9
+|  +- micrometer-core:1.17.1, micrometer-observation:1.17.1
+\- org.slf4j:slf4j-api:2.0.18 (compile)

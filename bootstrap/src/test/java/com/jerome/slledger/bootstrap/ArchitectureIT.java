@@ -158,6 +158,39 @@ class ArchitectureIT {
   }
 
   @Test
+  @DisplayName("application depends on no Spring Batch type")
+  void applicationHasNoBatchFramework() {
+    // Stage 11: what a job does is plain Java over ports; the reader, the step and the launcher
+    // are the batch module's.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("org.springframework.batch..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
+  @DisplayName("batch holds no SQL and does not depend on adapter-persistence")
+  void batchIsDefinitionsOnly() {
+    // Stage 11: readers and writers call ports. The job repository's own SQL is the framework's.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.batch..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "com.jerome.slledger.adapter..", "org.springframework.jdbc..", "javax.sql..")
+            .allowEmptyShould(true);
+
+    rule.check(CLASSES);
+  }
+
+  @Test
   @DisplayName("adapter-messaging and adapter-persistence do not depend on each other")
   void adaptersAreIndependent() {
     ArchRule messaging =

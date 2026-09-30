@@ -102,7 +102,7 @@ test in the section named.
 
 ---
 
-## [ ] 2 · Batch wiring and schema
+## [x] 2 · Batch wiring and schema
 
 **Change**
 - `batch` POM: `application`, `spring-boot-starter-batch-jdbc`; test deps as
@@ -391,4 +391,11 @@ test in the section named.
 
 ## Found while implementing
 
-(Filled in as sections land.)
+**Section 2.**
+- Only `spring-batch-core` is declared, not Boot's Batch starter: the starter's auto-configuration
+  creates the job repository whether or not `ledger.batch.enabled` is set, which would break "off
+  unless configured". `@EnableBatchProcessing` and `@EnableJdbcJobRepository` are on a
+  conditional configuration instead. `spring.batch.*` properties therefore do not exist.
+- V12 is 6.0.5's PostgreSQL script verbatim. The `ledger.batch.*` properties arrive with section 4.
+- `ArchitectureIT`'s rule on `batch` keeps `allowEmptyShould(true)` until the first class lands in
+  section 4.
