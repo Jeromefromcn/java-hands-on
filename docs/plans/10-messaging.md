@@ -598,7 +598,7 @@ longest gap for survivors and for orphaned partitions.
 
 ---
 
-## [ ] 14 · Decision records, roadmap and README
+## [x] 14 · Decision records, roadmap and README
 
 - `docs/decisions/10-messaging.md`, `docs/decisions/10-collateral-consistency.md`.
 - Roadmap: stage 10 ticked, its exercises checked; a reasoned-not-measured

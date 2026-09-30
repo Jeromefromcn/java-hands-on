@@ -45,7 +45,8 @@ Java 21 · Spring Boot · Maven multi-module · PostgreSQL · Redis · Kafka ·
 Spring Batch · Testcontainers · Micrometer / Prometheus / OpenTelemetry
 
 Modules: `domain` (plain Java, zero third-party dependencies) ·
-`application` · `adapter-persistence` · `adapter-web` · `batch` · `bootstrap`
+`application` · `adapter-persistence` · `adapter-web` · `adapter-messaging` · `batch` ·
+`bootstrap`
 
 ## Running it
 
