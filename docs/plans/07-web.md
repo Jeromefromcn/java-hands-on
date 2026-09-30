@@ -586,7 +586,7 @@ inside its transaction, right after `book`, until a latch is released.
 
 ---
 
-## [ ] 11 · The money invariant, end to end
+## [x] 11 · The money invariant, end to end
 
 **`bootstrap` `MoneyOverHttpIT`**
 - Reference data in `HKD`, `JPY` and `BHD`, with credit limits wide
