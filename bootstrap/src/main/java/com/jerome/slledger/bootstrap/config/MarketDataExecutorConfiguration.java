@@ -10,10 +10,6 @@ public class MarketDataExecutorConfiguration {
 
   @Bean(destroyMethod = "close")
   MarketDataPool marketDataPool(MarketDataExecutorProperties props) {
-    if (props.type() == MarketDataExecutorProperties.Type.VIRTUAL) {
-      throw new IllegalStateException(
-          "ledger.marketdata.executor.type=virtual arrives in section 8");
-    }
     return new MarketDataPool(props);
   }
 }

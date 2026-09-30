@@ -1,0 +1,11 @@
+Stage 08 · section 8 — platform pool against virtual executor (VirtualThroughputIT)
+
+400 tasks per round, each blocking 100 ms (a slow call to the source). 3 rounds each.
+Platform: core=max=8, queue=400. Virtual: max-concurrent=400 (the semaphore is the
+only bound). JDK 21.0.12, 4 CPUs.
+
+round 1: platform  5010 ms (  79 calls/s)   virtual   108 ms ( 3703 calls/s)
+round 2: platform  5006 ms (  79 calls/s)   virtual   105 ms ( 3809 calls/s)
+round 3: platform  5013 ms (  79 calls/s)   virtual   104 ms ( 3846 calls/s)
+
+best of 3: platform 5006 ms, virtual 104 ms (48.1x)

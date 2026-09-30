@@ -352,7 +352,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 8 · Virtual-thread executor and the throughput measurement
+## [x] 8 · Virtual-thread executor and the throughput measurement
 
 **`bootstrap`**
 - `market-data.executor.type=virtual`: `newThreadPerTaskExecutor` over a
@@ -372,7 +372,22 @@ Failure modes the spec implies but no exercise is *about*.
 **Acceptance**
 - `./mvnw clean verify` and `./mvnw verify -Pmeasure` are green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- **`MarketDataPool` is now two shapes in one class** rather than a second bean:
+  the same `execute`, `stats` and MDC wrapper, so callers and tests do not
+  branch on the type. The startup refusal from section 1 was removed.
+- **`policy` and `queue` are ignored under `virtual`**; only `max-concurrent`
+  bounds it, and a task with no permit is refused as `abort` refuses. In
+  `stats()` for the virtual shape, `poolSize` and `active` are the permits in
+  use, `largestPoolSize` is the peak of that, and `queued` is always 0.
+- The measurement is at the pool level (400 tasks, each blocking 100 ms), not
+  over HTTP: the variable is the executor, and an HTTP run adds Tomcat and the
+  stub's own threads to both sides. `QuotesIT` proves the two shapes answer
+  identically over HTTP.
+- Measured on this machine (JDK 21.0.12, 4 CPUs): platform pool of 8, 5006 ms
+  best of 3 (79 calls/s); virtual executor, 104 ms (3846 calls/s). The platform
+  figure is 400 / 8 x 100 ms, the pool size divided into the work; it is not a
+  surprise, it is arithmetic, and the virtual figure is one wait, not fifty.
 
 ---
 

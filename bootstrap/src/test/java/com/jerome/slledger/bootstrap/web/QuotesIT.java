@@ -62,6 +62,27 @@ class QuotesIT {
   }
 
   @Test
+  @DisplayName("the virtual executor answers exactly as the platform pool does")
+  void virtualExecutorGivesTheSameAnswer() {
+    try (StubPriceServer source = StubPriceServer.start()) {
+      source.price(HK_EQUITY, "41.30", "HKD");
+      source.answer(HK_EQUITY_2, new StubPriceServer.Json(404, "{}"));
+      source.price(US_EQUITY, "10.05", "USD");
+      String platform;
+      try (WebLedger ledger = WebLedger.start("--ledger.marketdata.base-url=" + source.baseUrl())) {
+        platform = get(ledger, HK_EQUITY, HK_EQUITY_2, US_EQUITY).getResponseBody();
+      }
+      try (WebLedger ledger =
+          WebLedger.start(
+              "--ledger.marketdata.base-url=" + source.baseUrl(),
+              "--ledger.marketdata.executor.type=virtual")) {
+        assertThat(get(ledger, HK_EQUITY, HK_EQUITY_2, US_EQUITY).getResponseBody())
+            .isEqualTo(platform);
+      }
+    }
+  }
+
+  @Test
   @DisplayName("more ISINs than the cap is a 400 and the source is never called")
   void overTheCap() {
     try (StubPriceServer source = StubPriceServer.start();
