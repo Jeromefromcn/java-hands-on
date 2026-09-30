@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.IntegrationEvent.MarginCallRaised;
 import com.jerome.slledger.application.messaging.IntegrationEvent.PriceUpdated;
+import com.jerome.slledger.application.revaluation.RevaluationRequests;
 import com.jerome.slledger.domain.accrual.FlatRate;
 import com.jerome.slledger.domain.instrument.Isin;
 import com.jerome.slledger.domain.loan.LoanPosition;
@@ -39,7 +40,47 @@ class ApplyPriceUpdateTest {
   private boolean storeAccepts = true;
 
   private final SecurityPrices prices = (security, price, version) -> storeAccepts;
-  private final SecurityPositions positionsOf = security -> List.copyOf(positions);
+  private int positionReads;
+  private final SecurityPositions positionsOf =
+      new SecurityPositions() {
+        @Override
+        public List<LoanPosition> openIn(Isin security) {
+          positionReads++;
+          return List.copyOf(positions);
+        }
+
+        @Override
+        public long countOpenIn(Isin security) {
+          return positions.size();
+        }
+      };
+  private final List<String> requested = new ArrayList<>();
+  private final RevaluationRequests requests =
+      new RevaluationRequests() {
+        @Override
+        public void request(Isin security, long priceVersion) {
+          requested.add(security.value() + "@" + priceVersion);
+        }
+
+        @Override
+        public List<Pending> pending(int limit) {
+          return List.of();
+        }
+
+        @Override
+        public java.util.OptionalLong currentPriceVersion(Isin security) {
+          return java.util.OptionalLong.empty();
+        }
+
+        @Override
+        public void markDone(Isin security, long priceVersion) {}
+
+        @Override
+        public void markSuperseded(Isin security, long priceVersion) {}
+
+        @Override
+        public void recordAttempt(Isin security, long priceVersion, int maxAttempts) {}
+      };
   private final Outbox outbox = outboxed::add;
   private final DomainEvents events = published::add;
 
@@ -138,5 +179,54 @@ class ApplyPriceUpdateTest {
         .isInstanceOf(IllegalStateException.class);
     assertThat(outboxed).isEmpty();
     assertThat(published).isEmpty();
+  }
+
+  @Test
+  @DisplayName("at the inline limit the update revalues inline, as before")
+  void atTheLimitItIsInline() {
+    positions.add(position("P-1", 1_000, "50000.00", HKD));
+    positions.add(position("P-2", 1_000, "50000.00", HKD));
+
+    PriceApplication result =
+        new ApplyPriceUpdate(prices, positionsOf, outbox, events, CLOCK, 2, requests)
+            .apply(update("60.00", HKD, 3));
+
+    assertThat(result).isEqualTo(new PriceApplication(true, 2, 0, false));
+    assertThat(positionReads).isEqualTo(1);
+    assertThat(requested).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "one position above the limit the price is applied, a request is recorded, none is read")
+  void aboveTheLimitItDefersToTheBatch() {
+    positions.add(position("P-1", 1_000, "50000.00", HKD));
+    positions.add(position("P-2", 1_000, "50000.00", HKD));
+    positions.add(position("P-3", 1_000, "50000.00", HKD));
+
+    PriceApplication result =
+        new ApplyPriceUpdate(prices, positionsOf, outbox, events, CLOCK, 2, requests)
+            .apply(update("60.00", HKD, 3));
+
+    assertThat(result).isEqualTo(new PriceApplication(true, 0, 0, true));
+    assertThat(requested).containsExactly(ISIN.value() + "@3");
+    assertThat(positionReads).isZero();
+    assertThat(outboxed).isEmpty();
+    assertThat(published).hasSize(1); // the caches still see the new price
+  }
+
+  @Test
+  @DisplayName("a duplicate or stale update records no request, however many positions there are")
+  void ignoredUpdateRequestsNothing() {
+    storeAccepts = false;
+    positions.add(position("P-1", 1_000, "50000.00", HKD));
+
+    PriceApplication result =
+        new ApplyPriceUpdate(prices, positionsOf, outbox, events, CLOCK, 0, requests)
+            .apply(update("60.00", HKD, 3));
+
+    assertThat(result.applied()).isFalse();
+    assertThat(requested).isEmpty();
+    assertThat(positionReads).isZero();
   }
 }

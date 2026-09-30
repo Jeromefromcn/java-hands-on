@@ -9,4 +9,7 @@ public interface SecurityPositions {
 
   /** Every position in {@code security} that is not closed. Read only; nothing here is changed. */
   List<LoanPosition> openIn(Isin security);
+
+  /** How many positions {@link #openIn} would return, without reading them. */
+  long countOpenIn(Isin security);
 }

@@ -27,4 +27,9 @@ public class JpaSecurityPositions implements SecurityPositions {
         .map(LoanPositionMapper::toDomain)
         .toList();
   }
+
+  @Override
+  public long countOpenIn(Isin security) {
+    return jpa.countByIsinAndStatusNot(security.value(), LoanStatus.CLOSED);
+  }
 }

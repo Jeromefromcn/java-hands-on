@@ -1,0 +1,14 @@
+Stage 11, section 10: revaluing one security with 50000 open positions, each 1,000 shares of a
+41.26 HKD security, collateral 1,000 HKD (every position is short, so every one raises a
+margin call and an outbox row). Postgres 17 in a container on this machine, JDK 21, default
+heap. Elapsed time and peak live heap come from separate runs (forcing collections to read
+the live heap slows the run being sampled).
+
+inline, the read alone (positions.openIn in one transaction) : 1403 ms; the list, held :
+    19807 KiB (405 bytes per position)
+inline, the whole update (read, decide, 50000 outbox rows, one transaction, the security's
+    row locked throughout)                                    : 14688 ms; peak live heap
+    65843 KiB
+job, chunks of 500 (read, decide, 50000 outbox rows and 50000 markers, one transaction per
+    chunk, no lock held across chunks)                       : 24755 ms; peak live heap
+    2427 KiB

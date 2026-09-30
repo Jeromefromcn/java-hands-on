@@ -278,7 +278,7 @@ test in the section named.
 
 ---
 
-## [ ] 10 · Revaluation job and the inline limit
+## [x] 10 · Revaluation job and the inline limit
 
 **Change**
 - V14: `revaluation_request(isin, price_version, status, created_at)`;
@@ -516,3 +516,22 @@ test in the section named.
   configuration's). A `@ConditionalOnBean(DistributedLock)` on it evaluated too early, because
   component-scanned configuration classes are read in file-name order (`BatchConfiguration` before
   `CacheConfiguration`); a property condition does not depend on that order.
+
+**Section 10.**
+- The first scale measurement compared a read with a whole job and told nothing. The final one
+  measures three things on 50,000 positions: the inline read alone (1.4 s, 19.8 MB held, 405 bytes
+  per position), the whole inline update (14.7 s in one transaction with the security's row locked
+  throughout, 65.8 MB peak live heap) and the job (24.8 s, 2.4 MB peak live heap, no lock across
+  chunks). The job is slower by 1.7 times (a marker insert per call and a commit per chunk); what it
+  buys is the bound on memory and on how long a price update of that security is blocked.
+- `SecurityPositions` gained `countOpenIn`, so it is no longer a functional interface and
+  `ApplyPriceUpdateTest` implements it as a class. `PriceApplication` gained `deferred`; its
+  three-argument constructor stays.
+- `ApplyPriceUpdate` defers only if a `RevaluationLauncher` bean exists (batch and messaging both on).
+  Without one the limit is ignored, because a request nobody dispatches would leave positions
+  unrevalued for good.
+- `loan_position (isin, id)` (V14) is the revaluation reader's index; the inline path's
+  `findByIsin...` had needed the same and had no index either.
+- The composition-over-template verdict is written to `docs/decisions/02-domain-model.md` here, as the
+  plan required, with the count of jobs it was checked against; section 13 adds the retention job to
+  that count.

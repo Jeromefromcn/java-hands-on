@@ -52,7 +52,8 @@ public class JdbcAccrualCandidates implements AccrualCandidates {
 
   private static final String ACTIVE = active("");
 
-  private static final String COLUMNS =
+  /** Shared with the revaluation reader: the same row, mapped by the same code. */
+  public static final String COLUMNS =
       "SELECT p.id, p.counterparty_id, p.isin, p.original_quantity, p.outstanding_quantity,"
           + " p.status, p.collateral_amount, p.collateral_currency, p.rule_type, p.flat_rate,"
           + " s.market_price_amount, s.market_price_currency";
@@ -141,7 +142,7 @@ public class JdbcAccrualCandidates implements AccrualCandidates {
     return slices;
   }
 
-  private static AccrualCandidate candidate(ResultSet rs) throws SQLException {
+  public static AccrualCandidate candidate(ResultSet rs) throws SQLException {
     String id = rs.getString("id");
     String counterparty = rs.getString("counterparty_id");
     String isin = rs.getString("isin");

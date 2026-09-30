@@ -55,6 +55,31 @@ final class BatchLedger implements AutoCloseable {
   }
 
   /**
+   * The application with batch <em>and</em> messaging on (the revaluation job raises margin calls
+   * through the outbox), against the shared Kafka, with the relay and the consumers off: the tests
+   * read the outbox table, not the topic.
+   */
+  static BatchLedger startWithOutbox(String... extraArgs) {
+    com.jerome.slledger.adapter.messaging.testing.SharedKafka.start();
+    for (String topic :
+        List.of(
+            com.jerome.slledger.application.messaging.Topics.PRICE_UPDATES,
+            com.jerome.slledger.application.messaging.Topics.MARGIN_CALLS,
+            com.jerome.slledger.application.messaging.Topics.POSITION_EVENTS)) {
+      com.jerome.slledger.adapter.messaging.testing.SharedKafka.ensureTopic(topic, 1);
+    }
+    List<String> args = new ArrayList<>();
+    args.add("--ledger.messaging.enabled=true");
+    args.add(
+        "--ledger.messaging.bootstrap-servers="
+            + com.jerome.slledger.adapter.messaging.testing.SharedKafka.bootstrapServers());
+    args.add("--ledger.messaging.relay-enabled=false");
+    args.add("--ledger.messaging.consumers-enabled=false");
+    args.addAll(List.of(extraArgs));
+    return start(args.toArray(String[]::new));
+  }
+
+  /**
    * A second application instance on the same database as {@code first} (and whatever Redis the
    * arguments name): its own context, connection pool, job repository and lock client, sharing the
    * data. Not a second JVM: two contexts in one JVM share static state, which the tests avoid.
@@ -149,6 +174,9 @@ final class BatchLedger implements AutoCloseable {
   void resetLedger() {
     jdbc.sql("DELETE FROM accrual_entry").update();
     jdbc.sql("DELETE FROM batch_skip").update();
+    jdbc.sql("DELETE FROM outbox_event").update();
+    jdbc.sql("DELETE FROM margin_call_marker").update();
+    jdbc.sql("DELETE FROM revaluation_request").update();
     jdbc.sql("DELETE FROM loan_trade").update();
     jdbc.sql("DELETE FROM loan_position").update();
   }

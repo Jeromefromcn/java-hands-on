@@ -24,12 +24,16 @@ import com.jerome.slledger.application.messaging.SecurityPositions;
 import com.jerome.slledger.application.messaging.SecurityPrices;
 import com.jerome.slledger.application.messaging.StoredOutbox;
 import com.jerome.slledger.application.messaging.Topics;
+import com.jerome.slledger.application.revaluation.RevaluationLauncher;
+import com.jerome.slledger.application.revaluation.RevaluationRequests;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -79,8 +83,15 @@ public class MessagingConfiguration {
       SecurityPositions positions,
       Outbox outbox,
       DomainEvents events,
-      Clock clock) {
-    return new ApplyPriceUpdate(prices, positions, outbox, events, clock);
+      Clock clock,
+      RevaluationRequests requests,
+      ObjectProvider<RevaluationLauncher> batch,
+      @Value("${ledger.revaluation.inline-limit:1000}") long inlineLimit) {
+    // Above the limit the update leaves the revaluation to the batch, which exists only when batch
+    // is on. Without it, a security of any size is revalued inline, as before stage 11.
+    return batch.getIfAvailable() == null
+        ? new ApplyPriceUpdate(prices, positions, outbox, events, clock)
+        : new ApplyPriceUpdate(prices, positions, outbox, events, clock, inlineLimit, requests);
   }
 
   @Bean

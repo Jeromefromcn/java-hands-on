@@ -202,3 +202,39 @@ skeleton rather than reflecting an existing type relationship — but this is
 exactly the kind of judgement that looks obvious in the abstract and wrong
 against the first real batch. `ROADMAP.md` stage 11 carries a pointer back to
 this paragraph so the claim gets checked rather than forgotten.
+
+### Checked in stage 11: the composition call stands, for a reason the tentative one missed
+
+Stage 11 wrote the accrual and the revaluation (and, after them, a reconciliation and a retention
+job) on Spring Batch. What the code showed, against the paragraph above:
+
+- **The skeleton is not a class.** "Iterate active positions, compute, book, handle failures" is
+  three things in this code, and none of them is a base class. The iteration is `KeysetReader`, a
+  final class that both jobs use unchanged and that differs between them only in the page function it
+  is given. The failure handling is `StepDefaults.faultTolerant`, a static function that takes a step
+  builder, applies the skip and retry rules and hands it back. The rest (what is read, what is
+  decided, what is written) is each job's own reader query, processor and writer.
+- **What actually differs is more than what is shared.** The accrual decides a fee entry for every
+  item and writes it with `ON CONFLICT DO NOTHING`; the revaluation decides a margin call or
+  nothing (returning `null` filters the item out of the chunk) and writes an outbox row behind a
+  marker. Reading differs (a date's active positions in partition slices, against one security's),
+  the parameters differ (`businessDate`, against `isin` and `priceVersion`) and so does what
+  idempotence means. As a template the two would share a loop and need four abstract hooks
+  (`read`, `decide`, `write`, `scope`); as composed parts they share two small classes and nothing
+  is overridden. The shared code is about sixty lines.
+- **The framework had already answered the question.** Spring Batch's `Step` is the fixed algorithm
+  and `ItemReader`, `ItemProcessor` and `ItemWriter` are the pluggable steps, injected. A
+  `BaseBatchJob` above it would have been a template over a template. The tentative paragraph
+  imagined the choice as "a `Function` per step or an abstract method per step"; the first real
+  batch is a third thing, a builder passed through a function, and it was not in the paragraph.
+- **The two other jobs do not have the shape.** The reconciliation is a load step and a compare
+  step over two inputs; the retention job is a chain of purges that are tasklets, not chunks. A
+  template built from the first two batches would have fitted two jobs of four and been bent, or
+  left, for the others.
+
+What composition cost: each job repeats about forty lines of wiring (a job builder, a parameters
+validator, a listener, a step builder, and its step-scoped reader, processor and writer beans).
+That is boilerplate a helper could hold, not a hierarchy, and it was left as it is because the two
+copies differ in every line that is not boilerplate. The tentative call, **composed strategies over
+an inherited template**, stands; the reason is the framework and the data, not the codebase's habit
+of having no hierarchies.
