@@ -1,0 +1,34 @@
+Stage 07 · section 10 — two requests, one Idempotency-Key (IdempotencyRaceIT)
+
+The first commits
+  pg_stat_activity while the first was held:
+    {wait_event_type=Lock, wait_event=transactionid, state=active, query=insert into loan_trade (counterparty_id,direction,idempotenc}
+  first:  201 CREATED 
+  second: 201 CREATED Idempotent-Replayed=true
+  second's request, sent to first seen blocked:  29 ms
+  second's request, sent to answered:            140 ms (includes the hold)
+  same body: true
+  loan_position rows: 1, loan_trade rows: 1
+
+The first rolls back
+  pg_stat_activity while the first was held:
+    {wait_event_type=Lock, wait_event=transactionid, state=active, query=insert into loan_trade (counterparty_id,direction,idempotenc}
+  first:  500 INTERNAL_SERVER_ERROR (held booking told to roll back)
+  second: 201 CREATED Idempotent-Replayed=null
+  second's request, sent to first seen blocked:  19 ms
+  second's request, sent to answered:            58 ms (includes the hold)
+  same body: false
+  loan_position rows: 1, loan_trade rows: 1
+
+How the hold is made: HoldingTradeLedger (test-only) wraps the real ledger and
+parks the first caller right after its INSERT INTO loan_trade, inside its open
+transaction, until the test releases it. The second request is sent only after
+the first is parked; the test then polls pg_stat_activity (bounded, 10 s) until
+a backend waits on Lock/transactionid, which is the second INSERT blocked on
+the first's uncommitted entry in the unique index.
+
+Both scenarios passed 10 repetitions each (@RepeatedTest(10)); the numbers
+above are from the first repetition. "sent to answered" includes the time the
+test held the first request, so it measures the test, not the ledger. What it
+shows is the cost the decision record names: for the whole hold, the second
+request occupied a Tomcat worker and a pooled connection while doing nothing.

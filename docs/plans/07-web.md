@@ -548,7 +548,7 @@ uses two types instead.
 
 ---
 
-## [ ] 10 · Idempotency races
+## [x] 10 · Idempotency races
 
 **`bootstrap` `IdempotencyRaceIT`**, against a running server. A test-only
 `TradeLedger` decorator, registered by `LedgerApp.startWeb`'s extra
@@ -573,6 +573,16 @@ inside its transaction, right after `book`, until a latch is released.
 **Acceptance**
 - Both scenarios pass ten runs in a row (`@RepeatedTest(10)`).
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- The rolled-back first request answers `500 internal`: the test's
+  decorator throws an `IllegalStateException`, which is exactly an
+  unexpected failure.
+- One application context serves all 20 repetitions; tables are emptied
+  between them. Starting one per repetition would have cost about 2 s each
+  for no extra coverage.
+- Polling `pg_stat_activity` parks 5 ms between queries, bounded at 10 s.
+  It waits for a condition; nothing is sequenced by time.
 
 ---
 
