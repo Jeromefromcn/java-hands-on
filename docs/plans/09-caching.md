@@ -323,7 +323,7 @@ test in the section named.
 
 ---
 
-## [ ] 8 · Fencing token and the pause
+## [x] 8 · Fencing token and the pause
 
 **`adapter-persistence`**
 - `V5__write_fence.sql`: `write_fence(resource text primary key, token bigint
@@ -347,6 +347,20 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green (Flyway validates V5).
+
+**Found while implementing**
+- **`JdbcWriteFence` checks for a transaction by hand instead of `@Transactional(MANDATORY)`.**
+  `ArchitectureIT` keeps `@Transactional` in `application`; the rule caught the adapter, and
+  the adapter now throws `IllegalTransactionStateException` outside a transaction, which is
+  what `MANDATORY` does.
+- **Section 4's demo configuration was picked up by the application's component scan**
+  (`ApplicationScanIT` failed). Section 4 had been checked without the failsafe ITs. It is
+  no longer a `@Configuration`, like the stage 5 demos, and every section is now checked
+  with the whole `./mvnw clean verify`.
+- The paused holder is a real thread parked on a latch; the lock's expiry is forced with
+  `PEXPIRE 1`. Both tokens in the evidence are read from the leases, not derived.
+- `refusedAdmitRollsBackTheWriteThatCameBeforeIt` writes first and admits second, the order
+  a careless caller would use; the whole transaction still rolls back.
 
 ---
 

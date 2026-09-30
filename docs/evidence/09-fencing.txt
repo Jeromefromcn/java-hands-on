@@ -1,0 +1,8 @@
+Stage 9, section 8: two holders, one non-idempotent write (total = total + 100).
+Holder A takes the lock and pauses; its lock expires; holder B takes it and writes;
+A resumes and writes. The pause is a latch in the test, standing in for a stop-the-world
+pause; the real-process version is in labs/09-caching. Real Redis and Postgres.
+One run should add 100 once.
+
+without a fence : total = 200   (A's token 1, B's token 2; A's write wrote)
+with a fence    : total = 100   (A's token 1, B's token 2; A's write refused: StaleFencingTokenException)
