@@ -125,7 +125,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 2 · `PriceFanOut`, and the two `CompletableFuture` traps
+## [x] 2 · `PriceFanOut`, and the two `CompletableFuture` traps
 
 **`application` `PriceFanOut`**
 - `List<QuoteOutcome> quote(List<Isin>)`, with `QuoteOutcome` a sealed type:
@@ -156,6 +156,19 @@ Failure modes the spec implies but no exercise is *about*.
 
 **Acceptance**
 - All pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- `PriceFanOut` delegates to `QuotePrice`, so each task keeps stage 7's
+  security lookup and currency check. Its timeout is `Duration`-based and
+  wired in section 3.
+- The added kind `ERROR` covers unexpected failures, logged with the cause and
+  returned without it. `OverloadedException` is thrown only when every ISIN
+  was refused.
+- `reproducesCommonPoolUsedWhenNoExecutorGiven` is skipped (assumption) when
+  the common pool's parallelism is 1: `supplyAsync` then silently uses a
+  thread per task. This machine has 4 CPUs, so it runs.
+- `application` has no SLF4J; the class logs through `commons-logging` (Spring's
+  `spring-jcl`), which Boot routes to the same backend and MDC.
 
 ---
 
