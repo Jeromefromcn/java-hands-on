@@ -1,0 +1,24 @@
+Stage 08 · section 5 — the four rejection policies (RejectionPolicyMatrixTest)
+
+Load, identical for every policy: core=1, max=1, queue=1; six price requests submitted in
+one fan-out; a source that holds each call for 500 ms and then fails (its "read timeout");
+the fan-out's batch deadline is 300 ms. Outcome counts are per kind. "executed on" lists
+the distinct threads that actually ran a call to the source. "elapsed" is how long the
+fan-out call took on the submitting thread.
+
+ABORT           outcomes={TIMED_OUT=2, OVERLOADED=4} priced=0 rejected(counter)=4
+                executed on=[market-data-1]
+                elapsed=307 ms
+
+CALLER_RUNS     outcomes={UNAVAILABLE=4, TIMED_OUT=2} priced=0 rejected(counter)=2
+                executed on=[main, market-data-1]
+                elapsed=1315 ms
+
+DISCARD         outcomes={TIMED_OUT=6} priced=0 rejected(counter)=4
+                executed on=[market-data-1]
+                elapsed=300 ms
+
+DISCARD_OLDEST  outcomes={TIMED_OUT=6} priced=0 rejected(counter)=4
+                executed on=[market-data-1]
+                elapsed=300 ms
+

@@ -1,0 +1,16 @@
+Stage 08 · section 5 — CallerRuns pushing the load back onto Tomcat (CallerRunsIT)
+
+Setup for both runs: server.tomcat.threads.max=4, executor core=1 max=1 queue=1,
+read-timeout=0, a source that hangs every call. Four GET /quotes requests (one ISIN
+each) are sent, then GET /loans with a 2 s client timeout.
+
+1. policy=caller-runs.
+   Requests that reached the source: 3 (1 on the market-data worker, 2 on Tomcat
+   workers). GET /loans: HttpTimeoutException after 2 s, no worker was free.
+   Tomcat workers whose stack contains RestMarketPriceSource.priceOf: [http-nio-auto-2-exec-1, http-nio-auto-2-exec-3]
+   (their own request threads, executing the task the executor refused.)
+
+
+2. policy=abort, same setup.
+   Two quotes answered 503 (283 ms after sending); two are still waiting on the source.
+   GET /loans: 200 in 293 ms.

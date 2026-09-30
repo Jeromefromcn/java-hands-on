@@ -243,7 +243,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 5 · The four rejection policies
+## [x] 5 · The four rejection policies
 
 **`bootstrap` `RejectionPolicyIT`** (parameterised over the four policies)
 - Same load each time: `core=1, max=1, queue=1`, hanging stub, 6 submissions
@@ -270,7 +270,20 @@ Failure modes the spec implies but no exercise is *about*.
 - All four rows are in evidence; the `caller-runs` reproduction passes.
 - `./mvnw clean verify` is green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- **Two test classes, two evidence files.** `RejectionPolicyMatrixTest` runs the
+  four policies through `PriceFanOut` with a fake source (no server, so the
+  executing thread is recorded per call); `CallerRunsIT` reproduces the
+  Tomcat starvation over HTTP and contrasts it with `abort`. Evidence:
+  `08-rejection-policies.txt` and `08-caller-runs-starvation.txt`.
+- **Default policy stays `abort`.** Measured: `abort` refuses four of six at
+  once (307 ms for the batch) and names them `OVERLOADED`; `caller-runs` took
+  1315 ms because the submitting thread ran two source calls itself, outside
+  the 300 ms deadline; `discard` and `discard-oldest` returned six `TIMED_OUT`,
+  so a dropped task cannot be told from a slow source. Over HTTP, `caller-runs`
+  left `GET /loans` timing out at 2 s, `abort` answered it `200` in 293 ms.
+- The counter for `discard` and `discard-oldest` is 4, so a rejection metric
+  still sees the drops; only the caller does not.
 
 ---
 
