@@ -152,7 +152,7 @@ test in the section named.
 
 ---
 
-## [ ] 4 · The accrual job: chunks, parameters, idempotency, run summary
+## [x] 4 · The accrual job: chunks, parameters, idempotency, run summary
 
 **Change**
 - `batch.support.KeysetReader` (saves the last key in the context),
@@ -411,3 +411,17 @@ test in the section named.
   trade with the position, so this only matters to fixtures, which now insert trades.
 - `AccrualRuleColumns` became public (`toRule`) so the accrual adapter reuses the one place that
   turns a stored rule into a `FlatRate`, instead of a second copy that could disagree.
+
+**Section 4.**
+- A step-scoped bean is proxied by class, so its declared type cannot be a final class: the reader
+  bean is declared as `ItemStreamReader<AccrualCandidate>` and injected by qualifier.
+- The writer's running totals (`accrual.inserted`, `accrual.alreadyPresent`) live in the step's
+  execution context, so they are saved with each chunk and continue across the executions of one
+  instance: after a restart the second execution's context holds the total of both.
+- `FailurePoint` (batch.support) is a production hook with a no-op default, as the saga's was, so
+  section 5 can fail a chunk between the reader advancing and the commit. It is in this commit
+  because the writer calls it.
+- The `ArchitectureIT` rule on `batch` no longer needs `allowEmptyShould(true)` but keeps it: an
+  empty selection is still legitimate for a rule about what a package must not depend on.
+- The run-summary listener counts only top-level steps. A partitioned step's manager already holds
+  its workers' sums, so counting the worker rows would double them (used from section 8).

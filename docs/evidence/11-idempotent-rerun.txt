@@ -1,0 +1,9 @@
+Stage 11, section 4: the same business date launched twice (25 active positions).
+Real Postgres; the job repository is the ledger's own database.
+
+first launch  : COMPLETED, 25 entries booked (inserted 25, already present 0)
+second launch : ALREADY_DONE, batch_job_execution rows = 1, accrual_entry rows = 25
+
+a second instance of the same date (identifying rerun=1):
+rerun         : COMPLETED, inserted 0, already present 25, accrual_entry rows = 25,
+                batch_job_instance rows = 2

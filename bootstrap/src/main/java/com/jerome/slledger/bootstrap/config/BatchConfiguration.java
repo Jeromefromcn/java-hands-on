@@ -1,14 +1,26 @@
 package com.jerome.slledger.bootstrap.config;
 
+import com.jerome.slledger.application.accrual.AccrualLedger;
+import com.jerome.slledger.application.accrual.BookAccruals;
+import com.jerome.slledger.application.accrual.RecordSkip;
+import com.jerome.slledger.application.accrual.SkippedItems;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
 import com.jerome.slledger.application.batch.RunSummary;
+import com.jerome.slledger.batch.accrual.AccrualJobConfiguration;
+import com.jerome.slledger.batch.accrual.BatchSettings;
+import com.jerome.slledger.batch.accrual.RunAccrual;
+import com.jerome.slledger.batch.support.FailurePoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.EnableJdbcJobRepository;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /**
  * Spring Batch and the ledger's jobs. Only present when {@code ledger.batch.enabled=true}.
@@ -21,6 +33,8 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "ledger.batch", name = "enabled", havingValue = "true")
 @EnableBatchProcessing
 @EnableJdbcJobRepository(dataSourceRef = "dataSource", transactionManagerRef = "transactionManager")
+@EnableConfigurationProperties(BatchProperties.class)
+@Import(AccrualJobConfiguration.class)
 public class BatchConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger("com.jerome.slledger.batch.runs");
@@ -41,5 +55,39 @@ public class BatchConfiguration {
             summary.skipped(),
             summary.commits(),
             summary.rollbacks());
+  }
+
+  @Bean
+  BatchSettings batchSettings(BatchProperties properties) {
+    return new BatchSettings(
+        properties.chunkSize(),
+        properties.skipLimit(),
+        properties.retryLimit(),
+        properties.partitionScheme(),
+        properties.partitions(),
+        properties.workerThreads());
+  }
+
+  @Bean
+  BookAccruals bookAccruals(AccrualLedger ledger) {
+    return new BookAccruals(ledger);
+  }
+
+  @Bean
+  RecordSkip recordSkip(SkippedItems skipped) {
+    return new RecordSkip(skipped);
+  }
+
+  @Bean
+  RunAccrual runAccrual(
+      JobOperator operator,
+      @org.springframework.beans.factory.annotation.Qualifier("dailyAccrual") Job dailyAccrual) {
+    return new RunAccrual(operator, dailyAccrual);
+  }
+
+  /** Nothing fails on purpose in production; a test supplies its own as {@code @Primary}. */
+  @Bean
+  FailurePoint failurePoint() {
+    return FailurePoint.NONE;
   }
 }

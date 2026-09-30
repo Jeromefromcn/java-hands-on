@@ -1,0 +1,4 @@
+Stage 11, section 4: job instances are identified by their identifying parameters.
+
+instance 6  dailyAccrual  businessDate (java.time.LocalDate) = 2026-09-30  identifying=Y
+instance 7  dailyAccrual  businessDate (java.time.LocalDate) = 2026-09-29  identifying=Y
