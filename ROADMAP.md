@@ -247,15 +247,15 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **REST 設計**：五個用例的 endpoint。開倉是 `POST /loans`，歸還是什麼？（`POST /loans/{id}/returns` vs `PATCH /loans/{id}`——選一個並寫下理由）
-- [ ] **冪等鍵**：開倉帶 `Idempotency-Key` header，重複請求返回同一結果而不是建兩個頭寸。用 Redis 或資料庫唯一約束實現，**寫下併發同時到達時的競態處理**
-- [ ] **Bean Validation**：`@Valid` + 自定義約束（ISIN 校驗碼、費率範圍）；分組驗證（開倉 vs 歸還規則不同）
-- [ ] **全局異常處理**：`@RestControllerAdvice` 統一返回 RFC 7807 `ProblemDetail`。領域異常 → 4xx，未預期異常 → 5xx 且不洩漏堆疊
-- [ ] **Jackson**：`BigDecimal` 序列化成字串而不是數字（JS 精度問題），`LocalDate` 格式統一。**造一次前後端精度丟失**再修
-- [ ] **分頁**：`Pageable` + 總數查詢。造 50 萬行，對比 offset 分頁在深頁的劣化，實現一次 cursor 分頁，貼兩組耗時
-- [ ] **Filter vs Interceptor vs AOP**：三層各打一條日誌，打印執行順序，畫圖。寫下「traceId 該在哪一層生成」（這決定階段 12 的 tracing 能不能串起來）
-- [ ] **`RestClient`**：調用外部行情源。設超時（連接 / 讀取分別設）、故意讓對方 hang 住，觀察沒設超時時線程池被打爆的過程——**這是階段 11 熔斷的動機，先把痛感造出來**
-- [ ] **OpenAPI**：springdoc 生成文檔；寫一條 contract 測試驗證實際響應符合 schema
+- [x] **REST 設計**：五個用例的 endpoint。開倉是 `POST /loans`，歸還是什麼？（`POST /loans/{id}/returns` vs `PATCH /loans/{id}`——選一個並寫下理由）
+- [x] **冪等鍵**：開倉帶 `Idempotency-Key` header，重複請求返回同一結果而不是建兩個頭寸。用 Redis 或資料庫唯一約束實現，**寫下併發同時到達時的競態處理**
+- [x] **Bean Validation**：`@Valid` + 自定義約束（ISIN 校驗碼、費率範圍）；分組驗證（開倉 vs 歸還規則不同）
+- [x] **全局異常處理**：`@RestControllerAdvice` 統一返回 RFC 7807 `ProblemDetail`。領域異常 → 4xx，未預期異常 → 5xx 且不洩漏堆疊
+- [x] **Jackson**：`BigDecimal` 序列化成字串而不是數字（JS 精度問題），`LocalDate` 格式統一。**造一次前後端精度丟失**再修
+- [x] **分頁**：`Pageable` + 總數查詢。造 50 萬行，對比 offset 分頁在深頁的劣化，實現一次 cursor 分頁，貼兩組耗時
+- [x] **Filter vs Interceptor vs AOP**：三層各打一條日誌，打印執行順序，畫圖。寫下「traceId 該在哪一層生成」（這決定階段 12 的 tracing 能不能串起來）
+- [x] **`RestClient`**：調用外部行情源。設超時（連接 / 讀取分別設）、故意讓對方 hang 住，觀察沒設超時時線程池被打爆的過程——**這是階段 11 熔斷的動機，先把痛感造出來**
+- [x] **OpenAPI**：springdoc 生成文檔；寫一條 contract 測試驗證實際響應符合 schema
 
 **口頭驗收**：講清 Filter / Interceptor / AOP 各自能拿到什麼、拿不到什麼，以及你在本項目裏怎麼分工。
 
@@ -484,7 +484,7 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 | B | 4 IoC 容器 | ☑ | ☑ | ☐ |
 | B | 5 AOP 與事務 | ☑ | ☑ | ☐ |
 | B | 6 持久層 | ☑ | ☑ | ☐ |
-| B | 7 Web 層 | ☐ | ☐ | ☐ |
+| B | 7 Web 層 | ☑ | ☑ | ☐ |
 | C | 8 併發 | ☐ | ☐ | ☐ |
 | C | 9 快取 | ☐ | ☐ | ☐ |
 | C | 10 訊息 | ☐ | ☐ | ☐ |
