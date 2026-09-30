@@ -927,7 +927,7 @@ Evidence: `docs/evidence/06-explain.txt`, holding the three plans in full.
 
 ---
 
-## [ ] 15 · Exercise 9 — pool exhaustion
+## [x] 15 · Exercise 9 — pool exhaustion
 
 **`PoolExhaustionIT`** (`bootstrap`)
 - Settings: `maximum-pool-size=2`, `connection-timeout=1000`.
@@ -947,6 +947,15 @@ from `Runtime.availableProcessors()`.
 **Acceptance**
 - The test passes.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The third caller fails before any use-case code runs.** The failure is
+  `CannotCreateTransactionException` at transaction begin: `JpaTransactionManager`
+  takes the connection when the transaction starts, not at the first
+  statement. Its root cause is `SQLTransientConnectionException`.
+- **Each caller returns against its own position.** Two holders updating one
+  row would wait on each other's row lock while holding the latch, and would
+  deadlock the test instead of exhausting the pool.
 
 ---
 

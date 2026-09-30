@@ -1,0 +1,11 @@
+# Stage 6, exercise 9: pool exhaustion (PoolExhaustionIT)
+# Two TransactionTemplate transactions each run ReturnPositionOnce.apply and hold, a third asks for a connection.
+
+cores (Runtime.availableProcessors)=4, JDK 21.0.12+8-LTS
+maximum-pool-size=2, connection-timeout=1000 ms
+active connections while two transactions held: 2
+third caller waited 1010 ms, then:
+  org.springframework.transaction.CannotCreateTransactionException
+  root cause java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 1000ms (total=2, active=2, idle=0, waiting=0)
+active connections after release: 0
+outstanding after: P1=90 P2=90 P3=100
