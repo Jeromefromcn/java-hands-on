@@ -5,10 +5,14 @@ import com.jerome.slledger.application.accrual.BookAccruals;
 import com.jerome.slledger.application.accrual.RecordSkip;
 import com.jerome.slledger.application.accrual.SkippedItems;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
+import com.jerome.slledger.application.batch.FencedRun;
 import com.jerome.slledger.application.batch.RunSummary;
+import com.jerome.slledger.application.cache.DistributedLock;
+import com.jerome.slledger.application.cache.WriteFence;
 import com.jerome.slledger.batch.accrual.AccrualJobConfiguration;
 import com.jerome.slledger.batch.accrual.BatchSettings;
 import com.jerome.slledger.batch.accrual.RunAccrual;
+import com.jerome.slledger.batch.accrual.RunDailyAccrual;
 import com.jerome.slledger.batch.support.FailurePoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,8 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.EnableJdbcJobRepository;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -69,8 +75,8 @@ public class BatchConfiguration {
   }
 
   @Bean
-  BookAccruals bookAccruals(AccrualLedger ledger) {
-    return new BookAccruals(ledger);
+  BookAccruals bookAccruals(AccrualLedger ledger, WriteFence fence) {
+    return new BookAccruals(ledger, fence);
   }
 
   @Bean
@@ -80,9 +86,21 @@ public class BatchConfiguration {
 
   @Bean
   RunAccrual runAccrual(
-      JobOperator operator,
-      @org.springframework.beans.factory.annotation.Qualifier("dailyAccrual") Job dailyAccrual) {
-    return new RunAccrual(operator, dailyAccrual);
+      JobOperator operator, @Qualifier("dailyAccrual") Job dailyAccrual, JobRepository repository) {
+    return new RunAccrual(operator, dailyAccrual, repository);
+  }
+
+  /**
+   * Only with a lock: the cutover must not run on two instances, and without Redis an instance
+   * cannot know whether another is running. The lock is the cache configuration's, so it is present
+   * exactly when {@code ledger.cache.enabled} is (a property, not a bean condition: a bean
+   * condition depends on the order configuration classes are read in).
+   */
+  @Bean
+  @ConditionalOnProperty(prefix = "ledger.cache", name = "enabled", havingValue = "true")
+  RunDailyAccrual runDailyAccrual(
+      RunAccrual accrual, DistributedLock lock, BatchProperties properties) {
+    return new RunDailyAccrual(accrual, new FencedRun(lock, properties.lockTtl()));
   }
 
   /** Nothing fails on purpose in production; a test supplies its own as {@code @Primary}. */

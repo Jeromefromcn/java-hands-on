@@ -39,6 +39,26 @@ public class JdbcWriteFence implements WriteFence {
   }
 
   @Override
+  public void verify(String resource, long token) {
+    if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+      throw new IllegalTransactionStateException(
+          "The write fence must be verified inside the transaction of the write it guards");
+    }
+    // FOR SHARE: verifiers do not block each other, and an admit (an UPDATE of this row) waits for
+    // the ones in flight, so a token cannot be overtaken between its check and its commit.
+    boolean current =
+        jdbc.sql("SELECT token FROM write_fence WHERE resource = ? FOR SHARE")
+            .param(resource)
+            .query(Long.class)
+            .optional()
+            .map(stored -> stored <= token)
+            .orElse(false);
+    if (!current) {
+      throw new StaleFencingTokenException(resource, token);
+    }
+  }
+
+  @Override
   public void admit(String resource, long token) {
     if (!TransactionSynchronizationManager.isActualTransactionActive()) {
       throw new IllegalTransactionStateException(

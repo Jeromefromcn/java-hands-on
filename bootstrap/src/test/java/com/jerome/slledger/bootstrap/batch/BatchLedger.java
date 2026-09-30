@@ -54,6 +54,38 @@ final class BatchLedger implements AutoCloseable {
     return ledger;
   }
 
+  /**
+   * A second application instance on the same database as {@code first} (and whatever Redis the
+   * arguments name): its own context, connection pool, job repository and lock client, sharing the
+   * data. Not a second JVM: two contexts in one JVM share static state, which the tests avoid.
+   */
+  static BatchLedger startSharing(
+      BatchLedger first, List<Class<?>> extraSources, String... extraArgs) {
+    org.springframework.core.env.Environment environment = first.app.getEnvironment();
+    Map<String, String> arguments = new LinkedHashMap<>();
+    arguments.put("--spring.datasource.url", environment.getProperty("spring.datasource.url"));
+    arguments.put(
+        "--spring.datasource.username", environment.getProperty("spring.datasource.username"));
+    arguments.put(
+        "--spring.datasource.password", environment.getProperty("spring.datasource.password"));
+    arguments.put("--ledger.batch.enabled", "true");
+    for (String argument : extraArgs) {
+      int equals = argument.indexOf('=');
+      arguments.put(argument.substring(0, equals), argument.substring(equals + 1));
+    }
+    List<String> args = new ArrayList<>();
+    arguments.forEach((key, value) -> args.add(key + "=" + value));
+    List<Class<?>> sources = new ArrayList<>();
+    sources.add(com.jerome.slledger.bootstrap.SlLedgerApplication.class);
+    sources.addAll(extraSources);
+    return new BatchLedger(
+        new org.springframework.boot.builder.SpringApplicationBuilder(
+                sources.toArray(Class<?>[]::new))
+            .web(org.springframework.boot.WebApplicationType.NONE)
+            .bannerMode(org.springframework.boot.Banner.Mode.OFF)
+            .run(args.toArray(String[]::new)));
+  }
+
   <T> T bean(Class<T> type) {
     return app.getBean(type);
   }

@@ -63,11 +63,16 @@ public class AccrualJobConfiguration {
   public static final String PRESENT = "accrual.alreadyPresent";
 
   @Bean
-  Job dailyAccrual(JobRepository repository, Step accrualStep, BatchRunMetrics metrics) {
+  Job dailyAccrual(
+      JobRepository repository,
+      @Qualifier("accrualStep") Step accrualStep,
+      BatchRunMetrics metrics,
+      BookAccruals book) {
     return new JobBuilder(JOB, repository)
         .validator(
             new DefaultJobParametersValidator(
                 new String[] {"businessDate"}, new String[] {"rerun", "fencingToken"}))
+        .listener(new FenceClaimListener(book))
         .listener(new RunSummaryListener(metrics))
         .start(accrualStep)
         .build();
@@ -223,10 +228,18 @@ public class AccrualJobConfiguration {
   @Bean
   @StepScope
   ItemWriter<AccrualEntry> accrualWriter(
-      BookAccruals book, FailurePoint failures, @Value("#{stepExecution}") StepExecution step) {
+      BookAccruals book,
+      FailurePoint failures,
+      @Value("#{stepExecution}") StepExecution step,
+      @Value("#{jobParameters['businessDate']}") LocalDate businessDate,
+      @Value("#{jobParameters['fencingToken']}") Long fencingToken) {
+    // A run launched under a lease carries its token; every chunk checks it in its own transaction.
+    Optional<BookAccruals.Fenced> fenced =
+        Optional.ofNullable(fencingToken)
+            .map(token -> new BookAccruals.Fenced(RunDailyAccrual.resource(businessDate), token));
     return chunk -> {
       failures.beforeWrite(step.getStepName(), chunk.getItems().getFirst().position().value());
-      BookResult result = book.book(List.copyOf(chunk.getItems()));
+      BookResult result = book.book(List.copyOf(chunk.getItems()), fenced);
       var context = step.getExecutionContext();
       context.putLong(INSERTED, context.getLong(INSERTED, 0L) + result.inserted());
       context.putLong(PRESENT, context.getLong(PRESENT, 0L) + result.alreadyPresent());

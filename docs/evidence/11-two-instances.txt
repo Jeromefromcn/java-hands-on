@@ -1,0 +1,9 @@
+Stage 11, section 9: two application instances (two contexts, each with its own pool, job
+repository and Redis client) launch the accrual for 2026-09-30 at the same instant, on one
+Postgres and one Redis. 1,000 positions, chunk size 50, 100 ms of work per chunk so the
+owner holds the lock for about two seconds.
+
+instance A : NOT_OWNER (book calls 0)
+instance B : COMPLETED (book calls 20)
+accrual_entry rows: 1000 (distinct positions 1000); batch_job_execution rows: 1
+fence token stored for accrual:2026-09-30: 4 (the winner's)

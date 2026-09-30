@@ -100,6 +100,81 @@ class WriteFenceIT {
   }
 
   @Test
+  void verifyAcceptsTheCurrentAndAHigherTokenAndRefusesALowerOne() {
+    transaction.executeWithoutResult(s -> fence.admit(RESOURCE, 5));
+
+    transaction.executeWithoutResult(s -> fence.verify(RESOURCE, 5));
+    transaction.executeWithoutResult(s -> fence.verify(RESOURCE, 6));
+    assertThatThrownBy(() -> transaction.executeWithoutResult(s -> fence.verify(RESOURCE, 4)))
+        .isInstanceOf(StaleFencingTokenException.class);
+    assertThat(storedToken()).isEqualTo(5L); // verifying raises nothing
+  }
+
+  @Test
+  void verifyRefusesAResourceNobodyEverClaimed() {
+    assertThatThrownBy(() -> transaction.executeWithoutResult(s -> fence.verify(RESOURCE, 1)))
+        .isInstanceOf(StaleFencingTokenException.class);
+  }
+
+  @Test
+  void verifyMustRunInsideATransaction() {
+    assertThatThrownBy(() -> fence.verify(RESOURCE, 1))
+        .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+  }
+
+  @Test
+  @Timeout(60)
+  void verifiersDoNotBlockEachOther_andALaterAdmitWaitsForThemThenRefusesThem() throws Exception {
+    transaction.executeWithoutResult(s -> fence.admit(RESOURCE, 5));
+    CountDownLatch bothVerified = new CountDownLatch(2);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    Runnable verifier =
+        () ->
+            transaction.executeWithoutResult(
+                s -> {
+                  fence.verify(RESOURCE, 5);
+                  bothVerified.countDown();
+                  await(release); // the verifier's transaction stays open, holding its share lock
+                });
+    Thread one = Thread.ofPlatform().start(verifier);
+    Thread two = Thread.ofPlatform().start(verifier);
+    long admitMillis;
+    try {
+      // Both hold the share lock at once: neither waited for the other.
+      await(bothVerified);
+      Thread later =
+          Thread.ofPlatform()
+              .start(
+                  () -> {
+                    try {
+                      transaction.executeWithoutResult(s -> fence.admit(RESOURCE, 9));
+                    } catch (Throwable t) {
+                      failure.set(t);
+                    }
+                  });
+      Thread.sleep(500);
+      // The later owner's claim is waiting for the two in-flight verifiers.
+      assertThat(later.isAlive()).isTrue();
+      assertThat(storedToken()).isEqualTo(5L);
+      long start = System.nanoTime();
+      release.countDown();
+      later.join(TimeUnit.SECONDS.toMillis(20));
+      admitMillis = (System.nanoTime() - start) / 1_000_000;
+    } finally {
+      release.countDown();
+      one.join(TimeUnit.SECONDS.toMillis(20));
+      two.join(TimeUnit.SECONDS.toMillis(20));
+    }
+
+    assertThat(failure.get()).isNull();
+    assertThat(storedToken()).isEqualTo(9L);
+    assertThat(admitMillis).isLessThan(20_000L);
+    assertThatThrownBy(() -> transaction.executeWithoutResult(s -> fence.verify(RESOURCE, 5)))
+        .isInstanceOf(StaleFencingTokenException.class);
+  }
+
+  @Test
   void mustRunInsideATransaction() {
     assertThatThrownBy(() -> fence.admit(RESOURCE, 1))
         .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);

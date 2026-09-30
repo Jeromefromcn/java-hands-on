@@ -253,7 +253,7 @@ test in the section named.
 
 ---
 
-## [ ] 9 · One owner for the cutover: lock, token, fence
+## [x] 9 · One owner for the cutover: lock, token, fence
 
 **Change**
 - `application.batch.FencedRun`; `batch.accrual.RunDailyAccrual` takes the lock,
@@ -489,3 +489,30 @@ test in the section named.
   summary's rule "skip names containing `:partition`" counts each row once. With no partitioning
   there is no manager: the chunk step is `accrual`, and every test that reads its context by that
   name is unchanged.
+
+**Section 9.**
+- A single fence row would have serialised the partitions: `WriteFence.admit` is an upsert, so every
+  chunk of every partition would take the row lock and hold it to commit, and the chunks could not
+  overlap. The fence gained `verify(resource, token)`, which only reads the row `FOR SHARE`: many
+  verifiers of one owner run side by side, and a later owner's `admit` (the run's *claim*, made once
+  by a listener before the first step) waits for the ones in flight and then makes every later verify
+  of the older token fail. `WriteFenceIT` pins that: two verifiers hold the share lock at once, a claim
+  waits behind them, and the older token is refused after it.
+- The zombie scenario needs the second owner to be *able* to launch: the first owner's execution is
+  still `STARTED` in the repository, so the framework refuses (`ALREADY_RUNNING`). `RunDailyAccrual`
+  therefore recovers a stale `STARTED` execution when, and only when, it holds the lock: a live
+  owner holds the lock, so an owner that lost it is dead or paused, and the fence covers the second
+  case. This is also what turns a `SIGKILL` into automatic recovery once the lease has expired.
+- The token is a non-identifying job parameter, so a date that failed under one owner resumes as the
+  same job instance under the next owner with the next owner's token. The other way (restarting the
+  old execution with its own parameters) would reuse the dead owner's stale token and be refused.
+- Two contexts in one JVM stand in for two instances: what they share is only Postgres and Redis.
+  The unfenced reproduction shows what the fence adds: the woken owner presented 50 rows to the
+  ledger after the other owner had finished the date, and only the primary key kept them out.
+- The lock lease does not renew. A run longer than `ledger.batch.lock-ttl` loses its lock under it and
+  is taken over; the fence makes that safe and the cost is a run that is resumed by the other
+  instance and refused on the first. The decision record says so under "where it breaks".
+- `RunDailyAccrual` is a bean only when `ledger.cache.enabled` is (the lock is the cache
+  configuration's). A `@ConditionalOnBean(DistributedLock)` on it evaluated too early, because
+  component-scanned configuration classes are read in file-name order (`BatchConfiguration` before
+  `CacheConfiguration`); a property condition does not depend on that order.
