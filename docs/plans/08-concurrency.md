@@ -209,7 +209,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 4 · Pool exhaustion and the jstack
+## [x] 4 · Pool exhaustion and the jstack
 
 **`bootstrap` `PoolExhaustionIT`**
 - `reproducesPoolExhaustionWithHangingSource`: `core=2, max=2, queue=2,
@@ -229,7 +229,17 @@ Failure modes the spec implies but no exercise is *about*.
 - The test passes; the evidence file exists with the marked lines.
 - `./mvnw clean verify` is green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- The test class is `MarketDataPoolExhaustionIT`; stage 6 already has a
+  `PoolExhaustionIT` for the database pool.
+- The read timeout is set to 0 for this test only, so the two workers stay
+  parked for as long as the source hangs; with stage 7's 2 s timeout they would
+  fail with `UNAVAILABLE` before the dump could be taken.
+- The workers' wait frame is the one stage 7 found: `CompletableFuture.get`
+  under `JdkClientHttpRequest.executeInternal`, not a socket read (stage 7,
+  decision 8). The evidence header states the five reasons in order.
+- The two queued tasks never reach the source (`arrived == 2`): a full queue
+  is invisible from the source's side.
 
 ---
 
