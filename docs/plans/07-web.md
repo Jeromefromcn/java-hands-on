@@ -299,7 +299,7 @@ exception)**
 
 ---
 
-## [ ] 5 · Read endpoints: list, detail, accruals
+## [x] 5 · Read endpoints: list, detail, accruals
 
 **`application.port`** (decision 1)
 - `PositionDetailQuery.find(LoanPositionId) → Optional<PositionRow>`;
@@ -328,6 +328,24 @@ body, an unknown id (`404`), and a bad range (`400`).
 **Acceptance**
 - The ITs pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The compiler did not keep parameter names.** Every `@PathVariable` and
+  `@RequestParam` without an explicit name failed at request time with a
+  `500` (`IllegalArgumentException: … Ensure that the compiler uses the
+  '-parameters' flag`). `spring-boot-starter-parent` sets `-parameters`,
+  and this project imports the BOM instead of inheriting the parent, so it
+  never had it. The parent POM now sets `<parameters>true</parameters>`.
+  The incremental compile did not notice the configuration change; only a
+  `clean` build did.
+- **`InvalidQueryException`** (application) is the reversed or over-long
+  range, mapped to `400 invalid-query`. A page size over 200 is refused
+  with `400`, not clamped.
+- **Responses use web views (`PositionView`, `AccrualsView`)**, not the
+  application's rows. The domain's id records would otherwise serialize as
+  `{"value": "…"}` objects.
+- The JDBC row mapping is shared: `JdbcPositionListQuery.row` serves the
+  listing and the detail.
 
 ---
 

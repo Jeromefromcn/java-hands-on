@@ -2,14 +2,18 @@ package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
+import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
+import com.jerome.slledger.application.port.PositionDetailQuery;
 import com.jerome.slledger.application.port.PositionListQuery;
 import com.jerome.slledger.application.port.SecurityDirectory;
 import com.jerome.slledger.application.port.TradeLedger;
+import com.jerome.slledger.application.position.ListAccruals;
 import com.jerome.slledger.application.position.ListPositions;
 import com.jerome.slledger.application.position.OpenPosition;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.ReturnPositionOnce;
+import com.jerome.slledger.application.position.ShowPosition;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
@@ -60,5 +64,15 @@ public class LedgerConfiguration {
   @Bean
   ListPositions listPositions(PositionListQuery query) {
     return new ListPositions(query);
+  }
+
+  @Bean
+  ShowPosition showPosition(PositionDetailQuery query) {
+    return new ShowPosition(query);
+  }
+
+  @Bean
+  ListAccruals listAccruals(PositionDetailQuery positions, AccrualEntryQuery entries) {
+    return new ListAccruals(positions, entries);
   }
 }

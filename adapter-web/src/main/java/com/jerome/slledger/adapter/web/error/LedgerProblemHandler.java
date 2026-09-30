@@ -1,6 +1,7 @@
 package com.jerome.slledger.adapter.web.error;
 
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
+import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.DomainException;
@@ -53,6 +54,11 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
     return "position".equals(e.kind())
         ? Problems.of(HttpStatus.NOT_FOUND, "not-found", e.getMessage())
         : Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "unknown-reference", e.getMessage());
+  }
+
+  @ExceptionHandler(InvalidQueryException.class)
+  ProblemDetail invalidQuery(InvalidQueryException e) {
+    return Problems.of(HttpStatus.BAD_REQUEST, "invalid-query", e.getMessage());
   }
 
   @ExceptionHandler(MalformedIdentifierException.class)

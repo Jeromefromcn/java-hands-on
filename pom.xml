@@ -273,6 +273,12 @@
               <arg>-Xlint:all</arg>
               <arg>-Werror</arg>
             </compilerArgs>
+            <!-- Stage 7: Spring MVC binds @PathVariable and @RequestParam by
+                 parameter name. spring-boot-starter-parent turns this on;
+                 this project does not inherit it, so it is set here. Without
+                 it, every unnamed binding fails at request time with a 500,
+                 not at build time. -->
+            <parameters>true</parameters>
           </configuration>
         </plugin>
 
