@@ -274,18 +274,18 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **線程池耗盡**：`ThreadPoolExecutor` 有界隊列 + 慢下游，打到拒絕策略觸發。`jstack` 輸出存檔，**標出哪幾行讓你判定是池滿而不是死鎖**
-- [ ] **四種拒絕策略**：`Abort` / `CallerRuns` / `Discard` / `DiscardOldest`，本項目選哪個、為什麼。`CallerRuns` 的反直覺後果（把壓力推回 Tomcat 線程）要親自造出來
-- [ ] **池參數**：核心數 / 最大數 / 隊列長度三者的關係——故意設一個「隊列很長所以最大線程數永遠用不到」的配置，觀察它
-- [ ] **`CompletableFuture`**：並行拉多個證券的價格再彙總。踩一次「沒指定 executor 用了默認 ForkJoinPool.commonPool」的坑；踩一次異常被吞（沒有 `exceptionally` / `join` 時異常去哪了）
-- [ ] **`ThreadLocal` 洩漏**：用 `ThreadLocal` 存請求上下文，線程池復用導致上下文串到下一個請求。**造出串號現象**，再用 `try/finally` 清理修好。順帶驗 `InheritableThreadLocal` 在線程池下為什麼不管用
-- [ ] **AQS / CAS**：用 `AtomicReference` + CAS 實現一次頭寸餘額的無鎖更新，對比 `synchronized` 版本；在高衝突下 CAS 自旋反而更慢——把兩組數字跑出來
-- [ ] **虛擬線程**：把處理慢下游的部分切到虛擬線程，對比吞吐量。然後在虛擬線程裏用 `synchronized` 包住阻塞呼叫造出 **pinning**，用 `-Djdk.tracePinnedThreads=full` 存檔，改成 `ReentrantLock` 再測一組
-- [ ] **JMM 與指令重排序**：用經典的雙線程 flag 例子造出可見性問題（跑夠多輪才會出現，這本身就是要講的點——**偶發性正是它難查的原因**）。加 `volatile` 修好，寫下 happens-before 規則在這裏具體是哪一條
-- [ ] **`volatile` 不保證原子性**：多線程 `volatile int count++` 造出丟失更新，再換 `AtomicInteger`。這題問得極頻繁，**必須有自己跑出來的數字**
-- [ ] **雙重檢查鎖定**：寫一個沒有 `volatile` 的 DCL 單例，說清「部分構造物件」怎麼洩漏出去。修好
-- [ ] **JMH**：用 `jmh-maven-plugin` 或獨立 `benchmarks` 子模組，對計息計算做一次基準測試。至少踩一次「忘了 `Blackhole` 導致 JIT 把代碼優化掉，得到荒謬的數字」
-- [ ] **併發集合**：`ConcurrentHashMap` 的 `computeIfAbsent` 在遞歸調用下死鎖——造一次
+- [x] **線程池耗盡**：`ThreadPoolExecutor` 有界隊列 + 慢下游，打到拒絕策略觸發。`jstack` 輸出存檔，**標出哪幾行讓你判定是池滿而不是死鎖**
+- [x] **四種拒絕策略**：`Abort` / `CallerRuns` / `Discard` / `DiscardOldest`，本項目選哪個、為什麼。`CallerRuns` 的反直覺後果（把壓力推回 Tomcat 線程）要親自造出來
+- [x] **池參數**：核心數 / 最大數 / 隊列長度三者的關係——故意設一個「隊列很長所以最大線程數永遠用不到」的配置，觀察它
+- [x] **`CompletableFuture`**：並行拉多個證券的價格再彙總。踩一次「沒指定 executor 用了默認 ForkJoinPool.commonPool」的坑；踩一次異常被吞（沒有 `exceptionally` / `join` 時異常去哪了）
+- [x] **`ThreadLocal` 洩漏**：用 `ThreadLocal` 存請求上下文，線程池復用導致上下文串到下一個請求。**造出串號現象**，再用 `try/finally` 清理修好。順帶驗 `InheritableThreadLocal` 在線程池下為什麼不管用
+- [x] **AQS / CAS**：用 `AtomicReference` + CAS 實現一次頭寸餘額的無鎖更新，對比 `synchronized` 版本；在高衝突下 CAS 自旋反而更慢——把兩組數字跑出來
+- [x] **虛擬線程**：把處理慢下游的部分切到虛擬線程，對比吞吐量。然後在虛擬線程裏用 `synchronized` 包住阻塞呼叫造出 **pinning**，用 `-Djdk.tracePinnedThreads=full` 存檔，改成 `ReentrantLock` 再測一組
+- [x] **JMM 與指令重排序**：用經典的雙線程 flag 例子造出可見性問題（跑夠多輪才會出現，這本身就是要講的點——**偶發性正是它難查的原因**）。加 `volatile` 修好，寫下 happens-before 規則在這裏具體是哪一條
+- [x] **`volatile` 不保證原子性**：多線程 `volatile int count++` 造出丟失更新，再換 `AtomicInteger`。這題問得極頻繁，**必須有自己跑出來的數字**
+- [x] **雙重檢查鎖定**：寫一個沒有 `volatile` 的 DCL 單例，說清「部分構造物件」怎麼洩漏出去。修好
+- [x] **JMH**：用 `jmh-maven-plugin` 或獨立 `benchmarks` 子模組，對計息計算做一次基準測試。至少踩一次「忘了 `Blackhole` 導致 JIT 把代碼優化掉，得到荒謬的數字」
+- [x] **併發集合**：`ConcurrentHashMap` 的 `computeIfAbsent` 在遞歸調用下死鎖——造一次
 
 **口頭驗收**：「延遲在凌晨三點突然抬高，講一遍排查」——給出有順序的路徑：先看什麼、據此排除什麼、再看什麼。
 
@@ -485,7 +485,7 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 | B | 5 AOP 與事務 | ☑ | ☑ | ☐ |
 | B | 6 持久層 | ☑ | ☑ | ☐ |
 | B | 7 Web 層 | ☑ | ☑ | ☐ |
-| C | 8 併發 | ☐ | ☐ | ☐ |
+| C | 8 併發 | ☑ | ☑ | ☐ |
 | C | 9 快取 | ☐ | ☐ | ☐ |
 | C | 10 訊息 | ☐ | ☐ | ☐ |
 | C | 11 批處理 | ☐ | ☐ | ☐ |
