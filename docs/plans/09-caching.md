@@ -288,7 +288,7 @@ test in the section named.
 
 ---
 
-## [ ] 7 · `RedisLock`
+## [x] 7 · `RedisLock`
 
 **`application.cache`**: `DistributedLock`, `Lease` (`resource`, `token`,
 `release`).
@@ -308,6 +308,18 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Acquire and `INCR` are one Lua script, not two commands** (the plan had `INCR` "after
+  a successful set"). Two round trips let a holder that pauses between them come back with
+  a token *higher* than a later holder's, for a lock it no longer has, which defeats the
+  fence. The cost is that the lock key and the fence key are touched by one script, so on
+  a Redis Cluster they would need a shared hash tag; recorded for the 100x section.
+- The unlock reproduction is asserted at the Redis key: after a naive `DEL` the second
+  holder's key is gone and a third holder acquires. `leaseThatExpiredDoesNotReleaseTheNextHolder`
+  is the same sequence on `RedisLock` and leaves the key in place.
+- Expiry is forced with `PEXPIRE key 1` and polled until the key is gone, so no test waits
+  out a real TTL.
 
 ---
 
