@@ -1,0 +1,11 @@
+Stage 11, section 7: the accrual of 20000 active positions, one counterparty, one
+security, at four chunk sizes. Real Postgres 17 in a container on this machine, the
+application on JDK 21, reader page size = chunk size. Each run: empty accrual table,
+empty Batch metadata, the same date. Three runs per size (one for size 1), all shown,
+the median in the last column. Times are wall clock of RunAccrual.run, milliseconds.
+
+chunk size | commits | runs (ms)              | median (ms) | rows/s at the median
+         1 |   20000 | [124652]               |      124652 | 160
+        10 |    2000 | [21583, 10283, 9982]   |       10283 | 1944
+       200 |     100 | [3357, 1573, 1595]     |        1595 | 12539
+      5000 |       4 | [1449, 1302, 1162]     |        1302 | 15360

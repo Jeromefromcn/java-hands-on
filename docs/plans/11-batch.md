@@ -222,7 +222,7 @@ test in the section named.
 
 ---
 
-## [ ] 7 · Chunk size, measured
+## [x] 7 · Chunk size, measured
 
 **Tests**
 - `ChunkSizeMeasurementIT` (`measurement`): 20,000 positions; chunk sizes 10,
@@ -458,3 +458,12 @@ test in the section named.
 - At 200 rows the `REQUIRES_NEW` loop was not slower than the batch (265 ms against 397 ms): the job
   repository's own bookkeeping is a fixed cost that 200 rows do not amortise. The per-row commit is
   what section 7's chunk-size-1 run prices at 20,000 rows.
+
+**Section 7.**
+- Chunk size 1 was added to the three planned sizes, run once, as the price of a commit per row.
+  It took 124.7 s for 20,000 rows (160 rows/s) against 1.6 s at 200 (12,539 rows/s).
+- The first run of each context is slower than the next two (21.6 s against 10.3 and 10.0 s at chunk
+  size 10; 3.4 s against 1.6 s at 200): JIT and pool warm-up. The table shows all runs and takes the
+  median, so a single cold run does not decide the number.
+- 5,000 is 18% faster than 200 (1.30 s against 1.60 s) for 25 times the rows a failure redoes, which
+  is the trade the decision record weighs.
