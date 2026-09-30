@@ -574,11 +574,24 @@ injecting a crash.
 
 ---
 
-## [ ] 13 · Lab: consumer group under SIGKILL
+## [x] 13 · Lab: consumer group under SIGKILL
 
 **`labs/10-messaging`** (own POM, not a module): three consumer processes on six
 partitions; graceful close and `SIGKILL`; eager and cooperative assignors; the
 longest gap for survivors and for orphaned partitions.
+
+**Found while implementing**
+- The first cut of the lab counted "handled twice" over the whole run, including
+  the staggered joins; the cooperative runs showed 3 that had nothing to do with
+  the removal. It now counts only deliveries after the removal and reports 0
+  everywhere. The first, wrong figure is not in the evidence.
+- The assignor made no measurable difference to survivors at this scale (109-151
+  ms against a ~100 ms steady state); the session timeout and, on a graceful
+  leave, what looks like the heartbeat interval dominate. The decision record
+  says the lab does not show an eager/cooperative difference and does not claim
+  there is none.
+- Two runs of the lab were made (the first was the one with the wrong duplicate
+  count); both agree on the idle times to within 140 ms.
 
 **Acceptance**
 - Evidence `10-rebalance.txt`. The main build does not build the lab.
