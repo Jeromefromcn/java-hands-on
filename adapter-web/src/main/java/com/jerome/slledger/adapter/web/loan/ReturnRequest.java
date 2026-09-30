@@ -3,6 +3,8 @@ package com.jerome.slledger.adapter.web.loan;
 import com.jerome.slledger.application.position.ReturnCommand;
 import com.jerome.slledger.domain.loan.IdempotencyKey;
 import com.jerome.slledger.domain.loan.LoanPositionId;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 
 /**
@@ -10,7 +12,7 @@ import java.time.LocalDate;
  * is a delta appended to the position, which is why it is a {@code POST} of a new return and not a
  * {@code PATCH} of the position. See {@code docs/decisions/07-web.md}.
  */
-public record ReturnRequest(Long quantity, LocalDate tradeDate) {
+public record ReturnRequest(@NotNull @Positive Long quantity, @NotNull LocalDate tradeDate) {
 
   ReturnCommand toCommand(String idempotencyKey, String positionId) {
     return new ReturnCommand(

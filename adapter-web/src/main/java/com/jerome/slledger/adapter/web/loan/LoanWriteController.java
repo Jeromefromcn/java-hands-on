@@ -1,7 +1,9 @@
 package com.jerome.slledger.adapter.web.loan;
 
+import com.jerome.slledger.adapter.web.validation.IdempotencyKeyHeader;
 import com.jerome.slledger.application.position.IdempotentBooking;
 import com.jerome.slledger.application.position.Outcome;
+import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +34,8 @@ public class LoanWriteController {
 
   @PostMapping(consumes = "application/json")
   public ResponseEntity<BookedResponse> open(
-      @RequestHeader(IDEMPOTENCY_KEY) String key, @RequestBody OpenLoanRequest request) {
+      @RequestHeader(IDEMPOTENCY_KEY) @IdempotencyKeyHeader String key,
+      @Valid @RequestBody OpenLoanRequest request) {
     Outcome outcome = booking.open(request.toCommand(key));
     BookedResponse body = BookedResponse.of(outcome.trade());
     return answer(ResponseEntity.created(URI.create("/loans/" + body.positionId())), outcome, body);
@@ -41,9 +44,9 @@ public class LoanWriteController {
   /** {@code 201} with no {@code Location}: a return has no resource of its own to point at. */
   @PostMapping(path = "/{id}/returns", consumes = "application/json")
   public ResponseEntity<BookedResponse> returnQuantity(
-      @RequestHeader(IDEMPOTENCY_KEY) String key,
+      @RequestHeader(IDEMPOTENCY_KEY) @IdempotencyKeyHeader String key,
       @PathVariable String id,
-      @RequestBody ReturnRequest request) {
+      @Valid @RequestBody ReturnRequest request) {
     Outcome outcome = booking.returnQuantity(request.toCommand(key, id));
     return answer(
         ResponseEntity.status(HttpStatus.CREATED), outcome, BookedResponse.of(outcome.trade()));

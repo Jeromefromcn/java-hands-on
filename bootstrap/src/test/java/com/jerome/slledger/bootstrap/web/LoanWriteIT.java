@@ -178,6 +178,56 @@ class LoanWriteIT {
     assertThat(ledger.count("loan_trade")).isEqualTo(1);
   }
 
+  @Test
+  @DisplayName("invalid fields are a 400 naming each field, and nothing is booked")
+  void validation() {
+    String valid = openBody(HK_EQUITY, 1000, "50000.00", "HKD");
+    assertInvalid(valid.replace(HK_EQUITY, "HK0000000001"), "isin");
+    assertInvalid(valid.replace("\"rate\":\"0.0365\"", "\"rate\":\"0.2500\""), "rule.rate");
+    assertInvalid(valid.replace("\"quantity\":1000", "\"quantity\":0"), "quantity");
+    assertInvalid(valid.replace("\"amount\":\"50000.00\"", "\"amount\":\"-1.00\""), "collateral");
+    assertInvalid(valid.replace(",\"tradeDate\":\"2026-09-01\"", ""), "tradeDate");
+    assertInvalid(valid.replace("\"counterpartyId\":\"CP-001\",", ""), "counterpartyId");
+
+    String id = positionOf(post("/loans", "K-OK", valid));
+    EntityExchangeResult<String> zeroReturn =
+        post("/loans/" + id + "/returns", "K-R", returnBody(0));
+    assertThat(zeroReturn.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(zeroReturn.getResponseBody()).contains("\"field\":\"quantity\"");
+    assertThat(ledger.count("loan_trade")).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("a rule type the ledger cannot persist is a 400, not a 500")
+  void unknownRuleType() {
+    EntityExchangeResult<String> floating =
+        post(
+            "/loans",
+            "K-1",
+            openBody(HK_EQUITY, 1000, "50000.00", "HKD").replace("\"FLAT\"", "\"FLOATING\""));
+
+    assertThat(floating.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(floating.getResponseBody()).contains("urn:sl-ledger:problem:malformed-body");
+  }
+
+  @Test
+  @DisplayName("an Idempotency-Key with a space or over 255 characters is a 400")
+  void badKeys() {
+    String body = openBody(HK_EQUITY, 1000, "50000.00", "HKD");
+    assertThat(post("/loans", "has space", body).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(post("/loans", "k".repeat(256), body).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(post("/loans", "k".repeat(255), body).getStatus()).isEqualTo(HttpStatus.CREATED);
+  }
+
+  private void assertInvalid(String body, String field) {
+    EntityExchangeResult<String> refused = post("/loans", "K-" + field, body);
+    assertThat(refused.getStatus()).as(field).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(refused.getResponseBody())
+        .as(field)
+        .contains("urn:sl-ledger:problem:validation")
+        .contains("\"field\":\"" + field + "\"");
+  }
+
   private EntityExchangeResult<String> post(String uri, String key, String body) {
     return ledger
         .http

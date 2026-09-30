@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.MethodParameter;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,10 +24,13 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -133,40 +137,57 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
     ProblemDetail problem = Problems.of(status, "validation", "The request has invalid fields");
     List<Map<String, String>> errors =
         ex.getBindingResult().getFieldErrors().stream()
-            .map(
-                error ->
-                    Map.of(
-                        "field",
-                        error.getField(),
-                        "message",
-                        String.valueOf(error.getDefaultMessage())))
+            .map(error -> error(error.getField(), error.getDefaultMessage()))
             .toList();
     problem.setProperty("errors", errors);
     return handleExceptionInternal(ex, problem, headers, status, request);
   }
 
+  /**
+   * Method validation: a constrained header or parameter, and, once any parameter is constrained,
+   * the {@code @Valid} body too. A body's errors are reported by field path ({@code rule.rate}), a
+   * parameter's by its name.
+   */
   @Override
   protected ResponseEntity<Object> handleHandlerMethodValidationException(
       HandlerMethodValidationException ex,
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    ProblemDetail problem = Problems.of(status, "validation", "The request has invalid parameters");
+    ProblemDetail problem = Problems.of(status, "validation", "The request has invalid fields");
     List<Map<String, String>> errors =
         ex.getParameterValidationResults().stream()
             .flatMap(
                 result ->
-                    result.getResolvableErrors().stream()
-                        .map(
-                            error ->
-                                Map.of(
-                                    "field",
-                                    String.valueOf(result.getMethodParameter().getParameterName()),
-                                    "message",
-                                    String.valueOf(error.getDefaultMessage()))))
+                    result instanceof ParameterErrors body
+                        ? body.getFieldErrors().stream()
+                            .map(error -> error(error.getField(), error.getDefaultMessage()))
+                        : result.getResolvableErrors().stream()
+                            .map(
+                                error ->
+                                    error(
+                                        parameterName(result.getMethodParameter()),
+                                        error.getDefaultMessage())))
             .toList();
     problem.setProperty("errors", errors);
     return handleExceptionInternal(ex, problem, headers, status, request);
+  }
+
+  /** The name a client knows a parameter by: the header's or request parameter's, if it has one. */
+  private static String parameterName(MethodParameter parameter) {
+    RequestHeader header = parameter.getParameterAnnotation(RequestHeader.class);
+    if (header != null && !header.value().isEmpty()) {
+      return header.value();
+    }
+    RequestParam param = parameter.getParameterAnnotation(RequestParam.class);
+    if (param != null && !param.value().isEmpty()) {
+      return param.value();
+    }
+    return String.valueOf(parameter.getParameterName());
+  }
+
+  private static Map<String, String> error(String field, String message) {
+    return Map.of("field", field, "message", String.valueOf(message));
   }
 
   /**

@@ -495,7 +495,7 @@ reads the position (spec decision 2).
 
 ---
 
-## [ ] 9 · Bean Validation
+## [x] 9 · Bean Validation
 
 **`adapter-web.validation`**
 - `@Isin` / `IsinValidator`: the shape, then the check digit. Letters
@@ -523,6 +523,28 @@ uses two types instead.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The annotation is `@ValidIsin`, not `@Isin`**: every request type that
+  uses it also imports `domain`'s `Isin`.
+- **Two more constraints the plan did not name.** `@NotNegative` on
+  collateral: `domain` refuses a negative one with an
+  `IllegalArgumentException`, which would surface as a `500`.
+  `@IdempotencyKeyHeader`: 1 to 255 printable ASCII characters, because the
+  key is stored and logged.
+- **A constrained header turns on method validation for the whole call.**
+  Once `@IdempotencyKeyHeader` is on a parameter, Spring 7 validates the
+  `@Valid` body as part of method validation too, and raises
+  `HandlerMethodValidationException` instead of
+  `MethodArgumentNotValidException`. The first run reported the body's
+  errors under the parameter name `request`. The handler now unpacks
+  `ParameterErrors` to field paths (`rule.rate`).
+- **The groups test also pins the default-group trap**: a type whose every
+  constraint names a group validates nothing under `@Valid`, which checks
+  `Default`.
+- The hand-computed check digits (`HK0000000007`, `US0000000010`, …) agree
+  with `IsinValidator.checkDigitFor`, and stage 6's `HK0000000001` is
+  refused at the boundary while `domain` accepts it.
 
 ---
 
