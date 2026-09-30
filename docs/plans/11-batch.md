@@ -535,3 +535,8 @@ test in the section named.
 - The composition-over-template verdict is written to `docs/decisions/02-domain-model.md` here, as the
   plan required, with the count of jobs it was checked against; section 13 adds the retention job to
   that count.
+- The full build of section 10's commit failed in stage 6's `MoneyColumnsRoundTripIT` (22 errors,
+  `cannot truncate a table referenced in a foreign key constraint`): `revaluation_request` had a
+  foreign key to `security`, which that test truncates. The same lesson as stage 10's outbox-era FK.
+  Dropped in V14 (not yet released), with the reason in the migration; a request for a security that
+  is gone runs a job over no positions and completes.

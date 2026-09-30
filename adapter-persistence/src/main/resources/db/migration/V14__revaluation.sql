@@ -5,8 +5,10 @@
 -- positions than the inline limit; the dispatcher launches the revaluation job for it. One row per
 -- (security, price version), so a redelivered update cannot ask twice. attempts is how many times
 -- the dispatcher launched it; a request that keeps failing is left for a person after the limit.
+-- No foreign key to security (found by stage 6's tests, which truncate that table): a request for a
+-- security that is gone launches a job that finds no positions and completes.
 CREATE TABLE revaluation_request (
-    isin          char(12)    NOT NULL REFERENCES security (isin),
+    isin          char(12)    NOT NULL,
     price_version bigint      NOT NULL,
     status        text        NOT NULL,
     attempts      int         NOT NULL DEFAULT 0,
