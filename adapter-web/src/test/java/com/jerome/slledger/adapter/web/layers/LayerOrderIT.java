@@ -30,8 +30,8 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = LayerOrderTest.ProbeApplication.class)
-class LayerOrderTest {
+    classes = LayerOrderIT.ProbeApplication.class)
+class LayerOrderIT {
 
   /** The probe controller and the production web pieces around it; no use cases, no scan. */
   @SpringBootConfiguration
@@ -48,7 +48,7 @@ class LayerOrderTest {
 
   private static final StringBuilder EVIDENCE =
       new StringBuilder(
-          "Stage 07 · section 13 — filter, interceptor, aspect on one request (LayerOrderTest)\n"
+          "Stage 07 · section 13 — filter, interceptor, aspect on one request (LayerOrderIT)\n"
               + "Real Tomcat on a random port. TraceIdFilter runs first; the recording filter\n"
               + "runs right after it.\n\n");
 
@@ -77,7 +77,7 @@ class LayerOrderTest {
     List<String> log = run("A handler that returns", c -> c.get().uri("/probe").exchange());
 
     assertThat(log)
-        .extracting(LayerOrderTest::layerAndPhase)
+        .extracting(LayerOrderIT::layerAndPhase)
         .containsExactly(
             "filter >",
             "interceptor >",
@@ -98,7 +98,7 @@ class LayerOrderTest {
     List<String> log = run("A handler that throws", c -> c.get().uri("/probe").exchange());
 
     assertThat(log)
-        .extracting(LayerOrderTest::layerAndPhase)
+        .extracting(LayerOrderIT::layerAndPhase)
         .containsExactly(
             "filter >", "interceptor >", "aspect >", "aspect !", "interceptor <", "filter <");
     assertThat(log.get(3)).contains("IllegalStateException: boom");
@@ -118,10 +118,10 @@ class LayerOrderTest {
             c -> c.post().uri("/probe").contentType(MediaType.TEXT_PLAIN).body("x").exchange());
 
     assertThat(wrongMethod)
-        .extracting(LayerOrderTest::layerAndPhase)
+        .extracting(LayerOrderIT::layerAndPhase)
         .containsExactly("filter >", "filter <");
     assertThat(wrongType)
-        .extracting(LayerOrderTest::layerAndPhase)
+        .extracting(LayerOrderIT::layerAndPhase)
         .containsExactly("filter >", "filter <");
   }
 
@@ -148,7 +148,7 @@ class LayerOrderTest {
                     .exchange());
 
     assertThat(log)
-        .extracting(LayerOrderTest::layerAndPhase)
+        .extracting(LayerOrderIT::layerAndPhase)
         .containsExactly("filter >", "interceptor >", "interceptor <", "filter <");
   }
 

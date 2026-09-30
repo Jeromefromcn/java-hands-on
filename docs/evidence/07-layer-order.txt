@@ -1,4 +1,4 @@
-Stage 07 · section 13 — filter, interceptor, aspect on one request (LayerOrderTest)
+Stage 07 · section 13 — filter, interceptor, aspect on one request (LayerOrderIT)
 Real Tomcat on a random port. TraceIdFilter runs first; the recording filter
 runs right after it.
 
