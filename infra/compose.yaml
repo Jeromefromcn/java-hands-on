@@ -1,0 +1,27 @@
+# Postgres for manual experiments (stage 6 onward). Automated tests never use
+# this; they start their own Testcontainers instance.
+#
+#   cp infra/.env.example infra/.env   # then set real values
+#   docker compose -f infra/compose.yaml up -d
+#
+# Bound to loopback only: the database is for this machine's experiments, not
+# for the network.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in infra/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in infra/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ledger-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  ledger-pgdata:

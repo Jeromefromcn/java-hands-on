@@ -470,7 +470,7 @@ public class ReturnPosition {          // NOT transactional: the retry loop
 
 ---
 
-## [ ] 6 · The application runs against `infra/` Postgres
+## [x] 6 · The application runs against `infra/` Postgres
 
 - **`infra/compose.yaml`**: service `postgres` (`postgres:17-alpine`,
   port `5432`, named volume, credentials from `${…}`).
@@ -494,6 +494,14 @@ recorded.
 - The evidence file shows migrations applied and the application started.
 - Grepping the log for the password finds nothing.
 - `./mvnw clean verify` is green, with no test touching Compose.
+
+**Found while implementing.** The first run failed: no `entityManagerFactory`.
+`bootstrap/pom.xml` still declared stage 5's `spring-boot-starter-jdbc` at
+`test` scope. A direct declaration beats the transitive `compile` one from
+`adapter-persistence`, so HikariCP was on the test classpath only: every test
+green, the application unable to start. The declaration is removed. Carried to
+the decision record. The Compose port is bound to `127.0.0.1`, not all
+interfaces.
 
 ---
 

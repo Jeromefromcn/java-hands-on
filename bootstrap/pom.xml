@@ -74,15 +74,14 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Stage 5: transaction and AOP demos against a real Postgres. Test
-         scope only: the real application gets no DataSource, no transaction
-         manager and no aspect until stage 6. spring-boot-starter-aspectj is
-         Boot 4's name for Boot 3's spring-boot-starter-aop. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
-      <scope>test</scope>
-    </dependency>
+    <!-- Stage 5: transaction and AOP demos against a real Postgres.
+         spring-boot-starter-aspectj is Boot 4's name for Boot 3's
+         spring-boot-starter-aop.
+         spring-boot-starter-jdbc is deliberately NOT declared here any more:
+         adapter-persistence brings it at compile scope, and a direct
+         test-scoped declaration wins Maven's nearest-first mediation, which
+         left HikariCP off the runtime classpath. Every test passed and the
+         application could not start (docs/evidence/06-bootstrap-run.txt). -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-aspectj</artifactId>

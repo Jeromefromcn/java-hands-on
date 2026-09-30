@@ -1,0 +1,60 @@
+# Stage 6, section 6: the application against infra/compose.yaml's Postgres
+#
+# docker compose -f infra/compose.yaml up -d --wait   (postgres:17-alpine, 127.0.0.1:5432)
+# LEDGER_DB_URL=jdbc:postgresql://127.0.0.1:5432/ledger LEDGER_DB_USER=... LEDGER_DB_PASSWORD=...
+# ./mvnw -pl bootstrap spring-boot:run -Dspring-boot.run.profiles=local
+# JDK 21.0.12-tem, Spring Boot 4.1.1. PIDs and object hashes replaced by <...>.
+
+## Run 1 - with bootstrap/pom.xml still declaring spring-boot-starter-jdbc at test scope
+## (./mvnw clean verify was green at this point)
+
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.jerome.slledger.adapter.persistence.instrument.JpaSecurityDirectory required a bean named 'entityManagerFactory' that could not be found.
+
+
+Action:
+
+Consider defining a bean named 'entityManagerFactory' in your configuration.
+
+## --debug condition report, same run
+
+   DataSourceAutoConfiguration.PooledDataSourceConfiguration:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on DataSourceAutoConfiguration.PooledDataSourceCondition.PooledDataSourceAvailable PooledDataSource did not find supported DataSource; NestedCondition on DataSourceAutoConfiguration.PooledDataSourceCondition.ExplicitType @ConditionalOnProperty (spring.datasource.type) did not find property 'spring.datasource.type' (DataSourceAutoConfiguration.PooledDataSourceCondition)
+
+   DataJpaRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: javax.sql.DataSource; SearchStrategy: all) did not find any beans of type javax.sql.DataSource (OnBeanCondition)
+      Matched:
+
+## ./mvnw -pl bootstrap dependency:tree -Dverbose, same POM
+
++- org.springframework.boot:spring-boot-starter-jdbc:jar:4.1.1:test (scope not updated to compile)
+|  \- com.zaxxer:HikariCP:jar:7.0.2:test (version managed from 7.0.2)
+
+## Run 2 - test-scoped spring-boot-starter-jdbc removed from bootstrap/pom.xml
+
+2026-09-30T10:37:28.072+08:00  INFO <pid> --- [sl-ledger] [           main] c.j.s.bootstrap.SlLedgerApplication      : The following 1 profile is active: "local"
+2026-09-30T10:37:29.243+08:00  INFO <pid> --- [sl-ledger] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-30T10:37:29.454+08:00  INFO <pid> --- [sl-ledger] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@<hash>
+2026-09-30T10:37:29.456+08:00  INFO <pid> --- [sl-ledger] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-30T10:37:29.481+08:00  INFO <pid> --- [sl-ledger] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5432/ledger (PostgreSQL 17.11)
+2026-09-30T10:37:29.557+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."flyway_schema_history" does not exist yet
+2026-09-30T10:37:29.561+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 2 migrations (execution time 00:00.024s)
+2026-09-30T10:37:29.580+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."flyway_schema_history" ...
+2026-09-30T10:37:29.640+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-09-30T10:37:29.660+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "1 - ledger tables"
+2026-09-30T10:37:29.714+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "2 - loan position version"
+2026-09-30T10:37:29.736+08:00  INFO <pid> --- [sl-ledger] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 2 migrations to schema "public", now at version v2 (execution time 00:00.037s)
+2026-09-30T10:37:32.415+08:00  INFO <pid> --- [sl-ledger] [           main] c.j.s.bootstrap.SlLedgerApplication      : Started SlLedgerApplication in 4.795 seconds (process running for 5.161)
+2026-09-30T10:37:32.424+08:00  INFO <pid> --- [sl-ledger] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-09-30T10:37:32.427+08:00  INFO <pid> --- [sl-ledger] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+
+## Password leak check on run 2's full log
+
+$ grep -c -F "$LEDGER_DB_PASSWORD" run.log
+0

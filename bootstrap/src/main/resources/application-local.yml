@@ -6,3 +6,11 @@ accrual:
 
 marketdata:
   source: mock
+
+# infra/compose.yaml's Postgres. No defaults: a missing variable fails startup
+# instead of connecting with a guessed credential.
+spring:
+  datasource:
+    url: ${LEDGER_DB_URL}
+    username: ${LEDGER_DB_USER}
+    password: ${LEDGER_DB_PASSWORD}
