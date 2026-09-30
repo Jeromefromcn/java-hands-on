@@ -1,0 +1,27 @@
+Stage 11, section 5: the accrual for 2026-09-30 (100 positions, chunk size 10) runs in a
+child JVM that stops inside chunk 4's transaction and is then killed with SIGKILL
+(exit value 137 = 128 + 9). Real Postgres; every table below is BATCH_* metadata.
+
+-- after the kill (accrual_entry rows: 30, chunks 1-3; chunk 4 was never committed)
+job_execution_id | instance | status | exit_code | end_time
+1 | 1 | STARTED | UNKNOWN | null
+
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | STARTED | 30 | 30 | 3 | 0 | 0 | 0 | 0 | EXECUTING
+
+-- a launch of the same date: ALREADY_RUNNING
+-- after JobOperator.recover on the stuck execution
+job_execution_id | instance | status | exit_code | end_time
+1 | 1 | FAILED | UNKNOWN | 2026-09-30 23:38:38.746088
+
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | FAILED | 30 | 30 | 3 | 0 | 0 | 0 | 0 | EXECUTING
+
+-- after the second launch: COMPLETED (accrual_entry rows: 100, inserted in total: 100, the resumed run's share 70)
+job_execution_id | instance | status | exit_code | end_time
+1 | 1 | FAILED | UNKNOWN | 2026-09-30 23:38:38.746088
+2 | 1 | COMPLETED | COMPLETED | 2026-09-30 23:38:38.85133
+
+step_name | status | read | write | commit | rollback | read_skip | process_skip | write_skip | exit_code
+accrual | COMPLETED | 70 | 70 | 7 | 0 | 0 | 0 | 0 | COMPLETED
+

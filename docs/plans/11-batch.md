@@ -176,7 +176,7 @@ test in the section named.
 
 ---
 
-## [ ] 5 · Restart, and the table that proves it
+## [x] 5 · Restart, and the table that proves it
 
 **Change**
 - A test-only failure injector on the writer (fail at chunk k, once).
@@ -425,3 +425,19 @@ test in the section named.
   empty selection is still legitimate for a rule about what a package must not depend on.
 - The run-summary listener counts only top-level steps. A partitioned step's manager already holds
   its workers' sums, so counting the worker rows would double them (used from section 8).
+
+**Section 5.**
+- After an exception the failed step's row says `read 40, write 30, commit 3, rollback 1`: the
+  read counter includes the chunk that was rolled back, so `READ_COUNT` is not a progress figure.
+  What survives is the saved cursor (`accrual.lastKey` = `P000030`) and `COMMIT_COUNT`. After a
+  `SIGKILL` the row says `STARTED`, `EXECUTING`, `read 30`: the counters are those of the last
+  commit, because nothing ran after the kill to update them.
+- A launch after the kill is refused (`ALREADY_RUNNING`) until `JobOperator.recover` marks the
+  execution failed. `recover` does not decide the process is dead: the operator does, and
+  the decision record says what breaks if they are wrong (two live runs of one date; the fence of
+  section 9 is what stops the older one).
+- A position that arrives behind the saved cursor while the job is down is not booked by the
+  resumed run; a `rerun` instance books exactly that one and reports the other 100 as present.
+  Asserted, and stated in the decision record as the price of a keyset cursor.
+- The kill test uses the running JVM's own classpath for the child (`java.class.path` under
+  failsafe is a manifest-only jar, which `java -cp` follows), so there is no second packaging.
