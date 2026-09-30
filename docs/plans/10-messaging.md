@@ -375,7 +375,7 @@ guard they end with needs the database.
 
 ---
 
-## [ ] 8 · Retry and dead letter
+## [x] 8 · Retry and dead letter
 
 **`adapter-messaging`**
 - `ErrorHandling.build(KafkaOperations, RetryProperties)`: `DefaultErrorHandler`
@@ -390,6 +390,22 @@ guard they end with needs the database.
   the message is not dead-lettered; the elapsed back-off is recorded.
 - One that never succeeds is dead-lettered after the bound.
 - A dead-lettered message does not stop the record behind it.
+
+**Found while implementing**
+- The dead-letter headers name Spring's wrapper, not the cause:
+  `kafka_dlt-exception-fqcn` is `ListenerExecutionFailedException`, and the
+  real class is in `kafka_dlt-exception-cause-fqcn`. An operator reading the
+  DLT wants the second; the original offset is an 8-byte long, not text.
+- The retry pauses were **not** honoured as configured: with 100 ms doubling,
+  the measured gaps were 106, 505 and 507 ms (not 100, 200, 400). The first
+  is right and the rest sit at about half a second. The cause was not found
+  (a pause shorter than the container's own cycle is the suspect; changing
+  `pollTimeout` did not move it). The default first interval is therefore
+  500 ms, where the pauses are longer than whatever is quantising them, and
+  the record says the sub-second numbers are approximate.
+- `DefaultErrorHandler` retries block the partition; that is chosen, not a
+  default to be apologised for: retry topics would let a later price overtake
+  the one being retried.
 
 **Acceptance**
 - Evidence `10-retry-dlt.txt`. Full verify green.

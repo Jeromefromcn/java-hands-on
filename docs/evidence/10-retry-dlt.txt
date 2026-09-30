@@ -1,0 +1,4 @@
+poison, ok-1, ok-2 on one partition: poison dead-lettered, ok-1 and ok-2 handled in order behind it
+transient failure that never clears: attempts=4 (1 + 3 retries), gaps=[114, 507, 508] ms, 1131 ms from first attempt to last (configured pauses 100, 200, 400 ms = 700 ms), then 1 record on the DLT
+transient failure twice then success: attempts=3 (2 retries), gaps between attempts=[107, 505] ms (configured pauses: 100, 200 ms; the second was not honoured, see the note in the decision record), dead letters=0
+non-retryable (decode failure, currency mismatch, unknown security): attempts=1 each, 0 retries, all 3 on test.retry.3*.DLT with kafka_dlt-exception-cause-fqcn=com.jerome.slledger.application.messaging.MessageDecodeException on the first
