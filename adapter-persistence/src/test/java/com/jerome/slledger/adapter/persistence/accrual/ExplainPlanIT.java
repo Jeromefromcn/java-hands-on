@@ -3,14 +3,11 @@ package com.jerome.slledger.adapter.persistence.accrual;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.adapter.persistence.testing.Evidence;
-import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
+import com.jerome.slledger.adapter.persistence.testing.LabDb;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -151,14 +148,7 @@ class ExplainPlanIT {
   }
 
   private static List<String> explain(Connection c) throws SQLException {
-    List<String> plan = new ArrayList<>();
-    try (Statement s = c.createStatement();
-        var rows = s.executeQuery("EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) " + REPORT)) {
-      while (rows.next()) {
-        plan.add(rows.getString(1));
-      }
-    }
-    return plan;
+    return LabDb.explain(c, REPORT);
   }
 
   private static void record(String caption, List<String> plan) {
@@ -167,29 +157,19 @@ class ExplainPlanIT {
     EVIDENCE.append('\n');
   }
 
-  static String newDatabase(String name) {
-    SharedPostgres.datasourceProperties(name);
-    return SharedPostgres.jdbcUrl(name);
+  private static String newDatabase(String name) {
+    return LabDb.create(name);
   }
 
-  static void migrate(String url, String target) {
-    var configuration =
-        Flyway.configure()
-            .dataSource(url, SharedPostgres.username(), SharedPostgres.password())
-            .locations("classpath:db/migration");
-    if (target != null) {
-      configuration.target(target);
-    }
-    configuration.load().migrate();
+  private static void migrate(String url, String target) {
+    LabDb.migrate(url, target);
   }
 
-  static Connection connect(String url) throws SQLException {
-    return DriverManager.getConnection(url, SharedPostgres.username(), SharedPostgres.password());
+  private static Connection connect(String url) throws SQLException {
+    return LabDb.connect(url);
   }
 
-  static void execute(Connection c, String sql) throws SQLException {
-    try (Statement s = c.createStatement()) {
-      s.execute(sql);
-    }
+  private static void execute(Connection c, String sql) throws SQLException {
+    LabDb.execute(c, sql);
   }
 }

@@ -959,7 +959,7 @@ from `Runtime.availableProcessors()`.
 
 ---
 
-## [ ] 16 · Exercise 10a — window functions
+## [x] 16 · Exercise 10a — window functions
 
 The SQL file is `adapter-persistence/src/test/resources/sql/top-positions-by-value.sql`.
 
@@ -989,6 +989,27 @@ Evidence: `docs/evidence/06-sql-window.txt`.
 **Acceptance**
 - The rank assertions pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The fixture is 500, 500, 400, 400, 300, 200, not 500, 400, 400, 300, 200.**
+  With the planned values, `ROW_NUMBER` and `RANK` keep the same three rows
+  and differ only in the numbers. With a tie at the top and a tie across the
+  cut, the three top-threes are three different sets: P1–P3, P1–P4 and P1–P5.
+- **Only `ROW_NUMBER` gets the `id` tiebreaker.** `RANK` and `DENSE_RANK`
+  define ties by their own `ORDER BY`, so with `id` in it nothing would tie.
+  The three functions therefore use two windows.
+- **Partitioned by the price's currency, not `collateral_currency`.** Market
+  value is quantity × market price, so it is in `market_price_currency`, and
+  that is the currency the ranking must not cross. A USD row for the same
+  counterparty is ranked on its own in the test.
+- **The query did not beat Java at any size measured.** At 100k positions:
+  SQL 318 ms, Java 151 ms. The sort spills at the default `work_mem` (4MB),
+  but with `work_mem = 64MB` SQL is still 309 ms, so the spill is not the
+  cause. Half the rows come back, so moving the work to the database saves
+  little transfer, and the transfer here is loopback. That is recorded, not
+  explained further.
+- **`LabDb` and `Timing` are shared test helpers now**, and `ExplainPlanIT`
+  uses `LabDb`.
 
 ---
 
