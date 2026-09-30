@@ -65,6 +65,8 @@ pinning, OOM, TCC hanging. The broken version never lands as product code on
 Every number in a decision record is a measured value from this machine —
 latency, QPS, GC pause, the `double` vs `BigDecimal` drift. Never an estimate,
 never reconstructed from memory afterwards. If it wasn't measured, say so.
+Tests that exist to take those numbers are tagged `measurement` and run only
+under `./mvnw verify -Pmeasure`.
 
 ## The one invariant
 
