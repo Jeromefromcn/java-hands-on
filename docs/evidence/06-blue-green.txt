@@ -1,0 +1,12 @@
+# Stage 6, exercise 1: blue/green column type change (BlueGreenMigrationIT)
+# Postgres 17 (Testcontainers postgres:17-alpine), PgJDBC 42.7.13, Flyway 12.4.0.
+# Old writer: PreparedStatement.setString on idempotency_key. New writer: setObject(UUID).
+
+breaking, table holds 'req-42'           | migrate V1000                                      | SQLState 22P02: ERROR: invalid input syntax for type uuid: "req-42"
+breaking, empty table, migrated          | old writer 'req-42'                                | SQLState 42804: ERROR: column "idempotency_key" is of type uuid but expression is of type character varying
+breaking, empty table, migrated          | old writer, UUID-shaped text                       | SQLState 42804: ERROR: column "idempotency_key" is of type uuid but expression is of type character varying
+breaking, empty table, migrated          | new writer                                         | ok
+after V1001 (add column)                 | old + new writer                                   | ok
+after V1002 (dual write + backfill)      | old + new writer                                   | ok
+after V1003 (contract)                   | new writer                                         | ok
+after V1003 (contract)                   | old writer (old version retired before contract)   | SQLState 42703: ERROR: column "idempotency_key" of relation "loan_trade" does not exist

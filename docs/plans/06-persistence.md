@@ -505,7 +505,7 @@ interfaces.
 
 ---
 
-## [ ] 7 · Exercise 1 — Flyway: breaking change and expand/contract
+## [x] 7 · Exercise 1 — Flyway: breaking change and expand/contract
 
 These migrations are test-only, under
 `adapter-persistence/src/test/resources/db/lab/bluegreen/`. They are
@@ -551,6 +551,19 @@ Evidence: `docs/evidence/06-blue-green.txt`.
 - Both tests pass.
 - `db/migration` still holds only production files.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **V1003 does not rename `idempotency_uuid` back to `idempotency_key`.** The
+  version deployed during expand writes `idempotency_uuid`; a rename in
+  contract would break that version exactly as V1000 broke the old one, and
+  would need an expand/contract of its own. The column keeps its new name.
+- **The old writer fails on the bind type, not on the key's shape.** A valid
+  UUID string sent through `setString` fails with `42804` as well, so no
+  choice of keys by the old version would have saved it.
+- **The deterministic mapping is asserted directly**: after V1002, no row's
+  `idempotency_uuid` differs from `idempotency_uuid_of(idempotency_key)`. A
+  resubmitted key colliding would not prove it, because the text column's
+  unique constraint still catches that first.
 
 ---
 
