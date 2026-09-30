@@ -3,15 +3,20 @@ package com.jerome.slledger.bootstrap.config;
 import com.jerome.slledger.adapter.messaging.JsonEventCodec;
 import com.jerome.slledger.adapter.messaging.KafkaEventSender;
 import com.jerome.slledger.adapter.messaging.KafkaProducers;
+import com.jerome.slledger.application.event.DomainEvents;
+import com.jerome.slledger.application.messaging.ApplyPriceUpdate;
 import com.jerome.slledger.application.messaging.EventCodec;
 import com.jerome.slledger.application.messaging.EventSender;
 import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.messaging.OutboxRelay;
 import com.jerome.slledger.application.messaging.OutboxStore;
 import com.jerome.slledger.application.messaging.PublishPriceUpdate;
+import com.jerome.slledger.application.messaging.SecurityPositions;
+import com.jerome.slledger.application.messaging.SecurityPrices;
 import com.jerome.slledger.application.messaging.StoredOutbox;
 import java.time.Clock;
 import java.time.Duration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -50,6 +55,22 @@ public class MessagingConfiguration {
   OutboxRelay outboxRelay(
       OutboxStore store, EventSender sender, Clock clock, MessagingProperties properties) {
     return new OutboxRelay(store, sender, clock, properties.relayBatchSize());
+  }
+
+  @Bean
+  ApplyPriceUpdate applyPriceUpdate(
+      SecurityPrices prices,
+      SecurityPositions positions,
+      Outbox outbox,
+      DomainEvents events,
+      Clock clock) {
+    return new ApplyPriceUpdate(prices, positions, outbox, events, clock);
+  }
+
+  @Bean
+  @ConditionalOnBean(CachedQuoteSources.class)
+  PriceCacheEviction priceCacheEviction(CachedQuoteSources sources) {
+    return new PriceCacheEviction(sources);
   }
 
   @Bean

@@ -2,6 +2,7 @@ package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
+import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
@@ -27,6 +28,7 @@ import com.jerome.slledger.domain.loan.LoanPositionRepository;
 import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -54,6 +56,11 @@ public class LedgerConfiguration {
   @Bean
   Clock clock() {
     return Clock.systemUTC();
+  }
+
+  @Bean
+  DomainEvents domainEvents(ApplicationEventPublisher publisher) {
+    return new SpringDomainEvents(publisher);
   }
 
   @Bean

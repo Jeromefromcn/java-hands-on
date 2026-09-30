@@ -259,7 +259,7 @@ test in the section named.
 
 ---
 
-## [ ] 5 · Applying a price update, and ordering
+## [x] 5 · Applying a price update, and ordering
 
 **Migration V7**: `security.price_version bigint not null default 0`.
 
@@ -285,6 +285,20 @@ calls; container wiring in section 12).
 - Fixed by the key: both updates under the ISIN key share a partition, so
   arrival order is send order. Fixed by the version: v2 then v1 ends on v2's
   price.
+
+**Found while implementing**
+- `ApplyPriceUpdate` returns a `PriceApplication` (applied, calls raised,
+  positions skipped) and does not log: `application` has no logging
+  dependency, and the counts are what a caller or a test can act on.
+- The `PriceApplied` bridge, `PriceCacheEviction`, is in `bootstrap` and only
+  exists when the cache is on (`@ConditionalOnBean(CachedQuoteSources)`);
+  its test is in section 12, where a cache and a broker run together.
+- The wrong order is made by pausing the partition that holds v1 (a consumer
+  with a backlog there), not by racing two producers. It is deterministic and
+  it is what the failure looks like from outside. The key fix is shown with
+  the *naive* consumer, to isolate what the key alone buys.
+- `JpaSecurityPositions` reads every open position in one query. Named in the
+  use case's class comment as the limit stage 11's batch revaluation removes.
 
 **Acceptance**
 - Evidence `10-ordering.txt`. Full verify green.

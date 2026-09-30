@@ -17,6 +17,8 @@ interface LoanPositionJpaRepository extends JpaRepository<LoanPositionEntity, St
   List<LoanPositionEntity> findByCounterpartyIdAndStatusNotOrderById(
       String counterpartyId, LoanStatus status);
 
+  List<LoanPositionEntity> findByIsinAndStatusNotOrderById(String isin, LoanStatus status);
+
   /**
    * The row, locked for the rest of the transaction. A waiter gives up after 3 seconds rather than
    * holding its connection for as long as the holder takes.

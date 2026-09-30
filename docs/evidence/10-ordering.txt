@@ -1,0 +1,4 @@
+price 60.00 v1 (delivered twice), then 41.30 v2, position 1,000 shares against 50,000.00 HKD collateral: MarginCallRaised rows in the outbox=1, shortfall 10000.00 HKD, stored price 41.30 at version 2
+key = ISIN, both on partition 0 (paused as the backlog): last-write-wins delivered v1 then v2 -> stored price 43.10 at version 2
+random key, v1 on partition 0 (backlog), v2 on partition 1, last-write-wins: delivered v2 then v1 -> stored price 41.30 at version 1 (v2's 43.10 was overwritten)
+random key, same arrival order (v2 then v1), version gate: stored price 43.10 at version 2; v1 was ignored, not applied and not an error
