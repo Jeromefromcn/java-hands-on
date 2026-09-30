@@ -1,0 +1,3 @@
+read, check, write (balance - 10): 32 requests, 32 told they took 10 (320 in total), final balance 90 -> only one withdrawal is in the balance
+UPDATE ... WHERE balance >= 10 (the check and the write are one statement): 32 requests, 10 took 10, final balance 0; the other 22 were refused
+read, check, then balance = balance - 10: 32 requests, 32 took 10, final balance -220 (100 - 320: overdrawn by 220)

@@ -1,0 +1,3 @@
+2PC participant prepared, coordinator gone: pg_prepared_xacts holds tx-1, connection closed
+another writer of the same row, lock_timeout 2 s: gave up after 2009 ms without the row (lock_not_available); with no timeout it waits for as long as the prepared transaction exists
+ROLLBACK PREPARED 'tx-1' by hand, then the same update: 3 ms

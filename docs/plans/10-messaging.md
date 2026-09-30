@@ -412,7 +412,7 @@ guard they end with needs the database.
 
 ---
 
-## [ ] 9 · TCC on collateral, the overdraft and the prepared-transaction block
+## [x] 9 · TCC on collateral, the overdraft and the prepared-transaction block
 
 **Migration V9**: `collateral_account`, `tcc_transaction`.
 
@@ -433,6 +433,27 @@ guard they end with needs the database.
   successes.
 - `reproducesPreparedTransactionBlocksWriters` on a Postgres with
   `max_prepared_transactions`.
+
+**Found while implementing**
+- The naive participant runs against a table with no CHECKs
+  (`naive_account`), because the product table's `CHECK (frozen >= 0)` turns
+  the corruption into an exception, which is a fine outcome and a poor
+  reproduction. The product CHECKs are stated as the last line of defence.
+- One naive Cancel is not enough: the *unguarded* Cancel shows the empty
+  rollback (money created); the usual patch (`WHERE frozen >= x`) removes
+  that and shows the other two (suspension, and stealing another hold's
+  funds). Three reproductions became four for that reason.
+- The product's refusal relies on the caller's transaction rolling back (the
+  Try inserted its `tcc_transaction` row before the balance update failed);
+  the test asserts that no row survives and the same id can be tried again.
+- The overdraft is made deterministic with a barrier that releases all 32
+  requests after each has read the balance, so it is the check-then-act gap
+  itself that is reproduced, not a lucky interleaving. Three variants: read,
+  check, write the computed value (lost update: all 32 report success, one
+  withdrawal is in the balance); check then `balance - 10` (goes to -220);
+  one conditional statement (exactly 10 succeed).
+- The 2PC block uses Postgres's own `PREPARE TRANSACTION` on a container
+  started with `max_prepared_transactions`. Nothing implements 2PC.
 
 **Acceptance**
 - Evidence `10-tcc.txt`, `10-collateral-update.txt`, `10-2pc-blocking.txt`.

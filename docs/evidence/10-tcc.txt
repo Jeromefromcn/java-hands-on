@@ -1,0 +1,8 @@
+TRY vs CANCEL race, 40 rounds: Try landed before the Cancel in 17, the Cancel came first and the Try was refused in 23; in all 40 the account ended available=1000.00 frozen=0
+SUSPENSION, cancel patched with 'frozen >= amount': Cancel(100.00) then the late Try(100.00) -> available=900.000000 frozen=100.000000 (100.00 held for a transaction whose Cancel has already come and gone; nothing will release it)
+  same script, participant with tcc_transaction: Cancel(X-1) then Try(X-1) -> Try refused (ALREADY_CANCELLED), available=1000.000000 frozen=0.000000
+EMPTY ROLLBACK next to a live hold, patched Cancel: B holds 100.00, A (never tried) cancels 100.00 -> B's hold is gone; B's Confirm then leaves available=1000.000000 frozen=-100.000000
+DOUBLE CONFIRM, participant with no record: A and B hold 100.00 each (frozen 200.00), Confirm(A) delivered twice -> available=800.000000 frozen=0.000000 (B's hold was consumed by A's duplicate)
+  same script, participant with tcc_transaction: available=800.000000 frozen=100.000000 (B's hold intact)
+EMPTY ROLLBACK, participant with no record: account of 1000.00, Cancel(100.00) arrives with no Try -> available=1100.000000 frozen=-100.000000 (100.00 of spendable collateral that was never posted, and a negative hold)
+  same script, participant with tcc_transaction: Cancel(X-1) with no Try -> available=1000.000000 frozen=0.000000, a tombstone row is written
