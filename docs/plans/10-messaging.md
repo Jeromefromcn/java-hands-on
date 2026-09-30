@@ -162,7 +162,7 @@ test in the section named.
 
 ---
 
-## [ ] 3 · Events, the JSON codec and the Kafka producer
+## [x] 3 · Events, the JSON codec and the Kafka producer
 
 **`application.messaging`**
 - Sealed `IntegrationEvent` (`PriceUpdated`, `MarginCallRaised`,
@@ -185,6 +185,14 @@ test in the section named.
 - `PartitionKeyIT`: the same ISIN always lands on one partition; 1,000 ISINs
   spread over 3; `reproducesRandomKeySplitsOneSecurity`: with a random key the
   same ISIN lands on several partitions.
+
+**Found while implementing**
+- `PublishPriceUpdate` is a small class over `EventCodec` and `EventSender`,
+  not a `PriceUpdatePublisher` port: with the codec and the sender already
+  ports, a third port would only forward. The spec's port list is otherwise
+  as planned.
+- Every exception in `application` needs a `serialVersionUID`: the build is
+  `-Xlint:all -Werror`.
 
 **Acceptance**
 - Evidence `10-partition-key.txt`. Full verify green.

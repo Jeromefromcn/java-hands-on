@@ -166,9 +166,7 @@ class ArchitectureIT {
             .resideInAPackage("com.jerome.slledger.adapter.messaging..")
             .should()
             .dependOnClassesThat()
-            .resideInAPackage("com.jerome.slledger.adapter.persistence..")
-            // Empty until section 3 of stage 10 gives adapter-messaging its first class.
-            .allowEmptyShould(true);
+            .resideInAPackage("com.jerome.slledger.adapter.persistence..");
     ArchRule persistence =
         noClasses()
             .that()
