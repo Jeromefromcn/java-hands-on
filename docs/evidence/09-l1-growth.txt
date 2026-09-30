@@ -1,0 +1,9 @@
+Stage 9, section 3: an unbounded Caffeine cache against CaffeineTier with maximumSize=1000.
+100000 distinct keys, each with a 100-character value. Measured on this machine, JDK 21.0.12.
+Heap is used memory after System.gc(), minus used memory before the cache existed.
+
+unbounded : entries=100000, heap growth=24265464 bytes
+bounded   : entries<=1000, heap growth=346720 bytes
+
+Stage 15's heap experiment reuses the unbounded builder above: raise `keys` until the
+JVM's -Xmx is reached and the OutOfMemoryError is the finding.

@@ -1,0 +1,69 @@
+Stage 9, section 3: origin loads per 50 ms step, 1000 keys stored at t=0 with a 1 s TTL,
+every key read at every step, 3 s of controlled time. The ticker is driven by the test, so
+these counts are deterministic by construction: they measure the mechanism, not this
+machine's clock. The loads are the calls the source would have received.
+
+peak per step : fixed TTL = 1000, jitter 0.2 = 148
+total loads   : fixed TTL = 3000, jitter 0.2 = 2421
+
+step   t(ms)   fixed TTL                jitter 0.2
+  1      50       0                          0 
+  2     100       0                          0 
+  3     150       0                          0 
+  4     200       0                          0 
+  5     250       0                          0 
+  6     300       0                          0 
+  7     350       0                          0 
+  8     400       0                          0 
+  9     450       0                          0 
+ 10     500       0                          0 
+ 11     550       0                          0 
+ 12     600       0                          0 
+ 13     650       0                          0 
+ 14     700       0                          0 
+ 15     750       0                          0 
+ 16     800       0                          0 
+ 17     850       0                        126 ##
+ 18     900       0                        138 ##
+ 19     950       0                        126 ##
+ 20    1000    1000 ####################   109 ##
+ 21    1050       0                        124 ##
+ 22    1100       0                        112 ##
+ 23    1150       0                        124 ##
+ 24    1200       0                        141 ##
+ 25    1250       0                          0 
+ 26    1300       0                          0 
+ 27    1350       0                          0 
+ 28    1400       0                          0 
+ 29    1450       0                          0 
+ 30    1500       0                          0 
+ 31    1550       0                          0 
+ 32    1600       0                          0 
+ 33    1650       0                          0 
+ 34    1700       0                          9 
+ 35    1750       0                         41 
+ 36    1800       0                         54 #
+ 37    1850       0                         65 #
+ 38    1900       0                         80 #
+ 39    1950       0                         80 #
+ 40    2000    1000 ####################    89 #
+ 41    2050       0                        148 ##
+ 42    2100       0                        101 ##
+ 43    2150       0                         91 #
+ 44    2200       0                         74 #
+ 45    2250       0                         59 #
+ 46    2300       0                         48 
+ 47    2350       0                         42 
+ 48    2400       0                         19 
+ 49    2450       0                          0 
+ 50    2500       0                          0 
+ 51    2550       0                          0 
+ 52    2600       0                          4 
+ 53    2650       0                         17 
+ 54    2700       0                         23 
+ 55    2750       0                         34 
+ 56    2800       0                         39 
+ 57    2850       0                         58 #
+ 58    2900       0                         59 #
+ 59    2950       0                         88 #
+ 60    3000    1000 ####################    99 #

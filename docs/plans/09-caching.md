@@ -155,7 +155,7 @@ test in the section named.
 
 ---
 
-## [ ] 3 · Caffeine tier: bounds, expiry, avalanche
+## [x] 3 · Caffeine tier: bounds, expiry, avalanche
 
 **`adapter.persistence.cache`**
 - `CaffeineTier<K,V>`: `maximumSize`, per-entry `Expiry` from the `put` TTL,
@@ -178,6 +178,13 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Removal work runs on the calling thread** (`executor(Runnable::run)`), so a test's
+  `size()` after `cleanUp()` is exact and the avalanche steps are reproducible.
+- The avalanche uses a 1 s TTL over 3 s of controlled time (60 steps of 50 ms), not the
+  30 s L2 default: the mechanism is the same and the file stays a page long.
+- The tests are in `CaffeineTierTest`, a surefire test: no Docker.
 
 ---
 
