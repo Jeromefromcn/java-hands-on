@@ -3,6 +3,7 @@ package com.jerome.slledger.bootstrap.config;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
@@ -23,7 +24,8 @@ public record MarketDataExecutorProperties(
     @DefaultValue("16") @Min(1) int queue,
     @DefaultValue("abort") @NotNull Policy policy,
     @DefaultValue("platform") @NotNull Type type,
-    @DefaultValue("32") @Min(1) int maxConcurrent) {
+    @DefaultValue("32") @Min(1) int maxConcurrent,
+    @DefaultValue("3s") @NotNull Duration deadline) {
 
   public enum Policy {
     ABORT,

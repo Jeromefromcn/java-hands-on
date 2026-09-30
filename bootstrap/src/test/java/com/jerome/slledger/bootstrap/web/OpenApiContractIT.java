@@ -117,6 +117,16 @@ class OpenApiContractIT {
     source.answer(HK_EQUITY_2, new StubPriceServer.Json(500, "{}"));
     check(HttpMethod.GET, "/securities/" + HK_EQUITY_2 + "/quote", null, null, 502);
     check(HttpMethod.GET, "/securities/HK0000000023/quote", null, null, 404);
+
+    source.price(HK_EQUITY, "41.30", "HKD");
+    check(
+        HttpMethod.GET,
+        "/quotes?isin=" + HK_EQUITY + "&isin=" + HK_EQUITY_2 + "&isin=HK0000000023",
+        null,
+        null,
+        200);
+    check(HttpMethod.GET, "/quotes", null, null, 400);
+    check(HttpMethod.GET, "/quotes?isin=HK0000000001", null, null, 400);
   }
 
   private static String check(HttpMethod method, String uri, String key, String body, int status) {

@@ -6,6 +6,7 @@ import com.jerome.slledger.application.port.MarketDataUnavailableException;
 import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
+import com.jerome.slledger.application.quote.OverloadedException;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.DomainException;
 import com.jerome.slledger.domain.error.ExcessiveReturnException;
@@ -107,6 +108,18 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
         HttpStatus.GATEWAY_TIMEOUT,
         "market-data-unavailable",
         "The market data source did not answer in time");
+  }
+
+  /** The executor refused all the work: shed load now, and say when to try again. */
+  @ExceptionHandler(OverloadedException.class)
+  ResponseEntity<ProblemDetail> overloaded(OverloadedException e) {
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        .header(HttpHeaders.RETRY_AFTER, "1")
+        .body(
+            Problems.of(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "overloaded",
+                "The service is busy fetching prices; retry shortly"));
   }
 
   /** The source answered something this ledger will not pass on. */

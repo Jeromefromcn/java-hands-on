@@ -31,7 +31,8 @@ class MarketDataExecutorConfigurationTest {
                       16,
                       MarketDataExecutorProperties.Policy.ABORT,
                       MarketDataExecutorProperties.Type.PLATFORM,
-                      32));
+                      32,
+                      java.time.Duration.ofSeconds(3)));
         });
   }
 
@@ -63,7 +64,8 @@ class MarketDataExecutorConfigurationTest {
             1,
             MarketDataExecutorProperties.Policy.ABORT,
             MarketDataExecutorProperties.Type.PLATFORM,
-            1);
+            1,
+            java.time.Duration.ofSeconds(3));
     CountDownLatch release = new CountDownLatch(1);
     CountDownLatch started = new CountDownLatch(1);
     AtomicReference<String> name = new AtomicReference<>();

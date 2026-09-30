@@ -18,6 +18,7 @@ import com.jerome.slledger.application.position.OpenPosition;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.ReturnPositionOnce;
 import com.jerome.slledger.application.position.ShowPosition;
+import com.jerome.slledger.application.quote.PriceFanOut;
 import com.jerome.slledger.application.quote.QuotePrice;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
@@ -84,6 +85,12 @@ public class LedgerConfiguration {
   @Bean
   QuotePrice quotePrice(SecurityDirectory securities, MarketPriceSource source) {
     return new QuotePrice(securities, source);
+  }
+
+  @Bean
+  PriceFanOut priceFanOut(
+      QuotePrice quote, MarketDataPool pool, MarketDataExecutorProperties executor) {
+    return new PriceFanOut(quote, pool, executor.deadline());
   }
 
   @Bean

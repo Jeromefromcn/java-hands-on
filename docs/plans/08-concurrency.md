@@ -172,7 +172,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 3 · `GET /quotes` and the `503`
+## [x] 3 · `GET /quotes` and the `503`
 
 **`adapter-web`**
 - `QuotesController`: repeatable `isin` parameter, `@Isin` on each, at most
@@ -192,6 +192,20 @@ Failure modes the spec implies but no exercise is *about*.
 **Acceptance**
 - The controller imports only `application` (ArchUnit still passes).
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The response carries no per-currency block.** Prices of different
+  securities are not addable, so a "group" would be a list of the same items
+  reorganised. Each item carries its own currency; the grouping stays a tested
+  use-case function (section 2) and `QuotesIT.mixedCurrencies` asserts the
+  wire has no total.
+- **The fan-out deadline is `ledger.marketdata.executor.deadline` (3 s).**
+  It lives with the executor's other properties, not in `MarketDataProperties`.
+- **The 503 contract check is in `QuotesIT`, not `OpenApiContractIT`.** The
+  refusal needs a pool of one, so it has its own application; it builds the
+  validator from that application's `/v3/api-docs`. `OpenApiContractIT` gained
+  `/quotes` for `200` and both `400`s.
+- `@ValidIsin` gained `TYPE_USE` so it applies to `List<@ValidIsin String>`.
 
 ---
 
