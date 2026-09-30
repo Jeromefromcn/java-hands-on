@@ -679,7 +679,7 @@ and the two SQL texts.
 
 ---
 
-## [ ] 10 · Exercise 3 — lazy loading, OSIV, DTO
+## [x] 10 · Exercise 3 — lazy loading, OSIV, DTO
 
 `adapter-persistence` test scope gains:
 - `spring-web`, for `WebRequestInterceptor`;
@@ -710,6 +710,21 @@ statement count and SQL.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Jackson 3.1.5** (`tools.jackson`) comes from the BOM. The mapper uses field
+  visibility, because the entities have no bean getters. The entry's
+  `position` back-reference is excluded with a mix-in: serialising it would
+  recurse, which is a different failure from the one this exercise is about.
+- **The money invariant, checked against the serialiser.** The entity
+  serialises its raw column, `"collateralAmount":1000.000000` next to a
+  separate `"collateralCurrency"`, at scale 6 for HKD. The DTO serialises
+  `Money` as `{"amount":1000.00,"currency":"HKD"}`, which keeps the currency
+  and the currency's scale. The amount is a JSON number, and a client that
+  parses numbers as binary floating point loses the guarantee. That is stage
+  7's to settle at the web boundary. It is recorded in the decision record.
+- **`PositionLookup.load` is `readOnly = true`.** It only reads, and exercise
+  4 showed what a read-write read can do.
 
 ---
 

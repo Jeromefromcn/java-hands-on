@@ -1,0 +1,16 @@
+# Stage 6, exercise 3: lazy loading, open-in-view, DTO (LazyLoadingIT)
+# Hibernate 7.4.5, Jackson 3.1.5 (tools.jackson) with field visibility, as a naive entity-returning controller would serialise.
+# 'transaction active' is TransactionSynchronizationManager.isActualTransactionActive() when Hibernate prepared the statement.
+
+open-in-view on (OpenEntityManagerInViewInterceptor around the call)
+  statements inside load's transaction: 1
+  statements after load returned, during serialisation: 1
+    [transaction active: false] select e1_0.position_id,e1_0.business_date,e1_0.fee_amount,e1_0.fee_currency from accrual_entry e1_0 where e1_0.position_id=?
+  json: {"collateralAmount":1000.000000,"collateralCurrency":"HKD","counterpartyId":"CP-001","entries":[{"businessDate":"2026-09-01","feeAmount":0.410000,"feeCurrency":"HKD","positionId":"P1"},{"businessDate":"2026-09-02","feeAmount":0.410000,"feeCurrency":"HKD","positionId":"P1"},{"businessDate":"2026-09-03","feeAmount":0.410000,"feeCurrency":"HKD","positionId":"P1"}],"flatRate":0.0365,"id":"P1","isin":"HK0000000001","originalQuantity":100,"outstandingQuantity":100,"ruleType":"FLAT","status":"OPEN","version":0}
+
+DTO projection (PositionListQuery row), serialised after its transaction
+  statements during serialisation: 0
+  json: {"rows":[{"id":{"value":"P1"},"counterparty":{"value":"CP-001"},"security":{"value":"HK0000000001"},"status":"OPEN","originalQuantity":100,"outstandingQuantity":100,"collateral":{"amount":1000.00,"currency":"HKD"}}],"page":0,"size":10,"totalRows":1}
+open-in-view off: serialise after load returned
+  tools.jackson.databind.DatabindException <- … <- org.hibernate.LazyInitializationException: Cannot lazily initialize collection of role 'com.jerome.slledger.adapter.persistence.loan.LoanPositionEntity.entries' with key 'P1' (no session)
+

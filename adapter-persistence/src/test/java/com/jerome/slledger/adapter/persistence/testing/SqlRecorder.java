@@ -3,6 +3,7 @@ package com.jerome.slledger.adapter.persistence.testing;
 import java.util.ArrayList;
 import java.util.List;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Records every SQL string Hibernate prepares, in order. Registered through {@link #PROPERTY}; one
@@ -21,11 +22,14 @@ public class SqlRecorder implements StatementInspector {
           + SqlRecorder.class.getName();
 
   private static final List<String> STATEMENTS = new ArrayList<>();
+  private static final List<Boolean> IN_TRANSACTION = new ArrayList<>();
 
   @Override
   public String inspect(String sql) {
     synchronized (STATEMENTS) {
       STATEMENTS.add(sql);
+      // Hibernate prepares on the caller's thread, so this is the caller's transaction state.
+      IN_TRANSACTION.add(TransactionSynchronizationManager.isActualTransactionActive());
     }
     return sql;
   }
@@ -33,6 +37,14 @@ public class SqlRecorder implements StatementInspector {
   public static void clear() {
     synchronized (STATEMENTS) {
       STATEMENTS.clear();
+      IN_TRANSACTION.clear();
+    }
+  }
+
+  /** For each statement in {@link #statements()}, whether a Spring transaction was active. */
+  public static List<Boolean> inTransaction() {
+    synchronized (STATEMENTS) {
+      return List.copyOf(IN_TRANSACTION);
     }
   }
 

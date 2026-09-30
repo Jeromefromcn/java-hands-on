@@ -50,6 +50,25 @@
       <artifactId>testcontainers-postgresql</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Stage 6, exercise 3: what a controller would do to an entity, without
+         a controller. Jackson to serialise it, and the web types that
+         OpenEntityManagerInViewInterceptor runs on. Test scope only: the web
+         layer is stage 7's, and it lives in adapter-web, not here. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-json</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
