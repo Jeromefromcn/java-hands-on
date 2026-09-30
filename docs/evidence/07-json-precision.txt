@@ -1,0 +1,30 @@
+Stage 07 · section 2 — an amount as a JSON number
+(JsonPrecisionTest.reproducesPrecisionLossAsJsonNumber)
+
+amount sent                  9999999999999999.99 HKD
+JSON without the module      {"amount":9999999999999999.99,"currency":"HKD","negative":false}
+read back as a double        1.0E16
+as BigDecimal(double)        10000000000000000
+difference                   0.01
+
+JSON with LedgerJacksonModule  {"amount":"9999999999999999.99","currency":"HKD"}
+read back                      9999999999999999.99 HKD (equal: true)
+
+Two findings in that output:
+- 0.01 HKD is gone before any code of this service runs.
+- Jackson's default serialization of the domain record also writes
+  "negative": false, from Money.isNegative(). A derived value leaks into the
+  wire format and becomes something a client can start depending on.
+
+The same JSON through a real JavaScript engine (v20.20.2), run by hand:
+  $ node -e 'const o=JSON.parse("{\"amount\":9999999999999999.99,\"currency\":\"HKD\"}"); console.log(o.amount, JSON.stringify(o))'
+  10000000000000000 {"amount":10000000000000000,"currency":"HKD"}
+
+The client's own re-serialization sends 10000000000000000 back: a round trip
+through a browser changes the amount by one cent.
+
+Mutation check on MoneyJson.Reader (section 2):
+  accept a JSON number amount, and skip the over-precision check
+  -> 5 of 20 refusal cases in LedgerJacksonModuleTest went red
+     ([1] 12.50 number, [2] 12 number, [9] 12.505 HKD, [10] 1.5 JPY,
+      [11] 1.0005 BHD). Restored afterwards.

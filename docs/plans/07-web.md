@@ -163,7 +163,7 @@ pinned by a test in the section named.
 
 ---
 
-## [ ] 2 · Money, rates and dates in JSON
+## [x] 2 · Money, rates and dates in JSON
 
 **`adapter-web.json`**: `LedgerJacksonModule`, a Jackson 3 `JacksonModule`
 bean, which Boot registers on its `JsonMapper`.
@@ -200,6 +200,19 @@ bean, which Boot registers on its `JsonMapper`.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Over-precision is judged by value, not by digit count.** `12.500 HKD`
+  is accepted as `12.50 HKD`; `12.505 HKD` is refused. That is stage 6's
+  column rule (refuse only what re-scaling would round), and nothing is
+  lost by accepting trailing zeros. The spec's wording, "more decimals than
+  its currency allows", is narrowed to this in the decision record.
+- **The default serialization also leaks `"negative": false`**, from
+  `Money.isNegative()`. The module writes exactly two fields.
+- `LedgerJacksonModule` is `final`: `-Werror` refused the `this`-escape of
+  registering serializers in a non-final constructor.
+- A mutation that accepted number amounts and skipped the precision check
+  turned 5 refusal cases red.
 
 ---
 
