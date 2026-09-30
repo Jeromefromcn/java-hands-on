@@ -862,7 +862,7 @@ inferred schema to `docs/evidence/07-openapi-money.txt`.
 
 ---
 
-## [ ] 17 · Manual run
+## [x] 17 · Manual run
 
 - **Seed**: `bootstrap/src/main/resources/db/seed-local/R__local_seed.sql`
   inserts synthetic counterparties and securities with valid check
@@ -883,6 +883,23 @@ inferred schema to `docs/evidence/07-openapi-money.txt`.
 **Acceptance**
 - The transcript shows every endpoint answering as specified.
 - `./mvnw clean verify` is green, with no test touching Compose.
+
+**Found while implementing**
+- **The manual run found a leak no test had.** A malformed body's `path`
+  was Jackson's `getPathReference()`, which names the Java type at each
+  step: `com.jerome.slledger.adapter.web.loan.OpenLoanRequest["collateral"]`.
+  The handler now builds the path from field names (`collateral`), and
+  `LedgerProblemHandlerTest` asserts both the path and that no `com.jerome`
+  appears.
+- **The prod profile now requires `LEDGER_MARKETDATA_URL`**, with no default,
+  like the datasource in `local`. `ConfigurationPrecedenceIT` starts every
+  profile, so it passes a placeholder URL.
+- **Every replay logs two Hibernate `WARN` lines** (SQLState `23505`), under
+  the request's trace id: the visible cost of claiming the key with the
+  business insert.
+- Port 8080 is taken on this machine; the run used `--server.port=18080`.
+- The WireMock image is pinned to `wiremock/wiremock:3.13.1`
+  (`sha256:d61e7720…`).
 
 ---
 

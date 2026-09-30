@@ -149,7 +149,11 @@ class LedgerProblemHandlerTest {
                 .content("{\"value\":\"v\",\"money\":{\"amount\":12.50,\"currency\":\"HKD\"}}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.type").value(Problems.PREFIX + "malformed-body"))
-        .andExpect(jsonPath("$.path").value(org.hamcrest.Matchers.containsString("money")));
+        .andExpect(jsonPath("$.path").value("money"))
+        .andExpect(
+            content()
+                .string(
+                    org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("com.jerome"))));
   }
 
   @Test

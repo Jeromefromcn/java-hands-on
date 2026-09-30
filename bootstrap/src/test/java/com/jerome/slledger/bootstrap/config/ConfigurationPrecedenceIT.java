@@ -102,10 +102,14 @@ class ConfigurationPrecedenceIT {
     // Since stage 6 the application needs a database. The datasource is appended as arguments,
     // the highest-precedence source, so no profile's YAML can override it; the property this test
     // measures is a different key, so its precedence is unaffected.
+    // Since stage 7 the prod profile takes the market data URL from LEDGER_MARKETDATA_URL with no
+    // default; a placeholder address stands in for it. Nothing here calls the source.
     String[] withDatabase =
-        Stream.concat(
+        Stream.of(
                 Arrays.stream(args),
-                Arrays.stream(SharedPostgres.freshDatabase()).map(p -> "--" + p))
+                Arrays.stream(SharedPostgres.freshDatabase()).map(p -> "--" + p),
+                Stream.of("--ledger.marketdata.base-url=http://127.0.0.1:9"))
+            .flatMap(s -> s)
             .toArray(String[]::new);
     return builder.run(withDatabase);
   }

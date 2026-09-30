@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DatabindException;
 
 /**
@@ -223,11 +224,31 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
     ProblemDetail problem;
     if (ex.getCause() instanceof DatabindException databind) {
       problem = Problems.of(status, "malformed-body", databind.getOriginalMessage());
-      problem.setProperty("path", databind.getPathReference());
+      problem.setProperty("path", jsonPath(databind));
     } else {
       problem = Problems.of(status, "malformed-body", "The request body is not readable JSON");
     }
     return handleExceptionInternal(ex, problem, headers, status, request);
+  }
+
+  /**
+   * The failing field as the client wrote it: {@code collateral.amount}, {@code rows[2]}. Not
+   * Jackson's {@code getPathReference()}, which prefixes each step with the Java class it was
+   * binding, and would hand out this service's class names.
+   */
+  private static String jsonPath(DatabindException e) {
+    StringBuilder path = new StringBuilder();
+    for (JacksonException.Reference step : e.getPath()) {
+      if (step.getPropertyName() != null) {
+        if (!path.isEmpty()) {
+          path.append('.');
+        }
+        path.append(step.getPropertyName());
+      } else if (step.getIndex() >= 0) {
+        path.append('[').append(step.getIndex()).append(']');
+      }
+    }
+    return path.toString();
   }
 
   @Override

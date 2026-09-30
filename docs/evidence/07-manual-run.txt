@@ -1,0 +1,135 @@
+Stage 07 · section 17 — the application run by hand (local profile)
+Measured 2026-09-30, JDK 21.0.12-tem.
+
+  docker compose -f infra/compose.yaml --env-file infra/.env up -d   # postgres + marketdata (WireMock 3.13.1)
+  LEDGER_DB_URL=... LEDGER_DB_USER=... LEDGER_DB_PASSWORD=... \
+    ./mvnw -pl bootstrap spring-boot:run -Dspring-boot.run.profiles=local \
+      -Dspring-boot.run.arguments=--server.port=18080
+  (8080 is taken by another service on this machine.)
+
+Startup against the stage 6 volume (from the log):
+  Migrating schema "public" to version "4 - loan trade request fingerprint"
+  Migrating schema "public" with repeatable migration "local seed"
+  Successfully applied 2 migrations to schema "public", now at version v4
+  Tomcat started on port 18080 (http) with context path '/'
+  Started SlLedgerApplication in 6.215 seconds
+
+Transcript (Date, Connection and Keep-Alive headers removed):
+
+$ curl -si -X POST http://127.0.0.1:18080/loans -H 'Content-Type: application/json' -H 'Idempotency-Key: manual-open-1' -d '{"counterpartyId":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":"50000.00","currency":"HKD"},"rule":{"type":"FLAT","rate":"0.0365"},"tradeDate":"2026-09-30"}'
+HTTP/1.1 201 
+X-Trace-Id: 18626c2d7424b9b59fa88cedf75688eb
+Location: /loans/4e4e783a-51d1-4e60-8add-8cd056560561
+Content-Type: application/json
+
+{"positionId":"4e4e783a-51d1-4e60-8add-8cd056560561","trade":{"direction":"BORROW","quantity":1000,"unitPrice":{"amount":"41.26","currency":"HKD"},"tradeDate":"2026-09-30","settlementDate":"2026-10-05"}}
+
+
+$ curl -si -X POST http://127.0.0.1:18080/loans -H 'Content-Type: application/json' -H 'Idempotency-Key: manual-open-1' -d '{"counterpartyId":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":"50000.00","currency":"HKD"},"rule":{"type":"FLAT","rate":"0.0365"},"tradeDate":"2026-09-30"}'
+HTTP/1.1 201 
+X-Trace-Id: 4a999cb2616b6035ac6b33157fb38e8b
+Location: /loans/4e4e783a-51d1-4e60-8add-8cd056560561
+Idempotent-Replayed: true
+Content-Type: application/json
+
+{"positionId":"4e4e783a-51d1-4e60-8add-8cd056560561","trade":{"direction":"BORROW","quantity":1000,"unitPrice":{"amount":"41.26","currency":"HKD"},"tradeDate":"2026-09-30","settlementDate":"2026-10-05"}}
+
+
+$ curl -si -X POST http://127.0.0.1:18080/loans/4e4e783a-51d1-4e60-8add-8cd056560561/returns -H 'Content-Type: application/json' -H 'Idempotency-Key: manual-return-1' -d '{"quantity":400,"tradeDate":"2026-09-30"}'
+HTTP/1.1 201 
+X-Trace-Id: 4fc4ab5cace1f03d3e266d7c7ef0098c
+Content-Type: application/json
+
+{"positionId":"4e4e783a-51d1-4e60-8add-8cd056560561","trade":{"direction":"RETURN","quantity":400,"unitPrice":{"amount":"41.26","currency":"HKD"},"tradeDate":"2026-09-30","settlementDate":"2026-10-05"}}
+
+
+$ curl -si 'http://127.0.0.1:18080/loans?page=0&size=5'
+HTTP/1.1 200 
+X-Trace-Id: 4d5e48c0fa97f04c0886dd6b78c3d7cb
+Content-Type: application/json
+Content-Length: 268
+
+{"rows":[{"id":"4e4e783a-51d1-4e60-8add-8cd056560561","counterpartyId":"CP-001","isin":"HK0000000007","status":"PARTIALLY_RETURNED","originalQuantity":1000,"outstandingQuantity":600,"collateral":{"amount":"50000.00","currency":"HKD"}}],"page":0,"size":5,"totalRows":1}
+
+
+$ curl -si 'http://127.0.0.1:18080/loans?after=&size=5'
+HTTP/1.1 200 
+X-Trace-Id: 4f99bb094c75acf09c342d49e0a6f5cc
+Content-Type: application/json
+Content-Length: 245
+
+{"rows":[{"id":"4e4e783a-51d1-4e60-8add-8cd056560561","counterpartyId":"CP-001","isin":"HK0000000007","status":"PARTIALLY_RETURNED","originalQuantity":1000,"outstandingQuantity":600,"collateral":{"amount":"50000.00","currency":"HKD"}}],"size":5}
+
+
+$ curl -si http://127.0.0.1:18080/loans/4e4e783a-51d1-4e60-8add-8cd056560561
+HTTP/1.1 200 
+X-Trace-Id: 137c996d444c7fe67fd6d863357e9d68
+Content-Type: application/json
+Content-Length: 225
+
+{"id":"4e4e783a-51d1-4e60-8add-8cd056560561","counterpartyId":"CP-001","isin":"HK0000000007","status":"PARTIALLY_RETURNED","originalQuantity":1000,"outstandingQuantity":600,"collateral":{"amount":"50000.00","currency":"HKD"}}
+
+
+$ curl -si 'http://127.0.0.1:18080/loans/4e4e783a-51d1-4e60-8add-8cd056560561/accruals?from=2026-09-01&to=2026-09-30'
+HTTP/1.1 200 
+X-Trace-Id: 64aec578ee6e337fa21ede56917335fc
+Content-Type: application/json
+Content-Length: 104
+
+{"positionId":"4e4e783a-51d1-4e60-8add-8cd056560561","from":"2026-09-01","to":"2026-09-30","entries":[]}
+
+
+$ curl -si http://127.0.0.1:18080/securities/HK0000000007/quote
+HTTP/1.1 200 
+X-Trace-Id: 32dbe33ee938f5ed01691773acda35fa
+Content-Type: application/json
+Content-Length: 67
+
+{"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}}
+
+
+$ curl -si http://127.0.0.1:18080/securities/US0000000010/quote
+HTTP/1.1 200 
+X-Trace-Id: 3cbe44be07ad5ef4e9bdd0ead2e94967
+Content-Type: application/json
+Content-Length: 67
+
+{"isin":"US0000000010","price":{"amount":"10.05","currency":"USD"}}
+
+
+$ curl -si -X POST http://127.0.0.1:18080/loans -H 'Content-Type: application/json' -d '{"counterpartyId":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":"50000.00","currency":"HKD"},"rule":{"type":"FLAT","rate":"0.0365"},"tradeDate":"2026-09-30"}'
+HTTP/1.1 400 
+X-Trace-Id: 4323553f333a1087e1e79a0e688a8bd2
+Content-Type: application/problem+json
+
+{"detail":"Required header Idempotency-Key is missing","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:missing-header","traceId":"4323553f333a1087e1e79a0e688a8bd2"}
+
+
+$ curl -si -X POST http://127.0.0.1:18080/loans -H 'Content-Type: application/json' -H 'Idempotency-Key: manual-open-2' -d '{"counterpartyId":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":50000.00,"currency":"HKD"},"rule":{"type":"FLAT","rate":"0.0365"},"tradeDate":"2026-09-30"}'
+HTTP/1.1 400 
+X-Trace-Id: 7a48b542417396ee28a6a1845cd13057
+Content-Type: application/problem+json
+
+{"detail":"amount must be a JSON string, not a NUMBER: a number may already have been rounded","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"com.jerome.slledger.adapter.web.loan.OpenLoanRequest[\"collateral\"]","traceId":"7a48b542417396ee28a6a1845cd13057"}
+
+The last exchange as first run exposed a class name in "path":
+  "path":"com.jerome.slledger.adapter.web.loan.OpenLoanRequest[\"collateral\"]"
+Jackson's getPathReference() prefixes each step with the Java type it was
+binding. Fixed in this section (LedgerProblemHandler builds the path from the
+field names), pinned by LedgerProblemHandlerTest, and rerun:
+
+$ curl -si -X POST http://127.0.0.1:18080/loans -H 'Content-Type: application/json' -H 'Idempotency-Key: manual-open-2' -d '{"counterpartyId":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":50000.00,"currency":"HKD"},"rule":{"type":"FLAT","rate":"0.0365"},"tradeDate":"2026-09-30"}'
+HTTP/1.1 400 
+X-Trace-Id: 7e148e59651d87658625cb37f4555aba
+Content-Type: application/problem+json
+
+{"detail":"amount must be a JSON string, not a NUMBER: a number may already have been rounded","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"collateral","traceId":"7e148e59651d87658625cb37f4555aba"}
+
+
+Log side:
+- The replay (second POST with manual-open-1) logged, under its trace id:
+    WARN ... [4a999cb2616b6035ac6b33157fb38e8b] org.hibernate.orm.jdbc.error : HHH000247: ErrorCode: 0, SQLState: 23505
+    WARN ... [4a999cb2616b6035ac6b33157fb38e8b] org.hibernate.orm.jdbc.error : ERROR: duplicate key value violates unique constraint "loan_trade_idempotency_key_key"
+  Every replay is a failed insert plus a rolled-back transaction, and says so
+  in the log. The trace id on the line is the one the client got in X-Trace-Id.
+- The database password, grepped for in both runs' logs: 0 occurrences.

@@ -1,4 +1,5 @@
-# Production-width bounds and the real source (a stub until stage 7).
+# Production-width bounds. marketdata.source selects the reference-rate stub (unscheduled);
+# the price source is ledger.marketdata, whose URL has no default here.
 accrual:
   rate-lower-bound: 0.0000
   rate-upper-bound: 0.1500
@@ -6,3 +7,7 @@ accrual:
 
 marketdata:
   source: real
+
+ledger:
+  marketdata:
+    base-url: ${LEDGER_MARKETDATA_URL}

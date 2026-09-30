@@ -1,5 +1,6 @@
-# Postgres for manual experiments (stage 6 onward). Automated tests never use
-# this; they start their own Testcontainers instance.
+# Postgres (stage 6 onward) and a stub market data source (stage 7), for manual
+# experiments. Automated tests never use this; they start their own
+# Testcontainers instance.
 #
 #   cp infra/.env.example infra/.env   # then set real values
 #   docker compose -f infra/compose.yaml up -d
@@ -22,6 +23,15 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  # Stage 7: a stub market data source for manual runs. Fixed synthetic prices per ISIN prefix,
+  # from infra/wiremock/mappings; no code, no credentials.
+  marketdata:
+    image: wiremock/wiremock:3.13.1
+    ports:
+      - "127.0.0.1:8089:8080"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
 
 volumes:
   ledger-pgdata:

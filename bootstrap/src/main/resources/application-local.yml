@@ -14,3 +14,11 @@ spring:
     url: ${LEDGER_DB_URL}
     username: ${LEDGER_DB_USER}
     password: ${LEDGER_DB_PASSWORD}
+  # Stage 7: synthetic counterparties and securities, so the endpoints can be tried by hand.
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed-local
+
+# infra/compose.yaml's WireMock stub; the timeouts are the defaults from application.yml.
+ledger:
+  marketdata:
+    base-url: http://127.0.0.1:8089
