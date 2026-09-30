@@ -142,7 +142,7 @@ No child POM carries a `<version>`. Spring Batch comes from the Boot BOM.
 |---|---|---|
 | `domain` | nothing | none |
 | `application` | `accrual` (candidates, ledger, accrue), `revaluation` (request, marker), `reconciliation` (holdings, classifier, breaks, settlement ladder), `batch` (run summary, fenced run, retention); `cache.FencingTokens` | none |
-| `adapter-persistence` | JDBC adapters for every new port; migrations V11 (fencing sequence), V12 (Batch schema), V13 (accrual skips, revaluation, reconciliation, retention) | none |
+| `adapter-persistence` | JDBC adapters for every new port; migrations V11 (fencing sequence), V12 (Batch schema), V13 (batch skips), V14 (revaluation), V15 (reconciliation) | none |
 | `batch` | the four job definitions, the keyset reader, step defaults, partitioners, the run-summary listener, the CSV holdings reader | Spring Batch |
 | `bootstrap` | `ledger.batch.*` properties and wiring, the launcher, the schedulers | none in main |
 | `adapter-messaging` | nothing | none |
