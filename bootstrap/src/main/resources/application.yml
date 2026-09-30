@@ -19,6 +19,11 @@ spring:
         cache:
           use_second_level_cache: false
 
+# Stage 7: TraceIdFilter puts each request's id in the MDC; this prints it on every log line.
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "
+
 # Synthetic values, wide enough to be safe defaults. Profiles narrow them.
 accrual:
   rate-lower-bound: 0.0000

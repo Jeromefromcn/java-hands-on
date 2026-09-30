@@ -216,7 +216,7 @@ bean, which Boot registers on its `JsonMapper`.
 
 ---
 
-## [ ] 3 · The trace-id filter
+## [x] 3 · The trace-id filter
 
 **`adapter-web.trace.TraceIdFilter`**, a `OncePerRequestFilter` at
 `Ordered.HIGHEST_PRECEDENCE`:
