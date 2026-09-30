@@ -398,7 +398,7 @@ Redis L2)**
 
 ---
 
-## [ ] 10 · Invalidation and the two-level cache
+## [x] 10 · Invalidation and the two-level cache
 
 **`adapter.persistence.cache`**
 - `RedisInvalidationBus`: `publish(isin)` on `sl:price:invalidate`; a
@@ -415,6 +415,19 @@ Redis L2)**
 
 **Acceptance**
 - Tests pass; `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **`ReadThrough.evictNearest` is new**, and `CachingMarketPriceSource` gained `evictLocal`.
+  A message from another instance must drop only the nearest-tier copy (the sender already
+  cleared the shared tier) and must still stop an in-flight load from storing an old result.
+- **`Invalidation<K>` is a port in `application.cache`**, taken by the decorator as an
+  optional constructor argument; the Redis bus is subscribed after the decorator exists
+  (`bus.start(prices::evictLocal)`), which avoids a construction cycle.
+- The test for the stale windows also asserts the boundary exactly: at `TTL - 1 ns` the old
+  price is still served, at `TTL` the new one, on a controlled ticker.
+- `RedisMessageListenerContainer.start()` returns after the subscription is registered, so
+  no test waits for "the subscriber is ready".
+- A message that is not an ISIN is counted and dropped, and does not stop the subscriber.
 
 ---
 

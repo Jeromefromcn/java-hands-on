@@ -1,0 +1,5 @@
+Stage 9, section 10: time from A.evict(isin) to B's L1 being empty, 200 rounds, two
+instances and one real redis:7.4-alpine on this machine (loopback, Testcontainers).
+Includes A's own L1 and shared-tier delete and the PUBLISH; measured with System.nanoTime.
+
+median = 2068 us, p99 = 12097 us, max = 16116 us

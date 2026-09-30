@@ -141,6 +141,23 @@ public final class ReadThrough<K, V> {
     }
   }
 
+  /**
+   * Removes the key from the nearest tier only, and tells a load already running for it not to
+   * store its result. This is what an instance does when another instance says the key changed: the
+   * shared tiers were already cleared by the one that changed it.
+   */
+  public void evictNearest(K key) {
+    Flight<V> running = flights.get(key);
+    if (running != null) {
+      running.markStale();
+    }
+    try {
+      layers.get(0).tier().evict(key);
+    } catch (RuntimeException e) {
+      counters.tierError();
+    }
+  }
+
   public CacheCounters counters() {
     return counters;
   }

@@ -1,0 +1,6 @@
+Stage 9, section 10: how long instance B kept serving the old price (41.26) after the
+price changed to 42.00 and instance A evicted it. L1 TTL = PT5S, jitter 0, controlled
+ticker, so the window is exact by construction: it is the L1 TTL, not the channel.
+
+no channel: B served the old price until the L1 TTL ran out (PT5S)
+B at TTL-1ns: old price. B at TTL: new price.

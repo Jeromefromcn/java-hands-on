@@ -15,16 +15,22 @@ import java.util.Random;
  * <p>The source's "I do not know this security" is a cacheable answer (an {@link Entry.Absent} with
  * the short negative TTL). Its "I could not answer" and "I refuse this answer" are not: they
  * propagate and store nothing, so an outage is not remembered after it ends.
+ *
+ * <p>{@code invalidation} may be null: with no channel, another instance's copy lives until its own
+ * TTL, which is the staleness bound the decision record states.
  */
 public final class CachingMarketPriceSource implements MarketPriceSource {
 
   private final ReadThrough<Isin, Money> cache;
+  private final Invalidation<Isin> invalidation;
 
   public CachingMarketPriceSource(
       MarketPriceSource source,
       List<ReadThrough.Layer<Isin, Money>> layers,
       Random random,
-      ReadThrough.Rebuild<Isin> rebuild) {
+      ReadThrough.Rebuild<Isin> rebuild,
+      Invalidation<Isin> invalidation) {
+    this.invalidation = invalidation;
     this.cache =
         new ReadThrough<>(
             layers,
@@ -47,10 +53,19 @@ public final class CachingMarketPriceSource implements MarketPriceSource {
   }
 
   /**
-   * Removes the price from every tier, and tells a load already running not to store its result.
+   * The price changed: removes it from every tier, tells a load already running not to store its
+   * result, and asks the other instances to drop their nearest-tier copy.
    */
   public void evict(Isin isin) {
     cache.evict(isin);
+    if (invalidation != null) {
+      invalidation.publish(isin);
+    }
+  }
+
+  /** Another instance says the price changed: drops this instance's nearest-tier copy only. */
+  public void evictLocal(Isin isin) {
+    cache.evictNearest(isin);
   }
 
   public CacheCounters counters() {

@@ -114,7 +114,7 @@ class CachingDecoratorsTest {
           throw UnknownReferenceException.subject("security", isin.value());
         };
     CachingMarketPriceSource cached =
-        new CachingMarketPriceSource(source, l1(), new Random(1), null);
+        new CachingMarketPriceSource(source, l1(), new Random(1), null, null);
 
     for (int i = 0; i < 5; i++) {
       assertThatThrownBy(() -> cached.priceOf(UNKNOWN))
@@ -136,7 +136,7 @@ class CachingDecoratorsTest {
           return Money.of("41.26", HKD);
         };
     CachingMarketPriceSource cached =
-        new CachingMarketPriceSource(source, l1(), new Random(1), null);
+        new CachingMarketPriceSource(source, l1(), new Random(1), null, null);
 
     assertThatThrownBy(() -> cached.priceOf(KNOWN))
         .isInstanceOf(MarketDataUnavailableException.class);
@@ -156,7 +156,7 @@ class CachingDecoratorsTest {
           return Money.of("5.30", USD);
         };
     CachingMarketPriceSource cached =
-        new CachingMarketPriceSource(source, l1(), new Random(1), null);
+        new CachingMarketPriceSource(source, l1(), new Random(1), null, null);
     QuotePrice quote = new QuotePrice(database, cached);
 
     assertThatThrownBy(() -> quote.quote(KNOWN)).isInstanceOf(MarketDataRejectedException.class);
@@ -173,7 +173,7 @@ class CachingDecoratorsTest {
           return Money.of("41.26", HKD);
         };
     CachingMarketPriceSource cached =
-        new CachingMarketPriceSource(source, l1(), new Random(1), null);
+        new CachingMarketPriceSource(source, l1(), new Random(1), null, null);
 
     cached.priceOf(KNOWN);
     cached.evict(KNOWN);
