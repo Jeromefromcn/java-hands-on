@@ -1013,7 +1013,7 @@ Evidence: `docs/evidence/06-sql-window.txt`.
 
 ---
 
-## [ ] 17 · Exercise 10b — recursive CTE
+## [x] 17 · Exercise 10b — recursive CTE
 
 The test-only schema, `db/lab/pools/V2000__collateral_pool.sql`, holds:
 - `collateral_pool(id, parent_id null, name)`;
@@ -1041,6 +1041,21 @@ Evidence: `docs/evidence/06-sql-recursive.txt`.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The cycle guard is Postgres's `CYCLE … SET is_cycle USING path`.** With
+  `X → Y → X`, the query terminates and counts each pool once (3 for both).
+- **All pools at once, SQL loses at every size**: 2,233 ms against 192 ms at
+  100k. The CTE walks each pool's subtree once per root, 588,889 recursive rows
+  at 100k (N × depth). The Java side does one post-order pass over N.
+- **A second measurement was added: one pool's roll-up**
+  (`sql/pool-rollup-one.sql`, seeded with `POOL-000001`, a ninth of the tree).
+  SQL wins at every size, 84 ms against 188 ms at 100k: it touches only that
+  subtree, while Java must load every pool to find it. This is the question a
+  roll-up is usually asked, and the all-pools number alone would have said
+  the opposite.
+- **The planner's estimate for the recursion is far off**: 50,085,000 rows
+  estimated, 588,889 actual at 100k pools.
 
 ---
 

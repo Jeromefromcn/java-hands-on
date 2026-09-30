@@ -1,0 +1,243 @@
+# Stage 6, exercise 10b: recursive CTE roll-up, and the same in Java (RecursiveCteIT)
+# Postgres 17.11 in a Testcontainers container on the same 4-core host (loopback).
+# Generated tree: fan-out 10, pool n's parent is n/10; one holding per pool, every 7th in USD. Results asserted equal.
+
+Median of 5 runs after 2 warm-ups, wall ms, including fetching the result.
+All pools: every pool's roll-up (sqlMs vs javaMs). One pool: POOL-000001's roll-up only (sqlOneMs vs javaOneMs; the Java side still loads every pool, since it cannot know the subtree without them).
+     pools      sqlMs     javaMs resultRows   sqlOneMs  javaOneMs
+      1000       12.4        4.6       1100        2.1        5.1
+     10000      173.3       31.0      11000        8.3       23.9
+    100000     2233.4      191.5     110000       84.1      188.4
+
+EXPLAIN at 1000 pools, all pools:
+  Sort  (cost=19566.26..19567.26 rows=400 width=68) (actual time=11.370..11.430 rows=1100 loops=1)
+    Sort Key: t.root_id, h.currency
+    Sort Method: quicksort  Memory: 91kB
+    Buffers: shared hit=25
+    CTE tree
+      ->  Recursive Union  (cost=0.00..11835.25 rows=250750 width=77) (actual time=0.018..4.618 rows=3889 loops=1)
+            Buffers: shared hit=18
+            ->  Seq Scan on collateral_pool  (cost=0.00..19.00 rows=1000 width=57) (actual time=0.017..0.273 rows=1000 loops=1)
+                  Buffers: shared hit=9
+            ->  Hash Join  (cost=31.50..930.88 rows=24975 width=77) (actual time=0.151..0.901 rows=722 loops=4)
+                  Hash Cond: (t_1.pool_id = c.parent_id)
+                  Buffers: shared hit=9
+                  ->  WorkTable Scan on tree t_1  (cost=0.00..200.00 rows=5000 width=96) (actual time=0.001..0.099 rows=972 loops=4)
+                        Filter: (NOT is_cycle)
+                  ->  Hash  (cost=19.00..19.00 rows=1000 width=24) (actual time=0.382..0.382 rows=999 loops=1)
+                        Buckets: 1024  Batches: 1  Memory Usage: 63kB
+                        Buffers: shared hit=9
+                        ->  Seq Scan on collateral_pool c  (cost=0.00..19.00 rows=1000 width=24) (actual time=0.007..0.111 rows=1000 loops=1)
+                              Buffers: shared hit=9
+    ->  HashAggregate  (cost=7708.72..7713.72 rows=400 width=68) (actual time=9.783..10.170 rows=1100 loops=1)
+          Group Key: t.root_id, h.currency
+          Batches: 1  Memory Usage: 577kB
+          Buffers: shared hit=25
+          ->  Hash Join  (cost=29.50..6768.41 rows=125375 width=42) (actual time=0.390..8.064 rows=3889 loops=1)
+                Hash Cond: (t.pool_id = h.pool_id)
+                Buffers: shared hit=25
+                ->  CTE Scan on tree t  (cost=0.00..5015.00 rows=125375 width=64) (actual time=0.020..6.439 rows=3889 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=18
+                ->  Hash  (cost=17.00..17.00 rows=1000 width=22) (actual time=0.358..0.359 rows=1000 loops=1)
+                      Buckets: 1024  Batches: 1  Memory Usage: 62kB
+                      Buffers: shared hit=7
+                      ->  Seq Scan on pool_holding h  (cost=0.00..17.00 rows=1000 width=22) (actual time=0.006..0.119 rows=1000 loops=1)
+                            Buffers: shared hit=7
+  Planning Time: 0.264 ms
+  Execution Time: 12.091 ms
+
+EXPLAIN at 1000 pools, one pool (POOL-000001):
+  GroupAggregate  (cost=308.84..314.47 rows=250 width=68) (actual time=1.443..1.450 rows=2 loops=1)
+    Group Key: t.root_id, h.currency
+    Buffers: shared hit=37
+    CTE tree
+      ->  Recursive Union  (cost=0.28..255.93 rows=501 width=77) (actual time=0.041..0.894 rows=111 loops=1)
+            Buffers: shared hit=30
+            ->  Index Only Scan using collateral_pool_pkey on collateral_pool  (cost=0.28..8.29 rows=1 width=57) (actual time=0.040..0.042 rows=1 loops=1)
+                  Index Cond: (id = 'POOL-000001'::text)
+                  Heap Fetches: 1
+                  Buffers: shared hit=3
+            ->  Hash Join  (cost=0.26..24.26 rows=50 width=77) (actual time=0.108..0.264 rows=37 loops=3)
+                  Hash Cond: (c.parent_id = t_1.pool_id)
+                  Buffers: shared hit=27
+                  ->  Seq Scan on collateral_pool c  (cost=0.00..19.00 rows=1000 width=24) (actual time=0.007..0.078 rows=1000 loops=3)
+                        Buffers: shared hit=27
+                  ->  Hash  (cost=0.20..0.20 rows=5 width=96) (actual time=0.019..0.019 rows=37 loops=3)
+                        Buckets: 1024  Batches: 1  Memory Usage: 28kB
+                        ->  WorkTable Scan on tree t_1  (cost=0.00..0.20 rows=5 width=96) (actual time=0.001..0.006 rows=37 loops=3)
+                              Filter: (NOT is_cycle)
+    ->  Sort  (cost=52.91..53.54 rows=250 width=42) (actual time=1.408..1.414 rows=111 loops=1)
+          Sort Key: t.root_id, h.currency
+          Sort Method: quicksort  Memory: 29kB
+          Buffers: shared hit=37
+          ->  Hash Join  (cost=29.50..42.96 rows=250 width=42) (actual time=0.417..1.367 rows=111 loops=1)
+                Hash Cond: (t.pool_id = h.pool_id)
+                Buffers: shared hit=37
+                ->  CTE Scan on tree t  (cost=0.00..10.02 rows=250 width=64) (actual time=0.043..0.954 rows=111 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=30
+                ->  Hash  (cost=17.00..17.00 rows=1000 width=22) (actual time=0.364..0.364 rows=1000 loops=1)
+                      Buckets: 1024  Batches: 1  Memory Usage: 62kB
+                      Buffers: shared hit=7
+                      ->  Seq Scan on pool_holding h  (cost=0.00..17.00 rows=1000 width=22) (actual time=0.011..0.130 rows=1000 loops=1)
+                            Buffers: shared hit=7
+  Planning Time: 0.278 ms
+  Execution Time: 1.684 ms
+
+EXPLAIN at 10000 pools, all pools:
+  Sort  (cost=359583.73..359584.73 rows=400 width=68) (actual time=186.602..187.223 rows=11000 loops=1)
+    Sort Key: t.root_id, h.currency
+    Sort Method: quicksort  Memory: 814kB
+    Buffers: shared hit=232, temp read=293 written=1368
+    CTE tree
+      ->  Recursive Union  (cost=0.00..205856.50 rows=5009500 width=77) (actual time=23.363..91.480 rows=48889 loops=1)
+            Buffers: shared hit=168, temp read=293 written=293
+            ->  Seq Scan on collateral_pool  (cost=0.00..184.00 rows=10000 width=57) (actual time=23.361..26.453 rows=10000 loops=1)
+                  Buffers: shared hit=84
+            ->  Hash Join  (cost=309.00..15557.75 rows=499950 width=77) (actual time=1.283..10.484 rows=7778 loops=5)
+                  Hash Cond: (t_1.pool_id = c.parent_id)
+                  Buffers: shared hit=84, temp read=293 written=1
+                  ->  WorkTable Scan on tree t_1  (cost=0.00..2000.00 rows=50000 width=96) (actual time=0.012..1.278 rows=9778 loops=5)
+                        Filter: (NOT is_cycle)
+                        Buffers: temp read=293 written=1
+                  ->  Hash  (cost=184.00..184.00 rows=10000 width=24) (actual time=3.312..3.313 rows=9999 loops=1)
+                        Buckets: 16384  Batches: 1  Memory Usage: 675kB
+                        Buffers: shared hit=84
+                        ->  Seq Scan on collateral_pool c  (cost=0.00..184.00 rows=10000 width=24) (actual time=0.020..1.206 rows=10000 loops=1)
+                              Buffers: shared hit=84
+    ->  HashAggregate  (cost=153704.94..153709.94 rows=400 width=68) (actual time=168.290..172.867 rows=11000 loops=1)
+          Group Key: t.root_id, h.currency
+          Batches: 1  Memory Usage: 4497kB
+          Buffers: shared hit=232, temp read=293 written=1368
+          ->  Hash Join  (cost=289.00..134919.31 rows=2504750 width=42) (actual time=27.076..145.617 rows=48889 loops=1)
+                Hash Cond: (t.pool_id = h.pool_id)
+                Buffers: shared hit=232, temp read=293 written=1368
+                ->  CTE Scan on tree t  (cost=0.00..100190.00 rows=2504750 width=64) (actual time=23.374..121.327 rows=48889 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=168, temp read=293 written=1368
+                ->  Hash  (cost=164.00..164.00 rows=10000 width=22) (actual time=3.630..3.631 rows=10000 loops=1)
+                      Buckets: 16384  Batches: 1  Memory Usage: 665kB
+                      Buffers: shared hit=64
+                      ->  Seq Scan on pool_holding h  (cost=0.00..164.00 rows=10000 width=22) (actual time=0.027..1.317 rows=10000 loops=1)
+                            Buffers: shared hit=64
+  Planning Time: 0.273 ms
+  JIT:
+    Functions: 28
+    Options: Inlining false, Optimization false, Expressions true, Deforming true
+    Timing: Generation 1.749 ms (Deform 0.725 ms), Inlining 0.000 ms, Optimization 0.512 ms, Emission 22.936 ms, Total 25.196 ms
+  Execution Time: 193.149 ms
+
+EXPLAIN at 10000 pools, one pool (POOL-000001):
+  GroupAggregate  (cost=763.23..768.85 rows=250 width=68) (actual time=8.535..8.583 rows=2 loops=1)
+    Group Key: t.root_id, h.currency
+    Buffers: shared hit=2409
+    CTE tree
+      ->  Recursive Union  (cost=0.29..450.81 rows=501 width=77) (actual time=0.034..3.413 rows=1111 loops=1)
+            Buffers: shared hit=2345
+            ->  Index Only Scan using collateral_pool_pkey on collateral_pool  (cost=0.29..8.30 rows=1 width=57) (actual time=0.034..0.035 rows=1 loops=1)
+                  Index Cond: (id = 'POOL-000001'::text)
+                  Heap Fetches: 1
+                  Buffers: shared hit=3
+            ->  Nested Loop  (cost=0.29..43.75 rows=50 width=77) (actual time=0.409..0.787 rows=278 loops=4)
+                  Buffers: shared hit=2342
+                  ->  WorkTable Scan on tree t_1  (cost=0.00..0.20 rows=5 width=96) (actual time=0.001..0.033 rows=278 loops=4)
+                        Filter: (NOT is_cycle)
+                  ->  Index Scan using collateral_pool_parent on collateral_pool c  (cost=0.29..8.46 rows=10 width=24) (actual time=0.001..0.002 rows=1 loops=1111)
+                        Index Cond: (parent_id = t_1.pool_id)
+                        Buffers: shared hit=2342
+    ->  Sort  (cost=312.41..313.04 rows=250 width=42) (actual time=8.243..8.303 rows=1111 loops=1)
+          Sort Key: t.root_id, h.currency
+          Sort Method: quicksort  Memory: 92kB
+          Buffers: shared hit=2409
+          ->  Hash Join  (cost=289.00..302.46 rows=250 width=42) (actual time=3.486..7.913 rows=1111 loops=1)
+                Hash Cond: (t.pool_id = h.pool_id)
+                Buffers: shared hit=2409
+                ->  CTE Scan on tree t  (cost=0.00..10.02 rows=250 width=64) (actual time=0.037..4.011 rows=1111 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=2345
+                ->  Hash  (cost=164.00..164.00 rows=10000 width=22) (actual time=3.399..3.399 rows=10000 loops=1)
+                      Buckets: 16384  Batches: 1  Memory Usage: 665kB
+                      Buffers: shared hit=64
+                      ->  Seq Scan on pool_holding h  (cost=0.00..164.00 rows=10000 width=22) (actual time=0.012..1.208 rows=10000 loops=1)
+                            Buffers: shared hit=64
+  Planning Time: 0.306 ms
+  Execution Time: 9.073 ms
+
+EXPLAIN at 100000 pools, all pools:
+  Sort  (cost=3719911.41..3719912.41 rows=400 width=68) (actual time=2434.161..2454.845 rows=110000 loops=1)
+    Sort Key: t.root_id, h.currency
+    Sort Method: external merge  Disk: 3560kB
+    Buffers: shared hit=2305, temp read=17266 written=32572
+    CTE tree
+      ->  Recursive Union  (cost=0.00..2183149.00 rows=50085000 width=77) (actual time=299.052..1226.135 rows=588889 loops=1)
+            Buffers: shared hit=1668, temp read=14438 written=14438
+            ->  Seq Scan on collateral_pool  (cost=0.00..1834.00 rows=100000 width=57) (actual time=299.048..324.518 rows=100000 loops=1)
+                  Buffers: shared hit=834
+            ->  Hash Join  (cost=3084.00..168046.50 rows=4998500 width=77) (actual time=10.466..113.797 rows=81482 loops=6)
+                  Hash Cond: (t_1.pool_id = c.parent_id)
+                  Buffers: shared hit=834, temp read=14438 written=6
+                  ->  WorkTable Scan on tree t_1  (cost=0.00..20000.00 rows=500000 width=96) (actual time=0.033..17.204 rows=98148 loops=6)
+                        Filter: (NOT is_cycle)
+                        Buffers: temp read=14438 written=6
+                  ->  Hash  (cost=1834.00..1834.00 rows=100000 width=24) (actual time=29.664..29.665 rows=99999 loops=1)
+                        Buckets: 131072  Batches: 1  Memory Usage: 6493kB
+                        Buffers: shared hit=834
+                        ->  Seq Scan on collateral_pool c  (cost=0.00..1834.00 rows=100000 width=24) (actual time=0.020..9.452 rows=100000 loops=1)
+                              Buffers: shared hit=834
+    ->  HashAggregate  (cost=1536740.12..1536745.12 rows=400 width=68) (actual time=2065.449..2263.501 rows=110000 loops=1)
+          Group Key: t.root_id, h.currency
+          Batches: 21  Memory Usage: 8249kB  Disk Usage: 12208kB
+          Buffers: shared hit=2305, temp read=16821 written=32126
+          ->  Hash Join  (cost=2887.00..1348921.38 rows=25042500 width=42) (actual time=332.826..1831.137 rows=588889 loops=1)
+                Hash Cond: (t.pool_id = h.pool_id)
+                Buffers: shared hit=2305, temp read=14438 written=28872
+                ->  CTE Scan on tree t  (cost=0.00..1001700.00 rows=25042500 width=64) (actual time=299.061..1495.140 rows=588889 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=1668, temp read=14438 written=28872
+                ->  Hash  (cost=1637.00..1637.00 rows=100000 width=22) (actual time=33.473..33.474 rows=100000 loops=1)
+                      Buckets: 131072  Batches: 1  Memory Usage: 6394kB
+                      Buffers: shared hit=637
+                      ->  Seq Scan on pool_holding h  (cost=0.00..1637.00 rows=100000 width=22) (actual time=0.028..10.487 rows=100000 loops=1)
+                            Buffers: shared hit=637
+  Planning Time: 0.300 ms
+  JIT:
+    Functions: 31
+    Options: Inlining true, Optimization true, Expressions true, Deforming true
+    Timing: Generation 1.804 ms (Deform 0.701 ms), Inlining 33.697 ms, Optimization 168.240 ms, Emission 156.368 ms, Total 360.109 ms
+  Execution Time: 2484.617 ms
+
+EXPLAIN at 100000 pools, one pool (POOL-000001):
+  GroupAggregate  (cost=2178.55..2184.17 rows=250 width=68) (actual time=92.126..92.580 rows=2 loops=1)
+    Group Key: t.root_id, h.currency
+    Buffers: shared hit=67873, temp read=325 written=679
+    CTE tree
+      ->  Recursive Union  (cost=0.42..451.32 rows=501 width=77) (actual time=0.038..41.392 rows=11111 loops=1)
+            Buffers: shared hit=23429, temp read=325 written=325
+            ->  Index Only Scan using collateral_pool_pkey on collateral_pool  (cost=0.42..8.44 rows=1 width=57) (actual time=0.037..0.038 rows=1 loops=1)
+                  Index Cond: (id = 'POOL-000001'::text)
+                  Heap Fetches: 1
+                  Buffers: shared hit=4
+            ->  Nested Loop  (cost=0.29..43.79 rows=50 width=77) (actual time=3.818..7.299 rows=2222 loops=5)
+                  Buffers: shared hit=23425, temp read=325 written=1
+                  ->  WorkTable Scan on tree t_1  (cost=0.00..0.20 rows=5 width=96) (actual time=0.003..0.479 rows=2222 loops=5)
+                        Filter: (NOT is_cycle)
+                        Buffers: temp read=325 written=1
+                  ->  Index Scan using collateral_pool_parent on collateral_pool c  (cost=0.29..8.47 rows=10 width=24) (actual time=0.002..0.002 rows=1 loops=11111)
+                        Index Cond: (parent_id = t_1.pool_id)
+                        Buffers: shared hit=23425
+    ->  Sort  (cost=1727.23..1727.85 rows=250 width=42) (actual time=89.402..89.996 rows=11111 loops=1)
+          Sort Key: t.root_id, h.currency
+          Sort Method: quicksort  Memory: 819kB
+          Buffers: shared hit=67873, temp read=325 written=679
+          ->  Nested Loop  (cost=0.42..1717.27 rows=250 width=42) (actual time=0.060..86.193 rows=11111 loops=1)
+                Buffers: shared hit=67873, temp read=325 written=679
+                ->  CTE Scan on tree t  (cost=0.00..10.02 rows=250 width=64) (actual time=0.040..51.071 rows=11111 loops=1)
+                      Filter: (NOT is_cycle)
+                      Buffers: shared hit=23429, temp read=325 written=679
+                ->  Index Scan using pool_holding_pool on pool_holding h  (cost=0.42..6.82 rows=1 width=22) (actual time=0.003..0.003 rows=1 loops=11111)
+                      Index Cond: (pool_id = t.pool_id)
+                      Buffers: shared hit=44444
+  Planning Time: 0.267 ms
+  Execution Time: 94.167 ms
+
