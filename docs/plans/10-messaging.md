@@ -118,7 +118,7 @@ test in the section named.
 
 ---
 
-## [ ] 2 · In-process events and their limits
+## [x] 2 · In-process events and their limits
 
 **`application.event`**
 - `DomainEvents` port: `publish(Object)`. `bootstrap` gets a
@@ -134,10 +134,28 @@ test in the section named.
   then rolls back (`reproducesPhantomEvent`).
 - AFTER_COMMIT is not called on rollback, is called once on commit, and its
   read from another connection sees the row.
-- `reproducesAfterCommitWriteIsNotCommitted`: the listener's insert is not
-  in the table; with `REQUIRES_NEW` it is.
+- `afterCommitListenerHasNoTransactionOfItsOwn`: the listener's write reports
+  the finished booking's transaction name; with `REQUIRES_NEW` it reports its
+  own. (Planned as "the write is not committed": see below.)
 - `reproducesAfterCommitEventLost`: the listener throws; the booking stands,
   the caller gets no error, and no record exists that an event was owed.
+
+**Found while implementing**
+- The planned reproduction ("a write from an AFTER_COMMIT listener is not
+  committed") does not reproduce on this stack. The listener's JDBC insert ran
+  on the finished transaction's connection, still `autoCommit=false`, and
+  reached the table anyway: pgjdbc commits an open transaction when the pool
+  resets autocommit at cleanup. Kept as an honest finding: the observable
+  difference is the transaction name, and a JPA write in the same place would
+  have needed a flush nobody issues (reasoned, not reproduced: no JPA entity
+  is written from a listener in this stage). The test asserts what was
+  observed.
+- A listener that throws after the commit does **not** reach the caller: the
+  `book` call returned normally, so a caller cannot even know the event was
+  lost. Stronger than the plan assumed.
+- A bean with a `@Transactional` method is a CGLIB proxy, and a public field
+  read from the proxy is `null`. The demo listener keeps its transactional
+  method in a separate bean for that reason.
 
 **Acceptance**
 - Evidence `10-after-commit.txt`. Full verify green.

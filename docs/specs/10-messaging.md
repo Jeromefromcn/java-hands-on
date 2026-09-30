@@ -133,11 +133,14 @@ Testcontainers come from the Boot BOM. Lab POMs carry their own versions.
 - On test beans: a plain `@EventListener` runs inside the transaction and sees
   an event for a transaction that then rolls back (`reproducesPhantomEvent`),
   and cannot read the row it was told about from another connection;
-  `AFTER_COMMIT` does neither. A write made from an `AFTER_COMMIT` listener is
-  silently not committed (`reproducesAfterCommitWriteIsNotCommitted`) until
-  the listener opens `REQUIRES_NEW`. A listener that throws after the commit
-  loses the event with nothing recorded (`reproducesAfterCommitEventLost`):
-  the case for the outbox.
+  `AFTER_COMMIT` does neither. A write made from an `AFTER_COMMIT` listener
+  runs on the finished transaction, not a new one: its transaction name is
+  the publisher's, and it reaches the table only because the JDBC driver
+  commits on the pool's autocommit reset (`afterCommitListenerHasNoTransactionOfItsOwn`;
+  the plan's "Found while implementing" records why this replaced a planned
+  "not committed" reproduction). A listener that throws after the commit
+  loses the event with nothing recorded and the caller told nothing
+  (`reproducesAfterCommitEventLost`): the case for the outbox.
 
 ### Price updates over Kafka
 

@@ -1,0 +1,4 @@
+plain @EventListener, booking rolled back: listener told=[P1] row exists=false
+AFTER_COMMIT, rolled back: called=0; committed: called=1, another connection could read the row=true; the plain listener on the same commit could read it=false
+write from an AFTER_COMMIT listener, no new transaction: ran under 'com.jerome.slledger.bootstrap.demo.events.EventBooking.book' (already committed), rows visible=1 (by the driver's autocommit reset); with REQUIRES_NEW: ran under 'com.jerome.slledger.bootstrap.demo.events.NewTransactionWriter.write', rows visible=1
+AFTER_COMMIT listener threw: booking committed=true, caller received=no exception, rows recording the undelivered event=0
