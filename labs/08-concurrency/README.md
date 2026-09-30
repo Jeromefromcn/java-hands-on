@@ -18,6 +18,10 @@ machine did; a failure that did not occur is reported as "0 of N".
 | JMM visibility | `java -cp labs/08-concurrency/target/labs.jar labs.concurrency.Visibility` | `08-visibility.txt` |
 | `volatile` is not atomic | `java -cp … labs.concurrency.LostUpdate` | `08-lost-update.txt` |
 | Double-checked locking | `java -cp … labs.concurrency.DoubleCheckedLocking` | `08-dcl.txt` |
+| Virtual-thread pinning, JDK 21 | `java -Djdk.virtualThreadScheduler.parallelism=2 -Djdk.virtualThreadScheduler.maxPoolSize=2 -Djdk.tracePinnedThreads=full -cp … labs.concurrency.Pinning` | `08-pinning-jdk21.txt` |
+| Virtual-thread pinning, JDK 25 | the same command with `~/.sdkman/candidates/java/25.0.2-open/bin/java`, without the trace flag (removed in 24) | `08-pinning-jdk25.txt` |
+| CAS against `synchronized` | `java -jar …/labs.jar BalanceBenchmark -f 2 -wi 3 -w 1 -i 5 -r 1 -t <n>` | `08-cas-vs-synchronized.txt` |
+| JMH, the mistake and the fix | `java -jar …/labs.jar 'AccrualBenchmark.mistake.*'` and `'AccrualBenchmark.consumed.*'` (same options) | `08-jmh-no-blackhole.txt`, `08-jmh-blackhole.txt` |
 | `computeIfAbsent` re-entry | `java -cp … labs.concurrency.RecursiveComputeIfAbsent` | `08-compute-if-absent.txt` |
 
 Decision record: [`docs/decisions/08-concurrency.md`](../../docs/decisions/08-concurrency.md).

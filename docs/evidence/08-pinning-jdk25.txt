@@ -1,0 +1,12 @@
+Pinning — a virtual thread blocking inside synchronized or a ReentrantLock
+java.version=25.0.2  vm=OpenJDK 64-Bit Server VM
+arch=aarch64  cpus=4
+8 virtual threads, each blocking 200 ms holding its own lock
+jdk.virtualThreadScheduler.parallelism=2 maxPoolSize=2 tracePinnedThreads=null
+
+round 1: synchronized  200 ms
+round 1: ReentrantLock  201 ms
+round 2: synchronized  200 ms
+round 2: ReentrantLock  200 ms
+round 3: synchronized  200 ms
+round 3: ReentrantLock  200 ms

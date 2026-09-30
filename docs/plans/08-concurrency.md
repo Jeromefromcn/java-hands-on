@@ -481,7 +481,7 @@ Failure modes the spec implies but no exercise is *about*.
 
 ---
 
-## [ ] 11 · Virtual-thread pinning, on two JDKs
+## [x] 11 · Virtual-thread pinning, on two JDKs
 
 **`labs/08-concurrency` `Pinning`**
 - N virtual threads on a small carrier pool
@@ -502,7 +502,17 @@ Failure modes the spec implies but no exercise is *about*.
   `synchronized` timing, or its absence is recorded.
 - `./mvnw clean verify` at the root is green.
 
-**Found while implementing** — _to fill in_
+**Found while implementing**
+- **Pinning reproduced on 21 and absent on 25, same jar.** With two carriers
+  and eight virtual threads blocking 200 ms each: JDK 21 `synchronized`
+  800 ms every round (four waves), `ReentrantLock` 200 to 201 ms; JDK 25
+  `synchronized` 200 ms, `ReentrantLock` 200 to 201 ms.
+- `-Djdk.tracePinnedThreads=full` on 21 printed one stack (reason `MONITOR`)
+  and then stayed quiet: the JDK reports each distinct pinning site once. The
+  file holds that one trace; the 800 ms rounds are the volume.
+- The jar was built with `--release 21` and run unchanged on 25, so the only
+  variable is the JVM. `tracePinnedThreads` is printed as `null` in the 25 file
+  because the property does not exist there.
 
 ---
 
