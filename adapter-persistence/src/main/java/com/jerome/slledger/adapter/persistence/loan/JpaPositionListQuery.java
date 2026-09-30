@@ -9,13 +9,19 @@ import com.jerome.slledger.domain.loan.LoanPositionId;
 import com.jerome.slledger.domain.party.CounterpartyId;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 /**
  * The listing as a JPQL projection: only the columns a row shows, no entity loaded, nothing managed
- * by the persistence context, so nothing a caller does with a row can be flushed back.
+ * by the persistence context, so nothing a caller does with a row can be flushed back. The default;
+ * {@code ledger.persistence.list-query=jdbc} selects {@link JdbcPositionListQuery} instead.
  */
 @Repository
+@ConditionalOnProperty(
+    name = "ledger.persistence.list-query",
+    havingValue = "jpa",
+    matchIfMissing = true)
 public class JpaPositionListQuery implements PositionListQuery {
 
   private final EntityManager entityManager;

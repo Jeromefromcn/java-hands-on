@@ -849,7 +849,7 @@ Evidence: `docs/evidence/06-lock-throughput.txt`, with the machine noted
 
 ---
 
-## [ ] 13 · Exercise 7 — the same page through `JdbcClient`
+## [x] 13 · Exercise 7 — the same page through `JdbcClient`
 
 - `JdbcPositionListQuery implements PositionListQuery` is hand-written SQL
   with `limit/offset`, mapping money through `MoneyColumns`.
@@ -864,6 +864,17 @@ Evidence: `docs/evidence/06-jpa-vs-jdbc.txt`.
 **Acceptance**
 - The pages are equal.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **Both implementations are beans, selected by
+  `ledger.persistence.list-query=jpa|jdbc`** (default `jpa`), the same way
+  the lock strategy is selected. With two unconditional beans, `ListPositions`
+  would have two candidates. The test constructs both directly to compare them.
+- **The fixture adds a JPY row, a BHD row and a partially returned row** to the
+  57, so that equality covers currencies of scale 0 and 3.
+- **Hibernate's paging SQL is `offset ? rows fetch first ? rows only`** and its
+  count is `count(lpe1_0.id)`. The JDBC version is `LIMIT ? OFFSET ?` and
+  `count(*)`. The pages are equal.
 
 ---
 

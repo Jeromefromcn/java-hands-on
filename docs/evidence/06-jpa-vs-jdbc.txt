@@ -1,0 +1,14 @@
+# Stage 6, exercise 7: the position listing through JPA and through JdbcClient (PositionListQueryIT)
+# 57 positions (HKD, one JPY, one BHD, one PARTIALLY_RETURNED); pages of 10 and 25, every page equal.
+
+JPA (JPQL constructor projection), page 2 of size 10, as Hibernate sent it:
+  select lpe1_0.id,lpe1_0.counterparty_id,lpe1_0.isin,lpe1_0.status,lpe1_0.original_quantity,lpe1_0.outstanding_quantity,lpe1_0.collateral_amount,lpe1_0.collateral_currency from loan_position lpe1_0 order by lpe1_0.id offset ? rows fetch first ? rows only
+  select count(lpe1_0.id) from loan_position lpe1_0
+JdbcClient, as written:
+  SELECT id, counterparty_id, isin, status, original_quantity, outstanding_quantity, collateral_amount, collateral_currency FROM loan_position ORDER BY id LIMIT ? OFFSET ?
+  SELECT count(*) FROM loan_position
+
+Lines of code (no blanks, imports, package, comments):
+  JpaPositionListQuery.java    42
+  PositionRowColumns.java      9
+  JdbcPositionListQuery.java   34
