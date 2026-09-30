@@ -1,0 +1,1 @@
+open -> PositionOpened on sl.position-events (relay, 100 ms interval); price 60.00 v5000 on sl.price-updates -> MarginCallRaised shortfall 10000.00 HKD -> 1 notice; the same MarginCallRaised delivered again plus a sentinel call: notices for the position=2 (10000.00 once, then the sentinel's 1.00; the duplicate sent none)

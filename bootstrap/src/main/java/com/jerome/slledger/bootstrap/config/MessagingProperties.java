@@ -17,6 +17,14 @@ import org.springframework.validation.annotation.Validated;
  *     database transaction across its sends, so this times {@code relayBatchSize} bounds how long
  *     one pass can keep a connection.
  * @param maxBlock the most a send may block before the broker is even asked (metadata, buffer)
+ * @param consumersEnabled whether this instance consumes; an instance that only publishes (the
+ *     outbox relay) sets it false
+ * @param consumerGroupPrefix prefixes the two consumer groups; instances that share a prefix share
+ *     the work of each topic, instances with different prefixes each get every message
+ * @param partitions partitions per topic, used only when this application creates the topics
+ * @param maxPollRecords records per poll; with {@code maxPollInterval} it bounds how slow a record
+ *     may be: {@code maxPollRecords x worst time per record} must stay below the interval
+ * @param retryMaxRetries retries of a failing record before it is dead-lettered; 0 disables retry
  * @param topicRetention how long the broker keeps a message; the longest a message can be
  *     redelivered
  * @param dedupTtl how long a consumed message id is remembered; must exceed {@code topicRetention}
@@ -33,7 +41,15 @@ public record MessagingProperties(
     @DefaultValue("true") boolean relayEnabled,
     @DefaultValue("7d") @NotNull Duration topicRetention,
     @DefaultValue("8d") @NotNull Duration dedupTtl,
-    @DefaultValue("1h") @NotNull Duration dedupPurgeInterval) {
+    @DefaultValue("1h") @NotNull Duration dedupPurgeInterval,
+    @DefaultValue("true") boolean consumersEnabled,
+    @DefaultValue("sl-ledger") @NotBlank String consumerGroupPrefix,
+    @DefaultValue("3") @Min(1) int partitions,
+    @DefaultValue("1") @Min(1) int consumerConcurrency,
+    @DefaultValue("50") @Min(1) int maxPollRecords,
+    @DefaultValue("5m") @NotNull Duration maxPollInterval,
+    @DefaultValue("4") @Min(0) int retryMaxRetries,
+    @DefaultValue("500ms") @NotNull Duration retryInitialInterval) {
 
   /**
    * A message can be redelivered for as long as the topic still holds it, so an id forgotten before

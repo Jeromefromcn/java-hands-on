@@ -530,7 +530,7 @@ injecting a crash.
 
 ---
 
-## [ ] 12 · Wiring, end-to-end, and the manual run
+## [x] 12 · Wiring, end-to-end, and the manual run
 
 **`bootstrap`**
 - `MessagingProperties` (`ledger.messaging.*`), `MessagingConfiguration`
@@ -546,8 +546,31 @@ injecting a crash.
   message published twice still sends one; cache entries for the ISIN are
   evicted after the commit.
 
+**Found while implementing**
+- `MessagingLedger` (the test helper) starts with the relay scheduler **and the
+  consumers off**: the shared topics carry every other test's history, and a
+  consumer starting from the earliest offset would replay it into a database
+  it does not belong to. Only `MessagingEndToEndIT` turns them on, and asserts
+  about its own position only. A `--key=value` given twice on the command line
+  is a *list*, not an override (`false,true` failed to bind), so the helper
+  merges arguments by key.
+- The scheduler is one `SmartLifecycle` bean with a daemon thread pool named
+  `sl-messaging-scheduler`, not `@EnableScheduling`: that annotation is
+  process-wide, this exists only when messaging does. `MessagingDisabledIT`
+  asserts the thread is absent.
+- The manual run also proved the migration path: V6–V10 applied at start-up on
+  a database that already had V1–V5 from stage 9's volume.
+- The saga is not scheduled: nothing in the product starts one yet (HTTP is
+  unchanged), so there is nothing for a recovery timer to find. Recorded in
+  the decision record as the first thing to wire when the saga gets a caller.
+- Cache eviction after commit is tested in `PriceUpdateEvictsCacheIT`, which
+  needs the stub price source, Redis and Kafka together; its rollback case
+  first failed because the previous test's L1 entry was still there (Redis had
+  been flushed, Caffeine had not).
+
 **Acceptance**
-- Evidence `10-manual-run.txt` from the compose stack. Full verify green.
+- Evidence `10-manual-run.txt` from the compose stack, `10-end-to-end.txt`.
+  Full verify green.
 
 ---
 

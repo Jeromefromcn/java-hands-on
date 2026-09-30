@@ -32,3 +32,8 @@ ledger:
   # Stage 9: the quote cache is on for manual runs.
   cache:
     enabled: true
+  # Stage 10: Kafka from infra/compose.yaml (plaintext, loopback: authentication is stage 13's).
+  # The relay and the two consumers run in this process.
+  messaging:
+    enabled: true
+    bootstrap-servers: 127.0.0.1:9092

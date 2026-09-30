@@ -4,8 +4,9 @@ import com.jerome.slledger.adapter.messaging.testing.SharedKafka;
 import com.jerome.slledger.application.messaging.Topics;
 import com.jerome.slledger.bootstrap.position.LedgerApp;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -13,8 +14,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The real application with messaging on, against a real Postgres and a real Kafka, the relay's
- * scheduler off (a test runs the relay by hand, so it decides when a pass happens). Reference data
- * is loaded; the standard topics exist with one partition, so order across keys is send order.
+ * scheduler off (a test runs the relay by hand, so it decides when a pass happens) and the
+ * consumers off (the shared topics carry other tests' history). Reference data is loaded; the
+ * standard topics exist with one partition, so order across keys is send order.
  */
 final class MessagingLedger implements AutoCloseable {
 
@@ -29,17 +31,29 @@ final class MessagingLedger implements AutoCloseable {
   }
 
   static MessagingLedger start(String... extraArgs) {
+    return start(List.of(), extraArgs);
+  }
+
+  static MessagingLedger start(List<Class<?>> extraSources, String... extraArgs) {
     SharedKafka.start();
     SharedKafka.ensureTopic(Topics.PRICE_UPDATES, 1);
     SharedKafka.ensureTopic(Topics.MARGIN_CALLS, 1);
     SharedKafka.ensureTopic(Topics.POSITION_EVENTS, 1);
+    // A property given twice on the command line is a list, not an override: later arguments have
+    // to replace earlier ones here, by key.
+    Map<String, String> arguments = new LinkedHashMap<>();
+    arguments.put("--ledger.messaging.enabled", "true");
+    arguments.put("--ledger.messaging.bootstrap-servers", SharedKafka.bootstrapServers());
+    arguments.put("--ledger.messaging.relay-enabled", "false");
+    arguments.put("--ledger.messaging.consumers-enabled", "false");
+    for (String argument : extraArgs) {
+      int equals = argument.indexOf('=');
+      arguments.put(argument.substring(0, equals), argument.substring(equals + 1));
+    }
     List<String> args = new ArrayList<>();
-    args.add("--ledger.messaging.enabled=true");
-    args.add("--ledger.messaging.bootstrap-servers=" + SharedKafka.bootstrapServers());
-    args.add("--ledger.messaging.relay-enabled=false");
-    args.addAll(Arrays.asList(extraArgs));
+    arguments.forEach((key, value) -> args.add(key + "=" + value));
     MessagingLedger ledger =
-        new MessagingLedger(LedgerApp.start(List.of(), args.toArray(String[]::new)));
+        new MessagingLedger(LedgerApp.start(extraSources, args.toArray(String[]::new)));
     LedgerApp.referenceData(ledger.jdbc);
     return ledger;
   }

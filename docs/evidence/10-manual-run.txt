@@ -1,0 +1,56 @@
+Stage 10, section 12: a manual run. Application on JDK 21.0.12-tem, profile local, port 18080, against infra/compose.yaml
+(Postgres 17 with V1-V5 already applied and V6-V10 migrated at start-up, Redis, Kafka apache/kafka:4.1.0 single node, WireMock).
+Passwords come from infra/.env and do not appear here. Messaging on: the relay (500 ms), the price-update consumer and the margin-call consumer run in the application process.
+
+$ curl -s -i -X POST localhost:18080/loans -H 'Idempotency-Key: manual-1790778335' -H 'Content-Type: application/json' -d '{counterparty CP-001, HK0000000007, 1000 shares, collateral 50000.00 HKD, flat 0.0365, tradeDate 2026-09-01}'
+HTTP/1.1 201 
+X-Trace-Id: e7aeea7298f4e3bf9dd29908027c8fad
+Location: /loans/e2989574-6bd9-4cb1-be18-fd9fa7fcba25
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 30 Sep 2026 14:25:36 GMT
+
+{"positionId":"e2989574-6bd9-4cb1-be18-fd9fa7fcba25","trade":{"direction":"BORROW","quantity":1000,"unitPrice":{"amount":"41.26","currency":"HKD"},"tradeDate":"2026-09-01","settlementDate":"2026-09-03"}}
+
+$ psql: select id, topic, message_key, type, published_at is not null as published from outbox_event order by seq
+3f3f7227-8410-4775-aae6-2792166de52e|sl.position-events|e2989574-6bd9-4cb1-be18-fd9fa7fcba25|PositionOpened|t
+
+$ kafka-console-consumer --topic sl.position-events --from-beginning  (key, headers, value)
+messageId:3f3f7227-8410-4775-aae6-2792166de52e,eventType:PositionOpened	e2989574-6bd9-4cb1-be18-fd9fa7fcba25	{"eventId":"3f3f7227-8410-4775-aae6-2792166de52e","occurredAt":"2026-09-30T14:25:36.081846273Z","position":"e2989574-6bd9-4cb1-be18-fd9fa7fcba25","counterparty":"CP-001","isin":"HK0000000007","quantity":1000,"collateral":{"amount":"50000.00","currency":"HKD"}}
+
+$ kafka-console-producer --topic sl.price-updates   # key HK0000000007, price 60.00 HKD, version 1 (60.00 x 1000 = 60000.00 against 50000.00 collateral)
+sent
+
+$ psql: select isin, market_price_amount, price_version from security where isin='HK0000000007'
+HK0000000007|60.000000|1
+
+$ psql: select topic, message_key, type, published_at is not null as published from outbox_event order by seq
+sl.position-events|e2989574-6bd9-4cb1-be18-fd9fa7fcba25|PositionOpened|t
+sl.margin-calls|e2989574-6bd9-4cb1-be18-fd9fa7fcba25|MarginCallRaised|t
+
+$ application log: the notice
+2026-09-30T22:26:03.369+08:00  INFO 761469 --- [sl-ledger] [Container-0-C-1] [] c.j.s.b.config.LoggingNoticeChannel      : MARGIN CALL notice to CP-001: position e2989574-6bd9-4cb1-be18-fd9fa7fcba25 in HK0000000007 is short 10000.00 HKD on 2026-09-30
+
+$ psql: select consumer, message_id from consumed_message
+margin-call-notifier|b319b090-d950-4285-8658-645f5ded7a34
+
+$ kafka-console-consumer --topic sl.margin-calls --from-beginning  (key, headers, value)
+messageId:b319b090-d950-4285-8658-645f5ded7a34,eventType:MarginCallRaised	e2989574-6bd9-4cb1-be18-fd9fa7fcba25	{"eventId":"b319b090-d950-4285-8658-645f5ded7a34","occurredAt":"2026-09-30T14:26:03.001144732Z","position":"e2989574-6bd9-4cb1-be18-fd9fa7fcba25","counterparty":"CP-001","isin":"HK0000000007","calledOn":"2026-09-30","shortfall":{"amount":"10000.00","currency":"HKD"}}
+
+$ kafka-console-producer --topic sl.margin-calls   # the same MarginCallRaised again (same messageId), then a different one behind it
+
+$ application log: notices so far (the duplicate sent none; the second, different call sent one)
+2026-09-30T22:26:03.369+08:00  INFO 761469 --- [sl-ledger] [Container-0-C-1] [] c.j.s.b.config.LoggingNoticeChannel      : MARGIN CALL notice to CP-001: position e2989574-6bd9-4cb1-be18-fd9fa7fcba25 in HK0000000007 is short 10000.00 HKD on 2026-09-30
+2026-09-30T22:26:33.305+08:00  INFO 761469 --- [sl-ledger] [Container-0-C-1] [] c.j.s.b.config.LoggingNoticeChannel      : MARGIN CALL notice to CP-001: position e2989574-6bd9-4cb1-be18-fd9fa7fcba25 in HK0000000007 is short 1.00 HKD on 2026-09-30
+
+$ kafka-console-producer --topic sl.price-updates   # a poison message: not JSON; and the price update at version 1 again
+
+$ psql: stored price after the stale version-1 update at 10.00 (must still be 60.00 at version 1)
+HK0000000007|60.000000|1
+
+$ kafka-console-consumer --topic sl.price-updates.DLT --from-beginning  # headers trimmed to three of them: the full stack trace is in kafka_dlt-stacktrace
+kafka_dlt-exception-cause-fqcn:com.jerome.slledger.application.messaging.MessageDecodeException, kafka_dlt-original-topic:sl.price-updates, kafka_dlt-original-consumer-group:sl-ledger-price-updates
+key/value: HK0000000007	this is not json
+
+$ psql: select count(*) from outbox_event where published_at is null   # nothing waiting
+0
