@@ -57,6 +57,23 @@ class PartitionKeyIT {
     Evidence.write("10-partition-key.txt", EVIDENCE.toString());
   }
 
+  /**
+   * One acknowledged record to every partition before a burst. A burst into a topic created a
+   * moment ago made an idempotent producer loop on NOT_LEADER_OR_FOLLOWER and then
+   * OUT_OF_ORDER_SEQUENCE_NUMBER until its 120 s delivery timeout, twice in full builds and never
+   * when the same test ran alone. The product's sender is not exposed to it in the same way: it
+   * sends one message at a time and its delivery timeout is seconds, so a stall is an
+   * EventSendException and the relay tries again.
+   */
+  private static void warmUp(KafkaProducer<String, String> producer, String topic)
+      throws Exception {
+    for (int partition = 0; partition < PARTITIONS; partition++) {
+      producer
+          .send(new ProducerRecord<>(topic, partition, "warm-up", "warm-up"))
+          .get(30, java.util.concurrent.TimeUnit.SECONDS);
+    }
+  }
+
   private static OutboxMessage message(String topic, PriceUpdated event, String key) {
     return new OutboxMessage(
         event.id(),
@@ -109,6 +126,7 @@ class PartitionKeyIT {
     List<Future<RecordMetadata>> sent = new ArrayList<>();
     try (KafkaProducer<String, String> producer =
         new KafkaProducer<>(SharedKafka.producerProperties())) {
+      warmUp(producer, topic);
       for (int i = 0; i < 1000; i++) {
         String isin = "HK%09d".formatted(i * 7L) + (i % 10);
         sent.add(producer.send(new ProducerRecord<>(topic, isin, "x")));
@@ -137,6 +155,7 @@ class PartitionKeyIT {
     Set<Integer> partitions = new java.util.TreeSet<>();
     try (KafkaProducer<String, String> producer =
         new KafkaProducer<>(SharedKafka.producerProperties())) {
+      warmUp(producer, topic);
       List<Future<RecordMetadata>> sent = new ArrayList<>();
       for (int i = 0; i < 60; i++) {
         // The same security, a key that has nothing to do with it.
