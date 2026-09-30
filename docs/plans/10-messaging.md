@@ -305,7 +305,7 @@ calls; container wiring in section 12).
 
 ---
 
-## [ ] 6 · The idempotent consumer, the notifier and the dedup TTL
+## [x] 6 · The idempotent consumer, the notifier and the dedup TTL
 
 **Migration V8**: `consumed_message(consumer, message_id, consumed_at)`.
 
@@ -327,6 +327,16 @@ calls; container wiring in section 12).
 - `reproducesDuplicateAfterTtl`: purge with a TTL shorter than the redelivery
   gap; the duplicate sends twice; with `ttl > retention` it does not.
 - Properties validation: `dedup-ttl` must exceed `topic-retention`.
+
+**Found while implementing**
+- `reproducesUnboundedDedupTable` is tagged `measurement` (1,002,000 rows) and
+  runs under `-Pmeasure`; the other three tests in that class run in the
+  normal build. 2,000 of the rows go through `IdempotentConsumer.once`, one
+  transaction each, for the per-message cost; the rest are bulk-inserted, and
+  the evidence file says which is which. The 100x figure is arithmetic on the
+  measured bytes per row and is labelled so.
+- The default `dedup-ttl` is 8 days against a 7-day `topic-retention`; the
+  properties class refuses a TTL that does not exceed the retention.
 
 **Acceptance**
 - Evidence `10-dedup-ttl.txt`. Full verify green.

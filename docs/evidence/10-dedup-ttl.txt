@@ -1,0 +1,7 @@
+ttl 1h, topic retention 7d, duplicate redelivered 2h after the first: notices sent=2 (the guard row was purged)
+ttl 8d, topic retention 7d, duplicate redelivered 6d23h59m after the first, after a purge: notices sent=1 (the guard row is still there)
+one MarginCallRaised delivered twice: notices sent without the guard=2, with the guard=1
+no purge: 2000 messages through IdempotentConsumer.once, mean 1.02 ms each (one transaction each), table+index 425984 bytes
+no purge: 1002000 rows (the rest bulk-inserted with generate_series) -> 194322432 bytes table+indexes = 193.9 bytes/row
+arithmetic, not measured: at 100x that is 19.4 GB, still growing by one row per message per consumer
+one DELETE of 996412 rows older than 1 hour: 654 ms

@@ -5,8 +5,13 @@ import com.jerome.slledger.adapter.messaging.KafkaEventSender;
 import com.jerome.slledger.adapter.messaging.KafkaProducers;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.ApplyPriceUpdate;
+import com.jerome.slledger.application.messaging.ConsumedMessages;
+import com.jerome.slledger.application.messaging.DedupPurge;
 import com.jerome.slledger.application.messaging.EventCodec;
 import com.jerome.slledger.application.messaging.EventSender;
+import com.jerome.slledger.application.messaging.IdempotentConsumer;
+import com.jerome.slledger.application.messaging.MarginCallNotifier;
+import com.jerome.slledger.application.messaging.NoticeChannel;
 import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.messaging.OutboxRelay;
 import com.jerome.slledger.application.messaging.OutboxStore;
@@ -71,6 +76,26 @@ public class MessagingConfiguration {
   @ConditionalOnBean(CachedQuoteSources.class)
   PriceCacheEviction priceCacheEviction(CachedQuoteSources sources) {
     return new PriceCacheEviction(sources);
+  }
+
+  @Bean
+  IdempotentConsumer idempotentConsumer(ConsumedMessages consumed, Clock clock) {
+    return new IdempotentConsumer(consumed, clock);
+  }
+
+  @Bean
+  NoticeChannel noticeChannel() {
+    return new LoggingNoticeChannel();
+  }
+
+  @Bean
+  MarginCallNotifier marginCallNotifier(IdempotentConsumer guard, NoticeChannel channel) {
+    return new MarginCallNotifier(guard, channel);
+  }
+
+  @Bean
+  DedupPurge dedupPurge(ConsumedMessages consumed, Clock clock, MessagingProperties properties) {
+    return new DedupPurge(consumed, clock, properties.dedupTtl());
   }
 
   @Bean
