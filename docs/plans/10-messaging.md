@@ -461,7 +461,7 @@ guard they end with needs the database.
 
 ---
 
-## [ ] 10 · The open-position saga
+## [x] 10 · The open-position saga
 
 **Migration V10**: `credit_reservation`, `saga_log`.
 
@@ -476,6 +476,26 @@ injecting a crash.
 - A compensation that itself fails leaves the saga recoverable.
 - Recovery of both crash points, before and after the pivot.
 - Two sagas racing for the last of a credit limit: one wins, one is refused.
+
+**Found while implementing**
+- **The saga id is the command's idempotency key.** It makes a replay of a
+  finished saga a lookup, and lets recovery ask the ledger (`FindBookedTrade`)
+  whether the position exists, which is the one fact the log can be a step
+  behind on (crash after the pivot committed, before its DONE entry).
+- **Compensation does not consult the log.** Both compensations are
+  idempotent and safe on a step that never ran, so recovery compensates
+  everything. That is what makes the 12 crash points one code path.
+- The saga log refuses to be written inside a transaction: an entry that rolls
+  back with its step records nothing. Enforced in `JdbcSagaLog` and tested.
+- Adding `collateral_account -> counterparty` as a foreign key broke stage 6's
+  `MoneyColumnsRoundTripIT`, whose `TRUNCATE` did not name the new tables
+  (found by the full verify of section 9, not by the section's own tests).
+  That test's truncate list now names them.
+- `credit_reservation` follows the hold's rule (release-before-reserve leaves a
+  mark; reserve-after-release is refused) and reserving locks the
+  counterparty row, so two sagas cannot each be promised the last of a limit.
+  A plain `OpenPosition` still has stage 8's unlocked check; the saga is the
+  path that closes it.
 
 **Acceptance**
 - Evidence `10-saga.txt`. Full verify green.

@@ -2,6 +2,7 @@ package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
+import com.jerome.slledger.application.collateral.CollateralHolds;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
@@ -22,6 +23,13 @@ import com.jerome.slledger.application.position.ReturnPositionOnce;
 import com.jerome.slledger.application.position.ShowPosition;
 import com.jerome.slledger.application.quote.PriceFanOut;
 import com.jerome.slledger.application.quote.QuotePrice;
+import com.jerome.slledger.application.saga.CreditReservations;
+import com.jerome.slledger.application.saga.FailurePoint;
+import com.jerome.slledger.application.saga.OpenPositionSaga;
+import com.jerome.slledger.application.saga.OpenPositionSteps;
+import com.jerome.slledger.application.saga.SagaLog;
+import com.jerome.slledger.application.saga.SagaRecovery;
+import com.jerome.slledger.application.saga.TransactionalOpenPositionSteps;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
@@ -81,6 +89,28 @@ public class LedgerConfiguration {
         calendar,
         outbox.getIfAvailable(() -> Outbox.NONE),
         clock);
+  }
+
+  @Bean
+  OpenPositionSteps openPositionSteps(
+      CreditReservations reservations, CollateralHolds holds, OpenPosition open) {
+    return new TransactionalOpenPositionSteps(reservations, holds, open);
+  }
+
+  @Bean
+  OpenPositionSaga openPositionSaga(
+      OpenPositionSteps steps,
+      SagaLog log,
+      FindBookedTrade booked,
+      ObjectProvider<FailurePoint> failures,
+      @Value("${ledger.saga.completion-attempts:3}") int completionAttempts) {
+    return new OpenPositionSaga(
+        steps, log, booked, failures.getIfAvailable(() -> FailurePoint.NONE), completionAttempts);
+  }
+
+  @Bean
+  SagaRecovery sagaRecovery(SagaLog log, OpenPositionSaga saga) {
+    return new SagaRecovery(log, saga);
   }
 
   @Bean

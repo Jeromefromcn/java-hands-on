@@ -87,7 +87,10 @@ class MoneyColumnsRoundTripIT {
 
   @BeforeEach
   void empty() {
-    jdbc.sql("TRUNCATE accrual_entry, loan_trade, loan_position, security, counterparty").update();
+    jdbc.sql(
+            "TRUNCATE accrual_entry, loan_trade, loan_position, security, counterparty,"
+                + " collateral_account, outbox_event, credit_reservation, saga_log")
+        .update();
   }
 
   /**

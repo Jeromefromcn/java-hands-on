@@ -51,6 +51,10 @@ final class MessagingLedger implements AutoCloseable {
   /** Empties every table a test writes to, keeping reference data. */
   void reset() {
     jdbc.sql("DELETE FROM outbox_event").update();
+    jdbc.sql("DELETE FROM saga_log").update();
+    jdbc.sql("DELETE FROM credit_reservation").update();
+    jdbc.sql("DELETE FROM tcc_transaction").update();
+    jdbc.sql("DELETE FROM collateral_account").update();
     jdbc.sql("DELETE FROM accrual_entry").update();
     jdbc.sql("DELETE FROM loan_trade").update();
     jdbc.sql("DELETE FROM loan_position").update();

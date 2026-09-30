@@ -1,0 +1,32 @@
+happy path: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000; log: 10 entries, ends saga/FORWARD/DONE
+fail at reserveCredit (real credit refusal): position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000
+fail at createPosition (injected): position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000
+crash at before:reserveCredit        | at the crash: position=0 outbox(PositionOpened)=0 hold=none reservation=none available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at after:reserveCredit         | at the crash: position=0 outbox(PositionOpened)=0 hold=none reservation=RESERVED available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at before:freezeCollateral     | at the crash: position=0 outbox(PositionOpened)=0 hold=none reservation=RESERVED available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at after:freezeCollateral      | at the crash: position=0 outbox(PositionOpened)=0 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at before:createPosition       | at the crash: position=0 outbox(PositionOpened)=0 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at after:createPosition        | at the crash: position=1 outbox(PositionOpened)=1 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000
+   -> recovered: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000 (rolled forward)
+crash at before:complete             | at the crash: position=1 outbox(PositionOpened)=1 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000
+   -> recovered: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000 (rolled forward)
+crash at after:complete              | at the crash: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000
+   -> recovered: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000 (rolled forward)
+crash at before:cancelHold (compensating) | at the crash: position=0 outbox(PositionOpened)=0 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at after:cancelHold (compensating) | at the crash: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RESERVED available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at before:releaseReservation (compensating) | at the crash: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RESERVED available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+crash at after:releaseReservation (compensating) | at the crash: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000
+   -> recovered: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000 (compensated)
+complete fails on every attempt: position=1 outbox(PositionOpened)=1 hold=TRIED reservation=RESERVED available=950000.000000 frozen=50000.000000 (pending); after recovery: position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000
+two sagas of 60000.00 against a 100000.00 limit, started together: statuses=[COMPENSATED, COMPLETED], positions=1, the refused one failed at reserveCredit
+createPosition fails, then cancelHold fails once: position=0 outbox(PositionOpened)=0 hold=TRIED reservation=RELEASED available=950000.000000 frozen=50000.000000 (incomplete, FAILED entry logged); after recovery: position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=1000000.000000 frozen=0.000000
+fail at freezeCollateral (real: 10000.00 available, 50000.00 asked): position=0 outbox(PositionOpened)=0 hold=CANCELLED reservation=RELEASED available=10000.000000 frozen=0.000000
+fail at complete twice, then succeed (attempts 3): position=1 outbox(PositionOpened)=1 hold=CONFIRMED reservation=CONSUMED available=950000.000000 frozen=0.000000; 2 FAILED entries in the log
