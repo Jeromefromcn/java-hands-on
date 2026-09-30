@@ -1,0 +1,18 @@
+# Stage 6, exercise 5: optimistic locking and where retry sits (OptimisticReturnIT)
+# Position at 100, two returns (10 and 20) held by a CyclicBarrier until both have loaded version 0.
+# Hibernate 7.4.5, Postgres 17 READ COMMITTED. Lines in JUnit method order.
+
+ReturnPositionOnce x2, both loaded at version 0
+  outcomes: [ObjectOptimisticLockingFailureException, ok]
+  outstanding=80 version=1 trades=2
+
+Retry inside one @Transactional (InsideTxRetryingReturn), other tx returned 20
+  attempt 1: outstanding seen=100, same managed entity as attempt 1=true, entity version=0, failure=jakarta.persistence.OptimisticLockException: Unexpected row count (expected row count 1 but was 0) [update loan_position set collateral_amount=?,collateral_currency=?,counterparty_id=?,flat_rate=?,isin=?,original_quantity=?,outstanding_quantity=?,rule_type=?,status=?,version=? where id=? and version=?] for entity [com.jerome.slledger.adapter.persistence.loan.LoanPositionEntity with id '6113102c-fa9d-473c-ada9-6c44f451fd71']
+  attempt 2: outstanding seen=90, same managed entity as attempt 1=true, entity version=0, failure=jakarta.persistence.OptimisticLockException: Unexpected row count (expected row count 1 but was 0) [update loan_position set collateral_amount=?,collateral_currency=?,counterparty_id=?,flat_rate=?,isin=?,original_quantity=?,outstanding_quantity=?,rule_type=?,status=?,version=? where id=? and version=?] for entity [com.jerome.slledger.adapter.persistence.loan.LoanPositionEntity with id '6113102c-fa9d-473c-ada9-6c44f451fd71']
+  attempt 3: outstanding seen=80, same managed entity as attempt 1=true, entity version=0, failure=jakarta.persistence.OptimisticLockException: Unexpected row count (expected row count 1 but was 0) [update loan_position set collateral_amount=?,collateral_currency=?,counterparty_id=?,flat_rate=?,isin=?,original_quantity=?,outstanding_quantity=?,rule_type=?,status=?,version=? where id=? and version=?] for entity [com.jerome.slledger.adapter.persistence.loan.LoanPositionEntity with id '6113102c-fa9d-473c-ada9-6c44f451fd71']
+  on return from the method: org.springframework.transaction.UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only
+  row after: outstanding=80 version=1 trades=2
+ReturnPosition x2 (retry outside the transaction, max-attempts 3)
+  outcomes: [ok, ok]
+  outstanding=70 version=2 trades=3
+

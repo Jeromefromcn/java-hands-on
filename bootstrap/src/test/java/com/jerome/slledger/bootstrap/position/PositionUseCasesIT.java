@@ -3,7 +3,6 @@ package com.jerome.slledger.bootstrap.position;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.PositionPage;
 import com.jerome.slledger.application.port.PositionRow;
@@ -13,7 +12,6 @@ import com.jerome.slledger.application.position.OpenPositionCommand;
 import com.jerome.slledger.application.position.ReturnCommand;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.UnknownReferenceException;
-import com.jerome.slledger.bootstrap.SlLedgerApplication;
 import com.jerome.slledger.domain.accrual.FlatRate;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.InsufficientCreditException;
@@ -25,16 +23,10 @@ import com.jerome.slledger.domain.money.Money;
 import com.jerome.slledger.domain.money.Rate;
 import com.jerome.slledger.domain.party.CounterpartyId;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Currency;
-import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.Banner;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
@@ -59,7 +51,7 @@ class PositionUseCasesIT {
 
   @BeforeEach
   void start() {
-    context = startApplication();
+    context = LedgerApp.start();
     open = context.getBean(OpenPosition.class);
     returns = context.getBean(ReturnPosition.class);
     list = context.getBean(ListPositions.class);
@@ -219,21 +211,5 @@ class PositionUseCasesIT {
 
   private static IdempotencyKey key(String value) {
     return new IdempotencyKey(value);
-  }
-
-  /**
-   * The real application on a fresh database. The datasource goes in as command-line arguments, the
-   * highest-precedence source, so no profile's YAML can override it.
-   */
-  static ConfigurableApplicationContext startApplication(String... extraArgs) {
-    List<String> args = new ArrayList<>();
-    for (String property : SharedPostgres.freshDatabase()) {
-      args.add("--" + property);
-    }
-    args.addAll(Arrays.asList(extraArgs));
-    return new SpringApplicationBuilder(SlLedgerApplication.class)
-        .web(WebApplicationType.NONE)
-        .bannerMode(Banner.Mode.OFF)
-        .run(args.toArray(String[]::new));
   }
 }

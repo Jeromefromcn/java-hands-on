@@ -728,7 +728,7 @@ statement count and SQL.
 
 ---
 
-## [ ] 11 · Exercise 5 — optimistic locking and where retry sits
+## [x] 11 · Exercise 5 — optimistic locking and where retry sits
 
 These tests live in `bootstrap` and exercise the real use cases.
 
@@ -762,6 +762,22 @@ Evidence: `docs/evidence/06-optimistic-retry.txt`.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The inside-transaction retry is worse than predicted.** Every re-`find`
+  returns the same managed entity, still at version 0, so every flush fails.
+  What each attempt reads is the entity's own uncommitted decrements, 100, 90,
+  80, never the committed 80: the third attempt's 80 is the loop's arithmetic.
+  The method returns normally, and the commit throws
+  `UnexpectedRollbackException` ("marked as rollback-only").
+- **The failure inside the transaction is raw JPA.** `EntityManager.flush()`
+  throws `jakarta.persistence.OptimisticLockException`. Only calls through a
+  `@Repository` proxy are translated, so a loop catching Spring's
+  `OptimisticLockingFailureException` would not catch it at all. Outside, the
+  use case sees `ObjectOptimisticLockingFailureException`, because the flush
+  happens inside `JpaTradeLedger`'s `saveAndFlush`.
+- **`PositionUseCasesIT.startApplication` moved to a shared `LedgerApp`**,
+  which also takes test-only sources. Sections 12 and 15 use it too.
 
 ---
 
