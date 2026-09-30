@@ -567,7 +567,7 @@ Evidence: `docs/evidence/06-blue-green.txt`.
 
 ---
 
-## [ ] 8 · Exercise 4 + 11 — first-level cache, dirty checking, second-level off
+## [x] 8 · Exercise 4 + 11 — first-level cache, dirty checking, second-level off
 
 These tests live in `adapter-persistence` and cover the caching exercises.
 
@@ -601,6 +601,23 @@ Evidence: `docs/evidence/06-persistence-context.txt`.
 **Acceptance**
 - The tests pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **The "normalisation" lower-cases `collateral_currency`, not `status`.**
+  `status` is an `EnumType.STRING` enum and cannot hold lower case; the
+  currency is a free `char(3)`. The committed `hkd` is also a row that
+  `MoneyColumns.read` would then refuse, so the silent write breaks the next
+  reader.
+- **`readOnly = true` skips both.** Spring set flush mode `MANUAL` *and*
+  `session.isDefaultReadOnly() = true`, and the loaded entity itself is
+  read-only: there is no flush and no dirty-check snapshot to compare.
+- **The prediction that Hibernate defaults the second-level cache on was
+  wrong.** Without the property, `isSecondLevelCacheEnabled()` is `false`,
+  because the region factory is `NoCachingRegionFactory`. The explicit
+  setting is kept for when a provider reaches the classpath; that case is
+  not measured.
+- **`LedgerFixtures` arrives here, one section early.** This section is the
+  first to insert rows with SQL.
 
 ---
 

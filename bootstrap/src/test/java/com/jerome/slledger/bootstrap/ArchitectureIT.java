@@ -31,13 +31,16 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Test classes are not imported. The rules govern production code; test-only demos are exactly
  * where reproductions belong, and stage 5's {@code @Transactional} demos under {@code
- * bootstrap/src/test} would otherwise violate rule 3 by design.
+ * bootstrap/src/test} would otherwise violate rule 3 by design. {@code DoNotIncludeTests} only
+ * recognises {@code test-classes} directories, so the {@code adapter-persistence} test-jar that
+ * this module consumes is excluded by name as well.
  */
 class ArchitectureIT {
 
   private static final JavaClasses CLASSES =
       new ClassFileImporter()
           .withImportOption(new ImportOption.DoNotIncludeTests())
+          .withImportOption(location -> !location.contains("-tests.jar"))
           .importPackages("com.jerome.slledger");
 
   @Test
