@@ -334,6 +334,9 @@ comment says this. The two real fixes are AOF with `always` (which still can
 regress by the last unsynced write) or issuing the token from the same
 Postgres that checks it, with Redis doing only the coarse exclusion. I would
 take the second. It was not built because the lock has no caller until stage 11.
+**Scheduled: stage 11, first plan section** (see `ROADMAP.md`). That change also
+removes the never-expiring `sl:fence:price:*` key the cache rebuild lock leaves
+behind, since the rebuild path will no longer take a token from Redis.
 
 ## What I rejected, and why
 

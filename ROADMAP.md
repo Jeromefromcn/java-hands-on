@@ -348,6 +348,13 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 > 用組合策略而非模板方法繼承。寫這個 Job/Step/Chunk 時回頭對照，看暫定判斷
 > 站不站得住，並把結論寫回該決策記錄。
 
+> **階段 9 遺留，須在本階段第一節處理**：`docs/decisions/09-caching.md` 的
+> 「Redis restart resets the fence」一節。fencing token 現在由 Redis 發，Redis
+> 無持久化重啟後計數器歸零，低於 Postgres 已收過的 token，fence 會拒絕所有寫入。
+> 日切計息是這把鎖的第一個調用方：改由 Postgres sequence 發 token，Redis 只做
+> 粗粒度互斥；快取重建鎖多留的 `sl:fence:price:*` key 隨之消失。用真實的多實例
+> 日切驗證，寫回該決策記錄。
+
 **做什麼** — 日切計息 + 市值重估，用 Spring Batch 正式化。
 
 **實操練習**
