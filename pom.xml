@@ -21,6 +21,7 @@
     <module>application</module>
     <module>adapter-persistence</module>
     <module>adapter-web</module>
+    <module>adapter-messaging</module>
     <module>batch</module>
     <module>bootstrap</module>
   </modules>
@@ -121,6 +122,17 @@
         <groupId>${project.groupId}</groupId>
         <artifactId>adapter-web</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>adapter-messaging</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>adapter-messaging</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>

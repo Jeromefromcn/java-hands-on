@@ -86,7 +86,7 @@ test in the section named.
 
 ---
 
-## [ ] 1 · Build wiring and Kafka test support
+## [x] 1 · Build wiring and Kafka test support
 
 **POMs and modules**
 - New module `adapter-messaging` (parent's `<modules>` before `batch`; its

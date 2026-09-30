@@ -1,0 +1,8 @@
+Stage 10, section 1: dependencyConvergence after adding the adapter-messaging module
+(spring-kafka, spring-boot-starter-json, slf4j-api compile; testcontainers-kafka test) and
+testcontainers-kafka to bootstrap (test). Measured with `./mvnw clean verify` on JDK 21.0.12-tem.
+
+Result: the enforcer rule passed with no new dependencyManagement entry. spring-kafka 4.1.1,
+kafka-clients 4.2.1 and Testcontainers versions all come from the Spring Boot 4.1.1 BOM.
+The broker in tests and in compose is apache/kafka:4.1.0 (KRaft); the client is newer than the
+broker by one minor version, which Kafka's compatibility guarantee permits.

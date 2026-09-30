@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Five architecture rules, checked on the one classpath that has every module on it: {@code
- * bootstrap} depends (transitively) on all of {@code domain}, {@code application}, {@code
+ * Architecture rules, checked on the one classpath that has every module on it: {@code bootstrap}
+ * depends (transitively) on all of {@code domain}, {@code application}, {@code
  * adapter-persistence}, {@code adapter-web} and {@code batch}.
  *
  * <p>Named {@code ArchitectureIT}, not {@code ArchitectureTest}: Failsafe's default inclusion
@@ -134,6 +134,51 @@ class ArchitectureIT {
                 "com.fasterxml.jackson..");
 
     rule.check(CLASSES);
+  }
+
+  @Test
+  @DisplayName("application depends on no Kafka, JSON or JDBC type")
+  void applicationHasNoMessagingLibrary() {
+    // Stage 10: events, the outbox, the relay and the saga are plain Java over ports. Kafka and
+    // Jackson are adapter-messaging's; JDBC is adapter-persistence's.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.apache.kafka..",
+                "org.springframework.kafka..",
+                "org.springframework.jdbc..",
+                "tools.jackson..",
+                "com.fasterxml.jackson..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
+  @DisplayName("adapter-messaging and adapter-persistence do not depend on each other")
+  void adaptersAreIndependent() {
+    ArchRule messaging =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.adapter.messaging..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("com.jerome.slledger.adapter.persistence..")
+            // Empty until section 3 of stage 10 gives adapter-messaging its first class.
+            .allowEmptyShould(true);
+    ArchRule persistence =
+        noClasses()
+            .that()
+            .resideInAPackage("com.jerome.slledger.adapter.persistence..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("com.jerome.slledger.adapter.messaging..");
+
+    messaging.check(CLASSES);
+    persistence.check(CLASSES);
   }
 
   @Test
