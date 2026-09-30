@@ -453,7 +453,7 @@ reads the position (spec decision 2).
 
 ---
 
-## [ ] 8 · Write endpoints
+## [x] 8 · Write endpoints
 
 **`adapter-web.loan`**
 - DTOs, records: `OpenLoanRequest(counterpartyId, isin, quantity,
@@ -483,6 +483,15 @@ reads the position (spec decision 2).
 **Acceptance**
 - The ITs pass.
 - `./mvnw clean verify` is green.
+
+**Found while implementing**
+- **One response type, `BookedResponse(positionId, trade)`, serves both
+  endpoints.** It is built from the trade only.
+- **The web ITs use their own reference data (`WebLedger`)**, with ISINs
+  whose check digits are valid, so section 9's `@Isin` does not break them.
+- The replay test sends the same request with a different field order and
+  `50000.0` for `50000.00`. It is replayed, because the fingerprint is of
+  the command, not of the body text.
 
 ---
 

@@ -1,6 +1,7 @@
 package com.jerome.slledger.adapter.web.error;
 
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
+import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
@@ -54,6 +55,12 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
     return "position".equals(e.kind())
         ? Problems.of(HttpStatus.NOT_FOUND, "not-found", e.getMessage())
         : Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "unknown-reference", e.getMessage());
+  }
+
+  /** The key names an earlier, different request: answering with its result would mislead. */
+  @ExceptionHandler(IdempotencyKeyReusedException.class)
+  ProblemDetail keyReused(IdempotencyKeyReusedException e) {
+    return Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "idempotency-key-reused", e.getMessage());
   }
 
   @ExceptionHandler(InvalidQueryException.class)
