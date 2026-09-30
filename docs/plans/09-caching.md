@@ -188,7 +188,7 @@ test in the section named.
 
 ---
 
-## [ ] 4 · Spring Cache abstraction
+## [x] 4 · Spring Cache abstraction
 
 **`bootstrap` test sources only**
 - `@EnableCaching` test configuration with a `CaffeineCacheManager`;
@@ -206,6 +206,15 @@ test in the section named.
 
 **Acceptance**
 - Tests pass; nothing here is wired into the product path.
+
+**Found while implementing**
+- **The demo uses `ConcurrentMapCacheManager`, not Caffeine.** The exercise is about the
+  proxy; the engine underneath is irrelevant to it and section 3 already covers Caffeine.
+- The tests are a surefire `SpringCacheTest` on an `AnnotationConfigApplicationContext`,
+  with no server and no database. The bean is a CGLIB proxy (asserted from its class name).
+- `unless = "#result == null"` is what stops an unknown key being cached; without it the
+  manager's default caches the `null`. Both are asserted, and section 6's negative entry
+  makes the same choice deliberately and with a short TTL.
 
 ---
 

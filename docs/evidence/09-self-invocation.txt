@@ -1,0 +1,6 @@
+Stage 9, section 4: two calls to the same @Cacheable method, counted at the source.
+Measured by SpringCacheTest.reproducesSelfInvocationBypassesCache.
+
+both calls made on `this` inside PriceService : 2 source calls (the cache was bypassed)
+both calls made through another bean          : 1 source call  (the proxy cached)
+bean class                                    : com.jerome.slledger.bootstrap.demo.cache.PriceService$$SpringCGLIB$$0
