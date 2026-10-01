@@ -279,7 +279,7 @@ Each is carried to the decision record.
 **Acceptance**
 - Span tree printed as evidence; `ArchitectureIT` still green.
 
-## [ ] 10 · Structured logs and MDC across threads
+## [x] 10 · Structured logs and MDC across threads
 
 **Change**
 - `application-prod.yml`: `logging.structured.format.console=logstash`.
@@ -296,7 +296,7 @@ Each is carried to the decision record.
 **Acceptance**
 - Both log lines in the evidence.
 
-## [ ] 11 · Log hygiene
+## [x] 11 · Log hygiene
 
 **Change**
 - `LoggingNoticeChannel` logs ids and currency, never name or amount. Any
@@ -480,3 +480,25 @@ runs had not covered).
 - `PublishPriceUpdate` (the feed gateway's path, which skips the outbox on purpose) stamps the current
   traceparent on the record too, and the price consumer continues it.
 - Consumer spans are named `consume <topic>`, and `Tracing.inSpan` marks them `CONSUMER`.
+
+**Section 10.**
+- `MdcPropagation` is one implementation of "carry the MDC and put the worker's own back"; the stage 8
+  market data pool used to hold a private copy and now calls it. The same `TaskDecorator` is a bean, which
+  Boot's application task executor picks up by type, and is handed to the accrual partition pool (the only
+  other executor Spring builds here; the two schedulers run no request's work).
+- The JSON format is Boot's own `logstash` structured format, set for the `prod` profile only: the MDC
+  entries are top-level fields, so `traceId` and `spanId` need no extra encoder. The captured output of the
+  test also holds Testcontainers' lines in the plain pattern (they are the test's own setup), so the
+  assertion is on the application's lines: all those that start with `{` parse, and the start-up line is
+  one of them.
+- The start-up line's logger is `ForkedBooter`, not the application class: under Failsafe the main class
+  is Surefire's. The test matches the message, not the logger.
+
+**Section 11.**
+- `LogHygieneIT` found nothing beyond the notice's amount. Its first version passed on the wrong evidence:
+  the consumers start from the earliest offset, so notices replayed from other tests' history on the shared
+  topics satisfied "a notice was logged". It now waits for a notice to this test's own counterparty.
+- Mutation check: with the shortfall amount put back into the notice's log line the test fails and names
+  it (`found: [45668.91]`); the file in `docs/evidence/12-log-hygiene.txt` is the passing run.
+- No pattern-based scrubbing was added (see `docs/logging.md`): it cannot recognise a counterparty name,
+  and a rule kept only partly is worse than a rule and a test.

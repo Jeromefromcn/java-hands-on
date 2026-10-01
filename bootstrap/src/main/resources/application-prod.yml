@@ -28,3 +28,10 @@ management:
       export:
         otlp:
           endpoint: ${LEDGER_OTLP_TRACES_URL}
+
+# Stage 12: one JSON object per log event, with the MDC (traceId, spanId) as fields, so the log
+# pipeline reads a field and never parses text. Other profiles keep the readable pattern.
+logging:
+  structured:
+    format:
+      console: logstash

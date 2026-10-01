@@ -1,5 +1,6 @@
 package com.jerome.slledger.batch.accrual;
 
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
@@ -13,6 +14,16 @@ public final class AccrualPartitionPool implements AutoCloseable {
   private final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
   public AccrualPartitionPool(int threads) {
+    this(threads, null);
+  }
+
+  /**
+   * @param decorator wraps each task as it is submitted; null for none
+   */
+  public AccrualPartitionPool(int threads, TaskDecorator decorator) {
+    if (decorator != null) {
+      executor.setTaskDecorator(decorator);
+    }
     executor.setCorePoolSize(threads);
     executor.setMaxPoolSize(threads);
     executor.setThreadNamePrefix("sl-accrual-");

@@ -3,6 +3,7 @@ package com.jerome.slledger.bootstrap.observability;
 import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.observability.Tracing;
 import com.jerome.slledger.bootstrap.config.MarketDataPool;
+import com.jerome.slledger.bootstrap.config.MdcPropagation;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.micrometer.tagged.TaggedBulkheadMetrics;
@@ -16,6 +17,7 @@ import io.micrometer.tracing.propagation.Propagator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 
 /**
  * The meters that exist whatever is switched on. Meters that need Kafka or Batch are declared next
@@ -39,6 +41,16 @@ class ObservabilityConfiguration {
     Tracer t = tracer.getIfAvailable();
     Propagator p = propagator.getIfAvailable();
     return t == null || p == null ? Tracing.NONE : new MicrometerTracing(t, p);
+  }
+
+  /**
+   * Copies the MDC into every task of the executors Spring builds from this context (Boot's
+   * application task executor takes a {@code TaskDecorator} bean by itself, and the accrual
+   * partition pool is handed this one).
+   */
+  @Bean
+  TaskDecorator mdcTaskDecorator() {
+    return MdcPropagation.decorator();
   }
 
   @Bean

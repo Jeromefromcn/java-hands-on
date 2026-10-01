@@ -33,10 +33,12 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
@@ -165,8 +167,10 @@ public class AccrualJobConfiguration {
 
   /** Threads that run the partitions; a holder type so no other component picks it up by type. */
   @Bean(destroyMethod = "close")
-  AccrualPartitionPool accrualPartitionPool(BatchSettings settings) {
-    return new AccrualPartitionPool(settings.workerThreads());
+  AccrualPartitionPool accrualPartitionPool(
+      BatchSettings settings, ObjectProvider<TaskDecorator> decorator) {
+    // A decorator in the context (the MDC carrier) keeps a run's trace id on its partition threads.
+    return new AccrualPartitionPool(settings.workerThreads(), decorator.getIfAvailable());
   }
 
   /** Writes every skipped position to {@code batch_skip}, in a transaction of its own. */
