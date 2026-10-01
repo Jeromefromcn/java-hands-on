@@ -336,7 +336,7 @@ Each is carried to the decision record.
 - `check.sh` output in evidence; dashboard JSON parses and every query names a
   meter that exists in section 7's scrape.
 
-## [ ] 13 · Decision record and close
+## [x] 13 · Decision record and close
 
 **Change**
 - `docs/decisions/12-resilience-observability.md` (chose / rejected / observed /
@@ -534,3 +534,21 @@ runs had not covered).
   warm (1,419 µs against 1,270 µs at 0.0, runs 4 and 6 of `docs/evidence/12-tracing-overhead.txt`); the
   first three runs are dominated by JIT warm-up (2,492 µs at 0.0 in run 1), which is why the settings run
   forwards and then backwards.
+
+**Fix after section 12** (found by the full build of its commit).
+- `InfraQueriesIT` failed on `ledger_margin_calls_raised_total` in the full build and passed alone. The
+  consumers start from the earliest offset of shared topics, and the tests published a price at version
+  9,000: an earlier test's update for the same ISIN at the same version was applied first, and a price
+  update that is not newer than the stored version is ignored by design, so no margin call was raised. The
+  three tests that publish a price now use the current time in milliseconds as the version, and
+  `InfraQueriesIT` also waits for the margin-call counter, not only the notice counter (a notice can be a
+  replay of another test's call).
+
+**Section 13.**
+- The roadmap's progress table still showed stage 11 as open although its text was ticked and its record
+  written; it is corrected here along with stage 12's row. The oral-acceptance column stays open for both:
+  that one is the owner's to tick.
+- The README lists no stages, so it is unchanged.
+- Every number in the record is copied from a `docs/evidence/12-*.txt` file; the 100x section says it is
+  reasoned. The one number first written wrongly from memory (seven failures before the breaker opened in
+  the manual run; the log says the window held 20 calls at 50%, so ten) was corrected against the log.
