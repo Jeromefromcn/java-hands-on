@@ -38,8 +38,9 @@ spring:
           use_second_level_cache: false
 
 # Stage 12. Only what a probe or a scraper needs is exposed. env, beans and configprops are not:
-# they print configuration, and the secrets in it, to anyone who can reach the port. Health details
-# stay hidden until stage 13 puts authentication in front of them.
+# they print configuration, and the secrets in it, to anyone who can reach the port. Stage 13: the
+# probes are public, the scrape needs the ledger-metrics role, everything else a valid token, and
+# health details (which name the dependencies and their state) are shown to ledger-ops only.
 management:
   endpoints:
     web:
@@ -47,7 +48,8 @@ management:
         include: health,info,prometheus
   endpoint:
     health:
-      show-details: never
+      show-details: when-authorized
+      roles: ledger-ops
       probes:
         enabled: true
       # liveness: restarting the process is the only fix for what it can see, so nothing outside

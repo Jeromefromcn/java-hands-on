@@ -168,7 +168,7 @@ with a valid token; `./mvnw clean verify` green.
 - `reproducesMassAssignmentOfIdAndStatus` (test-only bean-bound entity), then
   the real open with `id`/`status`/`positionId` in the body.
 
-## [ ] 8 · Actuator and secrets
+## [x] 8 · Actuator and secrets
 
 **Change**
 - Health details `when-authorized` for `ledger-ops`; `/actuator/prometheus`

@@ -68,6 +68,10 @@ public class SecurityConfiguration {
                 requests
                     .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness")
                     .permitAll()
+                    // The scrape describes the business (positions opened, margin calls, outbox
+                    // age): it is for the scraper's own role, not for any authenticated caller.
+                    .requestMatchers("/actuator/prometheus")
+                    .hasRole(Role.METRICS.claim())
                     .anyRequest()
                     .authenticated())
         .oauth2ResourceServer(

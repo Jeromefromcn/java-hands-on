@@ -1,0 +1,13 @@
+Stage 13 · section 8 — actuator endpoints by caller (ActuatorAuthorizationIT)
+
+no token /actuator/health                            401
+trader /actuator/health body                         {"groups":["liveness","readiness"],"status":"DOWN"}
+ops /actuator/health body (components only)          {"components":{"db":{"details":{"database":"PostgreSQL","validationQuery":"isValid()"},"status":"UP"},"diskSpace":{"deta...
+management port, no token /actuator/prometheus       401
+management port, metrics token /actuator/prometheus  200
+no token /actuator/health/liveness                   200
+no token /actuator/prometheus                        401
+trader /actuator/prometheus                          403
+ops /actuator/prometheus                             403
+metrics /actuator/prometheus                         200
+metrics /loans                                       403

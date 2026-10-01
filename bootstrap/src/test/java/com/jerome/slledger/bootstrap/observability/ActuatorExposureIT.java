@@ -3,6 +3,7 @@ package com.jerome.slledger.bootstrap.observability;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +35,15 @@ class ActuatorExposureIT {
   }
 
   private static String body(String path) {
-    return http.get().uri(path).exchange().returnResult(String.class).getResponseBody();
+    // The scrape needs the metrics role since stage 13; every other path is read with the staff
+    // token.
+    String token = path.endsWith("/prometheus") ? TestTokens.metrics() : TestTokens.staff();
+    return LedgerApp.http(app, token)
+        .get()
+        .uri(path)
+        .exchange()
+        .returnResult(String.class)
+        .getResponseBody();
   }
 
   private static HttpStatus status(String path) {
