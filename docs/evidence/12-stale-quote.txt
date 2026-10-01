@@ -1,0 +1,3 @@
+live : {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}}
+stale: {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"},"stale":true,"asOf":"2026-10-01T01:18:36.679960939Z"}
+Warning: 110 - "Response is Stale"

@@ -8,7 +8,15 @@ public sealed interface QuoteOutcome {
 
   Isin isin();
 
-  record Priced(Isin isin, Money price) implements QuoteOutcome {}
+  /** {@code asOf} is set exactly when the price is stale: the time it was last true. */
+  record Priced(Isin isin, Money price, boolean stale, java.time.Instant asOf)
+      implements QuoteOutcome {
+
+    /** A live price. */
+    public Priced(Isin isin, Money price) {
+      this(isin, price, false, null);
+    }
+  }
 
   record Failed(Isin isin, Kind kind) implements QuoteOutcome {}
 

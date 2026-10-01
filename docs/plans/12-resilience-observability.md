@@ -155,7 +155,7 @@ Each is carried to the decision record.
 - The reproduction and the fix are the same test body with the bulkhead
   switched; both latency tables are in the evidence.
 
-## [ ] 5 · Stale price degradation
+## [x] 5 · Stale price degradation
 
 **Change**
 - `application.quote`: `Quote(Money price, boolean stale, Instant asOf)`;
@@ -385,3 +385,16 @@ through the same class).
   also answered 8 of the 12 quote calls with 503 at once (`docs/evidence/12-bulkhead-starvation.txt`).
 - `MarketDataUnavailableException` is HTTP 504 and `OverloadedException` is 503 (stage 7 and 8's mapping,
   unchanged). The spec's "the stage 7 503" for a quote with nothing to fall back to is a 504.
+
+**Section 5.**
+- The fallback applies to every failure of the source except "unknown security": unavailable, refused
+  answer (a 5xx or an unreadable body) and our own overload refusal. The spec named unavailable and
+  overloaded only; a 500 from the source is the same situation to a screen, and without it the first
+  failures before the breaker opens would be errors and the later ones stale, which no client could explain.
+  A price in the wrong currency is still refused, and is never degraded.
+- Fresh responses are unchanged byte for byte: `stale` and `asOf` are omitted when the price is live. A
+  client has to read the flag to know it is looking at an old price, and the existing contract tests and
+  clients are not touched.
+- `QuotePrice.quote` returns a `Quote`; `QuoteOutcome.Priced` gained `stale` and `asOf` with the old
+  two-argument constructor kept for a live price. `LedgerMetrics` (a port with empty defaults) is
+  introduced here because the degradation is the first thing to count; section 7 adds its other methods.

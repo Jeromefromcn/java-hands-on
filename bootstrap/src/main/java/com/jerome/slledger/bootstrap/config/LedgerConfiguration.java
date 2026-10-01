@@ -5,6 +5,7 @@ import com.jerome.slledger.adapter.web.WebConfiguration;
 import com.jerome.slledger.application.collateral.CollateralHolds;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.Outbox;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
 import com.jerome.slledger.application.port.MarketPriceSource;
@@ -21,6 +22,7 @@ import com.jerome.slledger.application.position.OpenPosition;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.ReturnPositionOnce;
 import com.jerome.slledger.application.position.ShowPosition;
+import com.jerome.slledger.application.quote.LastKnownPrices;
 import com.jerome.slledger.application.quote.PriceFanOut;
 import com.jerome.slledger.application.quote.QuotePrice;
 import com.jerome.slledger.application.saga.CreditReservations;
@@ -34,6 +36,7 @@ import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -142,15 +145,28 @@ public class LedgerConfiguration {
   }
 
   @Bean
+  LastKnownPrices lastKnownPrices(
+      @Value("${ledger.quote.last-known-capacity:10000}") int capacity) {
+    return LastKnownPrices.bounded(capacity);
+  }
+
+  @Bean
   QuotePrice quotePrice(
       SecurityDirectory securities,
       MarketPriceSource source,
-      ObjectProvider<CachedQuoteSources> cached) {
-    // The cached lookups are for quotes only: a credit check must not read a cached price.
+      ObjectProvider<CachedQuoteSources> cached,
+      LastKnownPrices lastKnown,
+      Clock clock,
+      @Value("${ledger.quote.stale-max-age:15m}") Duration staleMaxAge,
+      ObjectProvider<LedgerMetrics> metrics) {
+    // The cached lookups are for quotes only: a credit check must not read a cached price. The
+    // same goes for a stale one: the last-known prices are given to QuotePrice and to nothing else.
     CachedQuoteSources sources = cached.getIfAvailable();
+    LedgerMetrics meters = metrics.getIfAvailable(() -> LedgerMetrics.NONE);
     return sources == null
-        ? new QuotePrice(securities, source)
-        : new QuotePrice(sources.securities(), sources.prices());
+        ? new QuotePrice(securities, source, lastKnown, clock, staleMaxAge, meters)
+        : new QuotePrice(
+            sources.securities(), sources.prices(), lastKnown, clock, staleMaxAge, meters);
   }
 
   @Bean

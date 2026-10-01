@@ -9,6 +9,7 @@ import com.jerome.slledger.application.quote.QuoteOutcome;
 import com.jerome.slledger.domain.instrument.Isin;
 import com.jerome.slledger.domain.money.Money;
 import jakarta.validation.constraints.NotEmpty;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>One security failing is that security's item, not the request's failure: the response is
  * {@code 200} with an {@code error} in the item that has no price. Only when the executor refused
  * every security is the request itself a {@code 503}. Prices keep their own currency; nothing here
- * adds them.
+ * adds them. An item served from the last-known price carries {@code "stale": true} and {@code
+ * asOf}; the other items of the same response are unaffected.
  */
 @RestController
 public class QuotesController {
@@ -38,7 +40,7 @@ public class QuotesController {
 
   /** Exactly one of {@code price} and {@code error} is present. */
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record QuoteItem(String isin, Money price, ItemError error) {}
+  public record QuoteItem(String isin, Money price, Boolean stale, Instant asOf, ItemError error) {}
 
   public record ItemError(String type) {}
 
@@ -57,10 +59,18 @@ public class QuotesController {
 
   private static QuoteItem item(QuoteOutcome outcome) {
     return switch (outcome) {
-      case QuoteOutcome.Priced priced -> new QuoteItem(priced.isin().value(), priced.price(), null);
+      case QuoteOutcome.Priced priced ->
+          new QuoteItem(
+              priced.isin().value(),
+              priced.price(),
+              priced.stale() ? true : null,
+              priced.asOf(),
+              null);
       case QuoteOutcome.Failed failed ->
           new QuoteItem(
               failed.isin().value(),
+              null,
+              null,
               null,
               new ItemError(Problems.type(kindOf(failed.kind())).toString()));
     };

@@ -103,7 +103,7 @@ public class PriceFanOut {
     try {
       return CompletableFuture.supplyAsync(
               RequestContext.propagating(() -> quote.quote(isin)), executor)
-          .handle((price, failure) -> outcome(isin, price, failure));
+          .handle((quoted, failure) -> outcome(isin, quoted, failure));
     } catch (RejectedExecutionException refused) {
       return CompletableFuture.completedFuture(
           new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.OVERLOADED));
@@ -128,9 +128,9 @@ public class PriceFanOut {
     }
   }
 
-  private static QuoteOutcome outcome(Isin isin, Money price, Throwable failure) {
+  private static QuoteOutcome outcome(Isin isin, Quote quote, Throwable failure) {
     if (failure == null) {
-      return new QuoteOutcome.Priced(isin, price);
+      return new QuoteOutcome.Priced(isin, quote.price(), quote.stale(), quote.asOf());
     }
     Throwable cause =
         failure instanceof CompletionException && failure.getCause() != null
