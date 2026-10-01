@@ -114,7 +114,7 @@ class TraceAcrossKafkaIT {
   }
 
   private static List<SpanData> spansOfTrace(String traceId) {
-    return TraceSupport.SPANS.getFinishedSpanItems().stream()
+    return TraceSupport.spans().getFinishedSpanItems().stream()
         .filter(span -> span.getTraceId().equals(traceId))
         .toList();
   }

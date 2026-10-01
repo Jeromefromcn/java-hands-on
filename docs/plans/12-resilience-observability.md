@@ -502,3 +502,10 @@ runs had not covered).
   it (`found: [45668.91]`); the file in `docs/evidence/12-log-hygiene.txt` is the passing run.
 - No pattern-based scrubbing was added (see `docs/logging.md`): it cannot recognise a counterparty name,
   and a rule kept only partly is worse than a rule and a test.
+
+**Fix after sections 8 to 11** (found by the full build of section 11's commit).
+- `HttpTraceIT` passed alone and timed out after `TraceAcrossKafkaIT`: both read spans from one static
+  in-memory exporter, and closing the first context shuts its span processor down, after which a
+  shut-down in-memory exporter drops every span it is given. The exporter is now created per context
+  (`TraceSupport.spans()` returns the latest). Order dependence between ITs that share a JVM is exactly
+  what a filtered run hides.

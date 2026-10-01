@@ -12,15 +12,25 @@ import org.springframework.context.annotation.Bean;
  */
 public final class TraceSupport {
 
-  public static final InMemorySpanExporter SPANS = InMemorySpanExporter.create();
+  /**
+   * The exporter of the context started last. One per context: closing a context shuts its span
+   * processor down, and a shut-down in-memory exporter drops every span it is given, so one shared
+   * across the test JVM's contexts would silently record nothing for every context after the first.
+   */
+  private static volatile InMemorySpanExporter current = InMemorySpanExporter.create();
 
   private TraceSupport() {}
+
+  public static InMemorySpanExporter spans() {
+    return current;
+  }
 
   /** Test-only source, registered by class: not a component of the application. */
   public static class InMemorySpans {
     @Bean
     SpanProcessor inMemorySpanProcessor() {
-      return SimpleSpanProcessor.create(SPANS);
+      current = InMemorySpanExporter.create();
+      return SimpleSpanProcessor.create(current);
     }
   }
 }

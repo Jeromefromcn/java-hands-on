@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.jerome.slledger.bootstrap.position.LedgerApp;
-import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import java.time.Duration;
 import java.util.List;
@@ -22,8 +21,6 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 @Timeout(120)
 class HttpTraceIT {
 
-  private static final InMemorySpanExporter SPANS = TraceSupport.SPANS;
-
   private static ConfigurableApplicationContext app;
   private static RestTestClient http;
 
@@ -40,12 +37,14 @@ class HttpTraceIT {
 
   @BeforeEach
   void clear() {
-    SPANS.reset();
+    TraceSupport.spans().reset();
   }
 
   private static SpanData serverSpan() {
-    await().atMost(Duration.ofSeconds(10)).until(() -> !SPANS.getFinishedSpanItems().isEmpty());
-    return SPANS.getFinishedSpanItems().getFirst();
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .until(() -> !TraceSupport.spans().getFinishedSpanItems().isEmpty());
+    return TraceSupport.spans().getFinishedSpanItems().getFirst();
   }
 
   @Test
