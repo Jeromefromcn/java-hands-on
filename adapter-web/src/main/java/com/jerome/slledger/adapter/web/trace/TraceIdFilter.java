@@ -1,6 +1,7 @@
 package com.jerome.slledger.adapter.web.trace;
 
 import com.jerome.slledger.application.context.RequestContext;
+import com.jerome.slledger.application.observability.Tracing;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.util.HexFormat;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -24,22 +26,37 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * docs/decisions/07-web.md}.
  *
  * <p>An incoming {@code X-Trace-Id} is ignored: a client-chosen value in the logs is an injection
- * path, and there is no upstream to trust until stage 12's tracing. The id has the W3C trace-id
- * shape, 32 lowercase hex digits, so stage 12 can adopt it.
+ * path. Since stage 12 the id is the trace id of the request's server span when a tracer is
+ * present, so the response header, the logs and the trace backend name the same trace; an incoming
+ * W3C {@code traceparent} is continued by the tracer, which accepts only its fixed hex format.
+ * Without a tracer the filter generates an id of the same shape, as before.
+ *
+ * <p>It runs second, right after Boot's observation filter (which starts the span) and before
+ * everything else; running first, it would have no span to read.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class TraceIdFilter extends OncePerRequestFilter {
 
   public static final String HEADER = "X-Trace-Id";
   public static final String MDC_KEY = "traceId";
   public static final String ATTRIBUTE = TraceIdFilter.class.getName() + ".traceId";
 
+  private final ObjectProvider<Tracing> tracing;
+
+  public TraceIdFilter(ObjectProvider<Tracing> tracing) {
+    this.tracing = tracing;
+  }
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    String traceId = newTraceId();
+    String traceId =
+        tracing
+            .getIfAvailable(() -> Tracing.NONE)
+            .currentTraceId()
+            .orElseGet(TraceIdFilter::newTraceId);
     request.setAttribute(ATTRIBUTE, traceId);
     response.setHeader(HEADER, traceId);
     MDC.put(MDC_KEY, traceId);

@@ -54,6 +54,19 @@
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-micrometer</artifactId>
     </dependency>
+    <!-- Tracing: Micrometer Tracing over the OpenTelemetry SDK, exported by OTLP.
+         The starter also brings an OTLP *metrics* registry; Prometheus is the
+         metrics path here, so it is excluded. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-opentelemetry</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.micrometer</groupId>
+          <artifactId>micrometer-registry-otlp</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
     <!-- The container itself, stage 4. spring-boot-starter-validation adds
          Bean Validation for @ConfigurationProperties + @Validated. -->
@@ -109,6 +122,12 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-aspectj</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Stage 12: the in-memory span exporter the tracing tests read spans from. -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-testing</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

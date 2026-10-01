@@ -234,7 +234,7 @@ Each is carried to the decision record.
 **Acceptance**
 - Scrape text of the run is the evidence; cardinality assertion passes.
 
-## [ ] 8 · Tracing in process
+## [x] 8 · Tracing in process
 
 **Change**
 - `bootstrap` POM: `spring-boot-starter-opentelemetry` (or the Micrometer
@@ -446,3 +446,23 @@ runs had not covered).
   its 10 s read timeout instead of switching the check off.
 - The first cause of the miss is process: a section's targeted tests passed and the full build was not run
   before moving on. The full build of HEAD runs in the background after every commit from here.
+
+**Section 8.**
+- `spring-boot-starter-opentelemetry` (OTel SDK, Micrometer's bridge, the OTLP exporter) is used with its
+  OTLP *metrics* registry excluded: Prometheus is the metrics path, and an exporter that pushes to a
+  collector that is not there every minute is noise. Boot 4's property names differ from 3's
+  (`management.opentelemetry.tracing.export.otlp.endpoint`, `management.tracing.export.otlp.enabled`); the
+  names were read from the starter's configuration metadata, not from memory.
+- Export is off by default and on in `local` (Jaeger) and `prod` (the endpoint comes from
+  `LEDGER_OTLP_TRACES_URL`, which has no default, like the market data URL). Sampling is 1.0, and 0.1 in
+  `prod`. Propagation is W3C only.
+- `TraceIdFilter` moved from `HIGHEST_PRECEDENCE` to `HIGHEST_PRECEDENCE + 2`: it must run after Boot's
+  observation filter (`+ 1`), which starts the server span, or it has no span to read. It still runs before
+  every other filter; the layer-order probe moved to `+ 3` to stay right after it.
+- The `Tracing` bean is a plain bean method over `ObjectProvider<Tracer>`. The first version used
+  `@ConditionalOnBean(Tracer.class)`, which is evaluated while this class is read, before the tracing
+  auto-configuration has registered the tracer, so the condition was false and the application silently ran
+  with no tracing: the response header and the exported span disagreed and `HttpTraceIT` caught it.
+- `prod` has no default collector URL, so `ConfigurationPrecedenceIT`, which starts every profile, now
+  supplies a placeholder one for it, as it already does for the market data URL. The full build of this
+  commit's first version failed there and nowhere else.

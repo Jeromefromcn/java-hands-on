@@ -56,7 +56,7 @@ public class LayerProbes {
           }
         };
     FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(filter);
-    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+    registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 3);
     return registration;
   }
 

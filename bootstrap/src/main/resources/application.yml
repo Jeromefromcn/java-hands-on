@@ -43,6 +43,18 @@ management:
         readiness:
           include: readinessState,db
 
+  # Stage 12: tracing. Every request is sampled and nothing is exported by default: spans go to a
+  # backend only where an endpoint is configured (the local and prod profiles). prod samples a
+  # fraction. Propagation is W3C traceparent only.
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      otlp:
+        enabled: false
+    propagation:
+      type: w3c
+
 # Stage 12: on shutdown readiness goes REFUSING_TRAFFIC first, then in-flight requests finish. The
 # Tomcat MBean registry feeds the thread and connection meters.
 server:

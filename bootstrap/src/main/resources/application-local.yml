@@ -42,3 +42,15 @@ ledger:
   # application running with ledger.batch.schedulers-enabled=true.
   batch:
     enabled: true
+
+# Stage 12: infra/compose.yaml's Jaeger takes spans over OTLP/HTTP. Every request is sampled.
+management:
+  tracing:
+    export:
+      otlp:
+        enabled: true
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://127.0.0.1:4318/v1/traces

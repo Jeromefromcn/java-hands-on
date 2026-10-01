@@ -16,3 +16,15 @@ ledger:
 management:
   server:
     port: 8081
+  # Stage 12: a tenth of requests are traced, and exported to the collector the environment names.
+  tracing:
+    sampling:
+      probability: 0.1
+    export:
+      otlp:
+        enabled: true
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${LEDGER_OTLP_TRACES_URL}
