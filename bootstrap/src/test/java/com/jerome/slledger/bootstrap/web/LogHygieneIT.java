@@ -109,7 +109,8 @@ class LogHygieneIT {
                   Instant.now(),
                   new Isin(HK_EQUITY),
                   Money.of("99.99", HKD),
-                  9_000));
+                  System
+                      .currentTimeMillis() /* newer than any version the shared topic's history holds */));
       await()
           .atMost(Duration.ofSeconds(90))
           // The consumers start from the earliest offset, so notices for other tests' history are

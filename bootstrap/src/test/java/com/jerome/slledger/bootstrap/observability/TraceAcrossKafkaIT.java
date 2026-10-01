@@ -181,7 +181,8 @@ class TraceAcrossKafkaIT {
                       Instant.now(),
                       new Isin(ISIN),
                       Money.of("60.00", HKD),
-                      9_000));
+                      System
+                          .currentTimeMillis() /* newer than any version the shared topic's history holds */));
         });
     await()
         .atMost(Duration.ofSeconds(90))

@@ -125,7 +125,8 @@ class InfraQueriesIT {
                   Instant.now(),
                   new Isin(HK_EQUITY),
                   Money.of("60.00", Currency.getInstance("HKD")),
-                  9_000));
+                  System
+                      .currentTimeMillis() /* newer than any version the shared topic's history holds */));
       source.price(HK_EQUITY, "41.30", "HKD");
       http.get().uri("/securities/" + HK_EQUITY + "/quote").exchange().expectStatus().isOk();
       app.getBean(RunAccrual.class).run(LocalDate.of(2026, 9, 3));
@@ -144,6 +145,7 @@ class InfraQueriesIT {
           .until(
               () ->
                   prometheus.scrape().contains("ledger_dead_letters_total")
+                      && prometheus.scrape().contains("ledger_margin_calls_raised_total")
                       && prometheus.scrape().contains("ledger_notices_sent_total"));
       await()
           .atMost(Duration.ofSeconds(20))
