@@ -1,0 +1,7 @@
+HTTP POST /loans            trace 83d13444c6f73f962d1ef089d1f61a0d
+  outbox_event.traceparent  00-83d13444c6f73f962d1ef089d1f61a0d-9b208334b1501a2a-03
+  kafka record header       00-83d13444c6f73f962d1ef089d1f61a0d-9b208334b1501a2a-03
+feed -> price -> margin call -> notice, trace 1fdf0feb98a9321ad817b46b570b61c6
+  feed publishes price         span df2bdc61913ba9b9  parent 0000000000000000
+  consume sl.price-updates     span 32b98aa4f23fb88c  parent df2bdc61913ba9b9
+  consume sl.margin-calls      span 2284912b3446cac5  parent 32b98aa4f23fb88c

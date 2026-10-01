@@ -5,6 +5,7 @@ import com.jerome.slledger.application.messaging.EventCodec;
 import com.jerome.slledger.application.messaging.IntegrationEvent;
 import com.jerome.slledger.application.messaging.IntegrationEvent.PriceUpdated;
 import com.jerome.slledger.application.messaging.MessageDecodeException;
+import com.jerome.slledger.application.observability.Tracing;
 import java.nio.charset.StandardCharsets;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -19,14 +20,24 @@ public class PriceUpdateListener implements MessageListener<String, String> {
 
   private final EventCodec codec;
   private final ApplyPriceUpdate apply;
+  private final Tracing tracing;
 
   public PriceUpdateListener(EventCodec codec, ApplyPriceUpdate apply) {
+    this(codec, apply, Tracing.NONE);
+  }
+
+  public PriceUpdateListener(EventCodec codec, ApplyPriceUpdate apply, Tracing tracing) {
     this.codec = codec;
     this.apply = apply;
+    this.tracing = tracing;
   }
 
   @Override
   public void onMessage(ConsumerRecord<String, String> record) {
+    tracing.inSpan("consume " + record.topic(), Traceparent.of(record), () -> handle(record));
+  }
+
+  private void handle(ConsumerRecord<String, String> record) {
     Header type = record.headers().lastHeader(KafkaEventSender.EVENT_TYPE);
     String typeName =
         type == null ? PriceUpdated.TYPE : new String(type.value(), StandardCharsets.UTF_8);

@@ -256,7 +256,7 @@ Each is carried to the decision record.
 - Existing web tests pass unchanged; trace id on the response equals the
   exported span's.
 
-## [ ] 9 · Trace across the outbox and Kafka
+## [x] 9 · Trace across the outbox and Kafka
 
 **Change**
 - V16: `ALTER TABLE outbox_event ADD COLUMN traceparent text`.
@@ -466,3 +466,17 @@ runs had not covered).
 - `prod` has no default collector URL, so `ConfigurationPrecedenceIT`, which starts every profile, now
   supplies a placeholder one for it, as it already does for the market data URL. The full build of this
   commit's first version failed there and nowhere else.
+
+**Section 9.**
+- The relay creates no span of its own: the stored `traceparent` is put on the record as it is, so the
+  consumer's span is a child of the span that wrote the event (the HTTP request's, or the price consumer's
+  for a margin call raised from a price), and the wait in the outbox shows as the gap between the parent's
+  end and the child's start. A producer span for the send would be one more row in the tree and no new
+  information.
+- `traceparent` is stored on the row at append time, from whatever span is current on the writing thread.
+  An event appended with no span (a batch run with no trace) has a null column and its consumer starts a
+  trace; `reproducesTraceBrokenAtOutbox` builds the pre-stage-12 outbox (`new StoredOutbox(codec, store)`)
+  and shows the consumer's span is in a different trace from the request that wrote the event.
+- `PublishPriceUpdate` (the feed gateway's path, which skips the outbox on purpose) stamps the current
+  traceparent on the record too, and the price consumer continues it.
+- Consumer spans are named `consume <topic>`, and `Tracing.inSpan` marks them `CONSUMER`.

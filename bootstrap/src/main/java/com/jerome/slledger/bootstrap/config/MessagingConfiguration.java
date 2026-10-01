@@ -25,6 +25,7 @@ import com.jerome.slledger.application.messaging.SecurityPrices;
 import com.jerome.slledger.application.messaging.StoredOutbox;
 import com.jerome.slledger.application.messaging.Topics;
 import com.jerome.slledger.application.observability.LedgerMetrics;
+import com.jerome.slledger.application.observability.Tracing;
 import com.jerome.slledger.application.revaluation.RevaluationLauncher;
 import com.jerome.slledger.application.revaluation.RevaluationRequests;
 import com.jerome.slledger.bootstrap.observability.OutboxMeters;
@@ -77,8 +78,8 @@ public class MessagingConfiguration {
   }
 
   @Bean
-  Outbox outbox(EventCodec codec, OutboxStore store) {
-    return new StoredOutbox(codec, store);
+  Outbox outbox(EventCodec codec, OutboxStore store, ObjectProvider<Tracing> tracing) {
+    return new StoredOutbox(codec, store, tracing.getIfAvailable(() -> Tracing.NONE));
   }
 
   @Bean
@@ -186,12 +187,13 @@ public class MessagingConfiguration {
       ApplyPriceUpdate apply,
       KafkaTemplate<String, String> kafka,
       ObjectProvider<LedgerMetrics> metrics,
+      ObjectProvider<Tracing> tracing,
       MeterRegistry registry,
       MessagingProperties properties) {
     return KafkaConsumers.container(
         consumerSettings(properties, "price-updates"),
         Topics.PRICE_UPDATES,
-        new PriceUpdateListener(codec, apply),
+        new PriceUpdateListener(codec, apply, tracing.getIfAvailable(() -> Tracing.NONE)),
         ErrorHandling.build(
             kafka, retry(properties), metrics.getIfAvailable(() -> LedgerMetrics.NONE)),
         List.of(new MicrometerConsumerListener<>(registry)));
@@ -208,12 +210,13 @@ public class MessagingConfiguration {
       MarginCallNotifier notifier,
       KafkaTemplate<String, String> kafka,
       ObjectProvider<LedgerMetrics> metrics,
+      ObjectProvider<Tracing> tracing,
       MeterRegistry registry,
       MessagingProperties properties) {
     return KafkaConsumers.container(
         consumerSettings(properties, "margin-calls"),
         Topics.MARGIN_CALLS,
-        new MarginCallListener(codec, notifier),
+        new MarginCallListener(codec, notifier, tracing.getIfAvailable(() -> Tracing.NONE)),
         ErrorHandling.build(
             kafka, retry(properties), metrics.getIfAvailable(() -> LedgerMetrics.NONE)),
         List.of(new MicrometerConsumerListener<>(registry)));
@@ -239,7 +242,8 @@ public class MessagingConfiguration {
   }
 
   @Bean
-  PublishPriceUpdate publishPriceUpdate(EventCodec codec, EventSender sender) {
-    return new PublishPriceUpdate(codec, sender);
+  PublishPriceUpdate publishPriceUpdate(
+      EventCodec codec, EventSender sender, ObjectProvider<Tracing> tracing) {
+    return new PublishPriceUpdate(codec, sender, tracing.getIfAvailable(() -> Tracing.NONE));
   }
 }

@@ -38,7 +38,7 @@ public class JdbcOutboxStore implements OutboxStore {
 
   static final String CLAIM =
       """
-      SELECT id, seq, topic, message_key, type, payload, created_at
+      SELECT id, seq, topic, message_key, type, payload, created_at, traceparent
       FROM outbox_event
       WHERE published_at IS NULL
       ORDER BY seq
@@ -61,15 +61,16 @@ public class JdbcOutboxStore implements OutboxStore {
           "An outbox row must be written in the transaction of the change it describes");
     }
     jdbc.sql(
-            "INSERT INTO outbox_event (id, topic, message_key, type, payload, created_at)"
-                + " VALUES (?, ?, ?, ?, ?, ?)")
+            "INSERT INTO outbox_event (id, topic, message_key, type, payload, created_at, traceparent)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?)")
         .params(
             message.id(),
             message.topic(),
             message.key(),
             message.type(),
             message.payload(),
-            Timestamp.from(message.createdAt()))
+            Timestamp.from(message.createdAt()),
+            message.traceparent())
         .update();
   }
 
@@ -88,7 +89,8 @@ public class JdbcOutboxStore implements OutboxStore {
                             rs.getString("message_key"),
                             rs.getString("type"),
                             rs.getString("payload"),
-                            rs.getTimestamp("created_at").toInstant())))
+                            rs.getTimestamp("created_at").toInstant(),
+                            rs.getString("traceparent"))))
             .list();
     if (locked.isEmpty()) {
       return List.of();
