@@ -1,0 +1,43 @@
+Stage 13 · section 9 — Keycloak issues the tokens, the application verifies them (manual run)
+Measured 2026-10-01, JDK 21.0.12-tem, Keycloak 26.4 (compose, dev mode), application: local profile, port 8090,
+cache, messaging and batch off. Tokens are not printed: only the claims the application reads.
+
+claims of trader1: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "41f4ba55-ab83-4cb8-87c6-08a9b698af08", "azp": "ledger-cli", "roles": ["ledger-trader"]}
+claims of ops1: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "c90324f4-d222-4498-937f-4c12dd0c4aa4", "azp": "ledger-cli", "roles": ["ledger-ops"]}
+claims of auditor1: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "7005fa25-bdeb-414f-b79b-d7bd1442105b", "azp": "ledger-cli", "roles": ["ledger-auditor"]}
+claims of borrower1: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "9a72d5d4-266c-493b-9809-7dd63afd861a", "azp": "ledger-cli", "counterparty_id": "CP-001", "roles": ["ledger-counterparty"]}
+claims of borrower2: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "f9890234-8bac-4e16-ac57-bfd154b34f4c", "azp": "ledger-cli", "counterparty_id": "CP-002", "roles": ["ledger-counterparty"]}
+claims of prometheus: {"iss": "http://127.0.0.1:8180/realms/ledger", "aud": "sl-ledger", "sub": "94abc9c1-912c-4641-a643-579bf3bf436c", "azp": "prometheus", "roles": ["ledger-metrics"]}
+
+== requests
+no token: GET /loans                                 401  {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"38af4cf9dfe4e6eb3ce7dd797c60acd1"}
+trader1: POST /loans (CP-001)                        201  {"positionId":"293f1293-dcab-4d97-9faa-dd6efc5bb7d6","trade":{"direction":"BORROW","quantity":1000,"unitPrice":{"amount":"60.00","currency":"HKD"},"tradeDate":"2026-09-30","settlementDate":"
+borrower1 (CP-001): GET /loans                       200  {"rows":[{"id":"293f1293-dcab-4d97-9faa-dd6efc5bb7d6","counterpartyId":"CP-001","isin":"HK0000000007","status":"OPEN","originalQuantity":1000,"outstandingQuantity":1000,"collateral":{"amount
+borrower1 (CP-001): GET /loans/{id}                  200  {"id":"293f1293-dcab-4d97-9faa-dd6efc5bb7d6","counterpartyId":"CP-001","isin":"HK0000000007","status":"OPEN","originalQuantity":1000,"outstandingQuantity":1000,"collateral":{"amount":"50000.
+borrower2 (CP-002): GET /loans                       200  {"rows":[],"page":0,"size":20,"totalRows":0}
+borrower2 (CP-002): GET /loans/{id of CP-001's}      404  {"detail":"No position with id 293f1293-dcab-4d97-9faa-dd6efc5bb7d6","instance":"/loans/293f1293-dcab-4d97-9faa-dd6efc5bb7d6","status":404,"title":"Not Found","type":"urn:sl-ledger:problem:n
+borrower2 (CP-002): GET /loans?counterparty=CP-001   403  {"detail":"The caller may not do this","instance":"/loans","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidden","traceId":"38926dcf20316e2c4bb4ccd581a296d6"}
+borrower2 (CP-002): POST /loans                      403  {"detail":"The caller may not do this","instance":"/loans","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidden","traceId":"d28fd8c1858a34f0824614d0f776b31d"}
+ops1: GET /loans                                     200  {"rows":[{"id":"293f1293-dcab-4d97-9faa-dd6efc5bb7d6","counterpartyId":"CP-001","isin":"HK0000000007","status":"OPEN","originalQuantity":1000,"outstandingQuantity":1000,"collateral":{"amount
+ops1: POST /loans                                    403  {"detail":"The caller may not do this","instance":"/loans","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidden","traceId":"aff4366e9328228bfc6f19f616dbccb7"}
+auditor1: GET /audit?subject={id}                    200  {"events":[{"at":"2026-10-01T05:39:54.037563Z","actor":"41f4ba55-ab83-4cb8-87c6-08a9b698af08","action":"OPEN","subject":"POSITION","subjectId":"293f1293-dcab-4d97-9faa-dd6efc5bb7d6","result"
+trader1: GET /audit                                  403  {"detail":"The caller may not do this","instance":"/audit","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidden","traceId":"e98eb28ffdca2007f26eb122cc8ed2d1"}
+ops1: GET /actuator/health (details)                 503  {"components":{"db":{"details":{"database":"PostgreSQL","validationQuery":"isValid()"},"status":"UP"},"diskSpace":{"details":{"total":206900281344,"free":98631352320,"threshold":10485760,"pa
+trader1: GET /actuator/health                        503  {"groups":["liveness","readiness"],"status":"DOWN"}
+no token: GET /actuator/prometheus                   401  {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"55855b16a8145f7f22354051254d13c6"}
+ops1: GET /actuator/prometheus                       403  {"detail":"The caller may not do this","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidden","traceId":"a5e0cd02e3cbfc48f0a974aa8ff76a13"}
+prometheus (client credentials): /actuator/prometheus 200  # HELP application_ready_time_seconds Time taken for the application to be ready to service requests # TYPE application_ready_time_seconds gauge application_ready_time_seconds{main_applicati
+no token: GET /actuator/health/liveness              200  {"status":"UP"}
+
+== the application log lines for the refusals
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-2] [38af4cf9dfe4e6eb3ce7dd797c60acd1] c.j.s.a.w.s.SecurityConfiguration        : 401 GET /loans: Full authentication is required to access this resource
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-3] [38926dcf20316e2c4bb4ccd581a296d6] c.j.s.a.web.error.LedgerProblemHandler   : 403 GET /loans: The request names a counterparty outside the caller's scope
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-5] [d28fd8c1858a34f0824614d0f776b31d] c.j.s.a.web.error.LedgerProblemHandler   : 403 POST /loans: Access Denied
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-9] [aff4366e9328228bfc6f19f616dbccb7] c.j.s.a.web.error.LedgerProblemHandler   : 403 POST /loans: Access Denied
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-3] [e98eb28ffdca2007f26eb122cc8ed2d1] c.j.s.a.web.error.LedgerProblemHandler   : 403 GET /audit: Access Denied
+INFO 2318298 --- [sl-ledger] [nio-8090-exec-7] [55855b16a8145f7f22354051254d13c6] c.j.s.a.w.s.SecurityConfiguration        : 401 GET /actuator/prometheus: Full authentication is required to access this resource
+
+== Prometheus (compose, host network) scraping the ledger on :8090 with a token it fetches from Keycloak by client credentials
+scrape_config: oauth2 { client_id: prometheus, client_secret_file: /run/secrets/prometheus_client_secret (a compose secret from $PROMETHEUS_CLIENT_SECRET), token_url: Keycloak }
+target http://127.0.0.1:8090/actuator/prometheus health up lastError ''
+up{job=sl-ledger} = 1

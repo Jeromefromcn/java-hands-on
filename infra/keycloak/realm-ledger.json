@@ -1,0 +1,212 @@
+{
+  "realm": "ledger",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false,\"required\":{\"roles\":[\"user\"]},\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false,\"required\":{\"roles\":[\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false,\"required\":{\"roles\":[\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"counterparty_id\",\"displayName\":\"Counterparty\",\"validations\":{},\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"unmanagedAttributePolicy\":\"ADMIN_EDIT\"}"
+          ]
+        }
+      }
+    ]
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "ledger-trader",
+        "description": "Desk: books opens and returns, reads everything"
+      },
+      {
+        "name": "ledger-ops",
+        "description": "Operations: reads everything, sees health details"
+      },
+      {
+        "name": "ledger-counterparty",
+        "description": "External borrower: reads its own positions"
+      },
+      {
+        "name": "ledger-auditor",
+        "description": "Reads the audit trail"
+      },
+      {
+        "name": "ledger-metrics",
+        "description": "The metrics scraper"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ledger-cli",
+      "name": "Manual experiments: password grant from curl",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "ledger-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "sl-ledger",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "counterparty-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "counterparty_id",
+            "claim.name": "counterparty_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "prometheus",
+      "name": "The metrics scraper: client credentials",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${PROMETHEUS_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "ledger-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "sl-ledger",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "trader1",
+      "enabled": true,
+      "email": "trader1@ledger.test",
+      "emailVerified": true,
+      "firstName": "Synthetic",
+      "lastName": "Trader",
+      "realmRoles": [
+        "ledger-trader"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KC_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "ops1",
+      "enabled": true,
+      "email": "ops1@ledger.test",
+      "emailVerified": true,
+      "firstName": "Synthetic",
+      "lastName": "Operator",
+      "realmRoles": [
+        "ledger-ops"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KC_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "auditor1",
+      "enabled": true,
+      "email": "auditor1@ledger.test",
+      "emailVerified": true,
+      "firstName": "Synthetic",
+      "lastName": "Auditor",
+      "realmRoles": [
+        "ledger-auditor"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KC_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "borrower1",
+      "enabled": true,
+      "email": "borrower1@ledger.test",
+      "emailVerified": true,
+      "firstName": "Synthetic",
+      "lastName": "Borrower One",
+      "attributes": {
+        "counterparty_id": [
+          "CP-001"
+        ]
+      },
+      "realmRoles": [
+        "ledger-counterparty"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KC_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "borrower2",
+      "enabled": true,
+      "email": "borrower2@ledger.test",
+      "emailVerified": true,
+      "firstName": "Synthetic",
+      "lastName": "Borrower Two",
+      "attributes": {
+        "counterparty_id": [
+          "CP-002"
+        ]
+      },
+      "realmRoles": [
+        "ledger-counterparty"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KC_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "service-account-prometheus",
+      "enabled": true,
+      "serviceAccountClientId": "prometheus",
+      "realmRoles": [
+        "ledger-metrics"
+      ]
+    }
+  ]
+}

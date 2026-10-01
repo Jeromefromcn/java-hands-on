@@ -52,7 +52,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in infra/.env}
 
   # Stage 10: a single-node Kafka in KRaft mode (no ZooKeeper), plaintext and loopback only;
-  # authentication is stage 13's. One broker, so every topic has replication factor 1 and a broker
+  # broker authentication and TLS are outside stage 13 (see its decision record). One broker, so every topic has replication factor 1 and a broker
   # restart is an outage: this is for manual experiments, not a model of a cluster.
   kafka:
     image: apache/kafka:4.1.0
@@ -76,6 +76,26 @@ services:
       timeout: 10s
       retries: 20
 
+  # Stage 13: the identity provider. Realm "ledger" is imported from infra/keycloak: five realm
+  # roles, a public client for password-grant experiments from curl, a "prometheus" client with
+  # client credentials, and synthetic users (trader1, ops1, auditor1, borrower1 for CP-001,
+  # borrower2 for CP-002). Every secret in the realm file is a ${VAR} placeholder that Keycloak fills
+  # from the environment at import; nothing is committed. Dev mode and plain HTTP on loopback:
+  # tokens minted at http://127.0.0.1:8180/realms/ledger carry that issuer. Admin console on the
+  # same port. Not a model of a production Keycloak (database, TLS, hostname, clustering).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    command: ["start-dev", "--import-realm", "--http-port=8180", "--hostname-strict=false"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in infra/.env}
+      KC_USER_PASSWORD: ${KEYCLOAK_USER_PASSWORD:?set KEYCLOAK_USER_PASSWORD in infra/.env}
+      PROMETHEUS_CLIENT_SECRET: ${PROMETHEUS_CLIENT_SECRET:?set PROMETHEUS_CLIENT_SECRET in infra/.env}
+    ports:
+      - "127.0.0.1:8180:8180"
+    volumes:
+      - ./keycloak/realm-ledger.json:/opt/keycloak/data/import/realm-ledger.json:ro
+
   # Stage 12: scrapes the ledger on the host (127.0.0.1:8080, /actuator/prometheus) and evaluates
   # infra/prometheus/alerts.yml. UI on http://127.0.0.1:9090. On the host's network, listening on
   # loopback only: a container on a compose network cannot reach a process on the host through
@@ -87,6 +107,10 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.listen-address=127.0.0.1:9090
+    # Stage 13: the scrape needs the ledger-metrics role, so Prometheus fetches a token from Keycloak
+    # with client credentials; the secret reaches it as a file the compose secret provides.
+    secrets:
+      - prometheus_client_secret
     volumes:
       # PROMETHEUS_CONFIG points at another scrape file when the ledger is not on port 8080.
       - ${PROMETHEUS_CONFIG:-./prometheus/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
@@ -113,6 +137,10 @@ services:
     ports:
       - "127.0.0.1:16686:16686"
       - "127.0.0.1:4318:4318"
+
+secrets:
+  prometheus_client_secret:
+    environment: PROMETHEUS_CLIENT_SECRET
 
 volumes:
   ledger-pgdata:

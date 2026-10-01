@@ -10,5 +10,11 @@ rule_files:
 scrape_configs:
   - job_name: sl-ledger
     metrics_path: /actuator/prometheus
+    # Stage 13: the scrape needs the ledger-metrics role. A token from Keycloak by client
+    # credentials, refreshed by Prometheus itself; the secret is a compose secret file.
+    oauth2:
+      client_id: prometheus
+      client_secret_file: /run/secrets/prometheus_client_secret
+      token_url: http://127.0.0.1:8180/realms/ledger/protocol/openid-connect/token
     static_configs:
       - targets: ["127.0.0.1:8080"]

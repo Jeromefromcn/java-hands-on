@@ -180,7 +180,7 @@ with a valid token; `./mvnw clean verify` green.
   captured logs, including a failing request); `ConfigurationSecretsScanTest`
   (no literal secret in any committed configuration or Compose file).
 
-## [ ] 9 · Keycloak
+## [x] 9 · Keycloak
 
 **Change**
 - Compose service, realm import with env-substituted secrets, synthetic users
