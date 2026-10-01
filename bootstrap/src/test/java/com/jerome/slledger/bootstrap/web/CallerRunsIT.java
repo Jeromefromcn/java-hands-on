@@ -136,6 +136,8 @@ class CallerRunsIT {
   private static WebLedger start(StubPriceServer source, String policy) {
     return WebLedger.start(
         "--ledger.marketdata.base-url=" + source.baseUrl(),
+        "--ledger.resilience.marketdata.enabled=false", // stage 7/8 reproduce the unprotected
+        // client
         "--ledger.marketdata.read-timeout=0",
         "--ledger.marketdata.executor.core=1",
         "--ledger.marketdata.executor.max=1",

@@ -1,0 +1,7 @@
+database up, redis down
+  liveness  Probe[status=200 OK, body={"status":"UP"}]
+  readiness Probe[status=200 OK, body={"status":"UP"}]
+  aggregate Probe[status=503 SERVICE_UNAVAILABLE, body={"groups":["liveness","readiness"],"status":"DOWN"}]
+database down
+  liveness  Probe[status=200 OK, body={"status":"UP"}]
+  readiness Probe[status=503 SERVICE_UNAVAILABLE, body={"status":"DOWN"}]

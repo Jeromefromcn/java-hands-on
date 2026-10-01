@@ -68,6 +68,10 @@
     <!-- Stage 7, test only: validates real responses against the served
          OpenAPI document. -->
     <swagger-request-validator.version>3.0.0</swagger-request-validator.version>
+    <!-- Stage 12: the core libraries only (circuit breaker, bulkhead, rate
+         limiter, Micrometer binders), wired in code. Not managed by the Spring
+         Boot BOM; its own BOM is imported below. -->
+    <resilience4j.version>2.3.0</resilience4j.version>
 
     <!-- spring-boot-dependencies (the import-scope BOM above) manages
          dependency versions only, not plugin versions — that pluginManagement
@@ -149,6 +153,14 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
         <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bom</artifactId>
+        <version>${resilience4j.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

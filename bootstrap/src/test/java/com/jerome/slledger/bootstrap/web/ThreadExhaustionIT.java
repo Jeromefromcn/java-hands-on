@@ -133,6 +133,8 @@ class ThreadExhaustionIT {
     try (WebLedger ledger =
         WebLedger.start(
             "--ledger.marketdata.base-url=http://10.255.255.1:80",
+            "--ledger.resilience.marketdata.enabled=false", // stage 7/8 reproduce the unprotected
+            // client
             "--ledger.marketdata.connect-timeout=500ms",
             "--ledger.marketdata.read-timeout=500ms")) {
       long started = System.nanoTime();
@@ -180,6 +182,8 @@ class ThreadExhaustionIT {
   private static WebLedger start(StubPriceServer source, String readTimeout) {
     return WebLedger.start(
         "--ledger.marketdata.base-url=" + source.baseUrl(),
+        "--ledger.resilience.marketdata.enabled=false", // stage 7/8 reproduce the unprotected
+        // client
         readTimeout,
         "--server.tomcat.threads.max=" + WORKERS,
         "--server.tomcat.threads.min-spare=" + WORKERS);

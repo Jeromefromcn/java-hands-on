@@ -1,0 +1,3 @@
+2026-10-01T01:17:07.153239315Z  CLOSED -> OPEN  (failure rate 100%, slow rate 0%, 5 calls buffered)
+2026-10-01T01:17:07.353584909Z  OPEN -> HALF_OPEN  (failure rate -1%, slow rate -1%, 0 calls buffered)
+2026-10-01T01:17:07.392916202Z  HALF_OPEN -> CLOSED  (failure rate -1%, slow rate -1%, 0 calls buffered)

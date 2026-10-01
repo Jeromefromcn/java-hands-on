@@ -1,0 +1,6 @@
+healthy market data source, stub on loopback, 2000 calls after 200 warm-up (microseconds)
+p50  42905
+p90  43870
+p99  45272
+p999 52014
+max  62759

@@ -142,6 +142,7 @@ public class PriceFanOut {
           new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.UNAVAILABLE);
       case MarketDataRejectedException e ->
           new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.REJECTED);
+      case OverloadedException e -> new QuoteOutcome.Failed(isin, QuoteOutcome.Kind.OVERLOADED);
       default -> {
         log.error(
             "Unexpected failure pricing "

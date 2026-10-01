@@ -103,7 +103,7 @@ Each is carried to the decision record.
 **Acceptance**
 - The three assertions above pass; evidence file with both groups' bodies.
 
-## [ ] 3 · Circuit breaker
+## [x] 3 · Circuit breaker
 
 **Change**
 - `adapter-web` POM: `resilience4j-circuitbreaker`.
@@ -132,7 +132,7 @@ Each is carried to the decision record.
 - Transition log shows `CLOSED → OPEN → HALF_OPEN → CLOSED` in order; the
   record's threshold table cites the measured percentiles.
 
-## [ ] 4 · Bulkhead and rate limiter
+## [x] 4 · Bulkhead and rate limiter
 
 **Change**
 - `resilience4j-bulkhead`, `resilience4j-ratelimiter`; both inside the breaker
@@ -364,3 +364,24 @@ Each is carried to the decision record.
   why the aggregate is not what an orchestrator should poll.
 - The data source is made to refuse connections by a `BeanPostProcessor` that wraps it in a JDK proxy,
   not by stopping the shared Postgres container other tests use.
+
+**Sections 3 and 4** (one commit: the decorator composes the three and the tests for the second pair run
+through the same class).
+- Order outside in is breaker, **bulkhead**, rate limiter, call; the spec said rate limiter before bulkhead.
+  With both refusing at once (wait zero), putting the bulkhead outside means a call it refuses has not
+  spent a token, so the limiter counts calls that really reached the source. Resilience4j's own
+  documentation orders them the other way; its reason (the limiter as the outermost cheap check) does not
+  hold when neither waits.
+- The stage 7/8 reproductions (`ThreadExhaustionIT`, `CallerRunsIT`, `MarketDataPoolExhaustionIT`) now start
+  with `ledger.resilience.marketdata.enabled=false`. That switch is an operator's kill switch, not a broken
+  path: the product default is protected.
+- Measured on this machine, the healthy stub answers in 42.9 ms (p50), 45.3 ms (p99) and 62.8 ms (max)
+  through the whole client stack, 2,000 calls after 200 of warm-up
+  (`docs/evidence/12-market-data-latency.txt`). The floor is the JDK client and server's 40 ms
+  delayed-acknowledgement interaction on loopback, not the ledger's code, which is why the record treats
+  the number as a floor and not as a model of a real source.
+- The starvation reproduction: 8 Tomcat workers, a source that answers after 3,000 ms, 12 concurrent
+  `/quote` calls. `GET /loans` took 2,968 ms without the bulkhead and 22 ms with a bulkhead of 4, which
+  also answered 8 of the 12 quote calls with 503 at once (`docs/evidence/12-bulkhead-starvation.txt`).
+- `MarketDataUnavailableException` is HTTP 504 and `OverloadedException` is 503 (stage 7 and 8's mapping,
+  unchanged). The spec's "the stage 7 503" for a quote with nothing to fall back to is a 504.

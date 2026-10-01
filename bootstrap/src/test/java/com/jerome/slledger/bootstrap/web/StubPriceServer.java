@@ -33,6 +33,9 @@ final class StubPriceServer implements AutoCloseable {
 
   record Hang() implements Answer {}
 
+  /** Answers {@code then} after {@code millis}, holding the connection open meanwhile. */
+  record Slow(long millis, Json then) implements Answer {}
+
   private StubPriceServer() {
     try {
       server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
@@ -73,6 +76,18 @@ final class StubPriceServer implements AutoCloseable {
     return answer(isin, new Hang());
   }
 
+  /** A well-formed price that takes {@code millis} to arrive. */
+  StubPriceServer slow(String isin, long millis, String amount, String currency) {
+    return answer(
+        isin,
+        new Slow(
+            millis,
+            new Json(
+                200,
+                "{\"isin\":\"%s\",\"price\":{\"amount\":\"%s\",\"currency\":\"%s\"}}"
+                    .formatted(isin, amount, currency))));
+  }
+
   void release() {
     hang.countDown();
   }
@@ -95,6 +110,15 @@ final class StubPriceServer implements AutoCloseable {
           return;
         }
         answer = new Json(200, "{}");
+      }
+      if (answer instanceof Slow slow) {
+        try {
+          Thread.sleep(slow.millis()); // real time: the delay is the subject of the test
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+        answer = slow.then();
       }
       Json json = (Json) answer;
       byte[] body = json.body().getBytes(StandardCharsets.UTF_8);

@@ -1,0 +1,3 @@
+8 Tomcat workers, source answers after 3000 ms, 12 concurrent /quote calls; GET /loans timed meanwhile
+no bulkhead : GET /loans took 2968 ms; /quote 200=12 503=0
+bulkhead 4  : GET /loans took 22 ms; /quote 200=4 503=8
