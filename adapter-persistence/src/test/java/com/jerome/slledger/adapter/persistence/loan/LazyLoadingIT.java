@@ -14,6 +14,7 @@ import com.jerome.slledger.application.port.PositionListQuery;
 import com.jerome.slledger.application.port.PositionPage;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.LocalDate;
+import java.util.Optional;
 import org.hibernate.LazyInitializationException;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.stat.Statistics;
@@ -147,7 +148,7 @@ class LazyLoadingIT {
     PositionPage page =
         context
             .getBean(org.springframework.transaction.support.TransactionTemplate.class)
-            .execute(s -> context.getBean(PositionListQuery.class).page(0, 10));
+            .execute(s -> context.getBean(PositionListQuery.class).page(Optional.empty(), 0, 10));
     statistics.clear();
     SqlRecorder.clear();
 

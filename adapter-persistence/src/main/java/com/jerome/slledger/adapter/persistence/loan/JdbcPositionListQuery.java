@@ -11,6 +11,7 @@ import com.jerome.slledger.domain.party.CounterpartyId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -33,6 +34,15 @@ public class JdbcPositionListQuery implements PositionListQuery {
 
   static final String COUNT_SQL = "SELECT count(*) FROM loan_position";
 
+  /** The same two statements for one counterparty: the caller's value is a bind parameter. */
+  static final String PAGE_BY_COUNTERPARTY_SQL =
+      "SELECT "
+          + COLUMNS
+          + " FROM loan_position WHERE counterparty_id = ? ORDER BY id LIMIT ? OFFSET ?";
+
+  static final String COUNT_BY_COUNTERPARTY_SQL =
+      "SELECT count(*) FROM loan_position WHERE counterparty_id = ?";
+
   private final JdbcClient jdbc;
 
   JdbcPositionListQuery(JdbcClient jdbc) {
@@ -40,9 +50,20 @@ public class JdbcPositionListQuery implements PositionListQuery {
   }
 
   @Override
-  public PositionPage page(int page, int size) {
+  public PositionPage page(Optional<CounterpartyId> counterparty, int page, int size) {
+    long offset = (long) page * size;
+    if (counterparty.isPresent()) {
+      String id = counterparty.get().value();
+      List<PositionRow> rows =
+          jdbc.sql(PAGE_BY_COUNTERPARTY_SQL)
+              .params(id, size, offset)
+              .query((rs, n) -> row(rs))
+              .list();
+      long total = jdbc.sql(COUNT_BY_COUNTERPARTY_SQL).param(id).query(Long.class).single();
+      return new PositionPage(rows, page, size, total);
+    }
     List<PositionRow> rows =
-        jdbc.sql(PAGE_SQL).params(size, (long) page * size).query((rs, n) -> row(rs)).list();
+        jdbc.sql(PAGE_SQL).params(size, offset).query((rs, n) -> row(rs)).list();
     long total = jdbc.sql(COUNT_SQL).query(Long.class).single();
     return new PositionPage(rows, page, size, total);
   }

@@ -112,7 +112,7 @@ with a valid token; `./mvnw clean verify` green.
 - `AuthorizationMatrixIT`: each endpoint x each role (and no role); evidence
   `13-authorization-matrix.txt` is the table.
 
-## [ ] 4 · Whose rows
+## [x] 4 · Whose rows
 
 **Change**
 - `Visibility` through `ListPositions`, `ShowPosition`, `ListAccruals`; the

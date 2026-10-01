@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
@@ -81,8 +82,8 @@ class PositionListQueryIT {
     List<String> ids = new ArrayList<>();
     for (int page = 0; page < pages; page++) {
       int p = page;
-      PositionPage viaJpa = tx.execute(s -> jpa.page(p, size));
-      PositionPage viaJdbc = tx.execute(s -> jdbc.page(p, size));
+      PositionPage viaJpa = tx.execute(s -> jpa.page(Optional.empty(), p, size));
+      PositionPage viaJdbc = tx.execute(s -> jdbc.page(Optional.empty(), p, size));
 
       assertThat(viaJdbc).isEqualTo(viaJpa);
       assertThat(viaJpa.totalRows()).isEqualTo(POSITIONS);
@@ -91,9 +92,10 @@ class PositionListQueryIT {
     assertThat(ids).hasSize(POSITIONS).doesNotHaveDuplicates().isSorted();
     // The last page is the partial one.
     int last = pages - 1;
-    assertThat(tx.execute(s -> jpa.page(last, size)).rows()).hasSize(POSITIONS - last * size);
+    assertThat(tx.execute(s -> jpa.page(Optional.empty(), last, size)).rows())
+        .hasSize(POSITIONS - last * size);
     Set<Money> collateral =
-        tx.execute(s -> jdbc.page(0, POSITIONS)).rows().stream()
+        tx.execute(s -> jdbc.page(Optional.empty(), 0, POSITIONS)).rows().stream()
             .map(row -> row.collateral())
             .collect(Collectors.toSet());
     assertThat(collateral)
@@ -105,7 +107,7 @@ class PositionListQueryIT {
   @Test
   void theGeneratedSqlOfEach() {
     SqlRecorder.clear();
-    tx.execute(s -> jpa.page(2, 10));
+    tx.execute(s -> jpa.page(Optional.empty(), 2, 10));
     EVIDENCE.append(
         "JPA (JPQL constructor projection), page 2 of size 10, as Hibernate sent it:%n"
             .formatted());

@@ -1,0 +1,9 @@
+Stage 13 · section 4 — whose rows (CounterpartyScopeIT)
+
+The fix, the real endpoint:
+  CP-002's token, GET /loans/LP-A1  -> 404 {"detail":"No position with id LP-A1","instance":"/loans/LP-A1","status":404,"title":"Not Found","type":"urn:sl-ledger:problem:not-found","traceId":"b483eeda09b7728cb0679e11d7706c3d"}
+  CP-002's token, GET /loans/LP-ZZZ -> 404 {"detail":"No position with id LP-ZZZ","instance":"/loans/LP-ZZZ","status":404,"title":"Not Found","type":"urn:sl-ledger:problem:not-found","traceId":"e26d2a559558848fc4856c0b2e59ad51"}
+
+The over-read, against the test-only endpoint that checks the role and not the owner:
+  CP-002's token, GET /vulnerable/loans/LP-A1 -> 200 {"id":{"value":"LP-A1"},"counterparty":{"value":"CP-001"},"security":{"value":"HK0000000007"},"status":"OPEN","originalQuantity":1000,"outstandingQuantity":1000,"collateral":{"amount":"1234.50","currency":"HKD"}}
+

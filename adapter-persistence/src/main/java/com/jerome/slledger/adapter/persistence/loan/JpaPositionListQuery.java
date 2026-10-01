@@ -8,7 +8,9 @@ import com.jerome.slledger.domain.instrument.Isin;
 import com.jerome.slledger.domain.loan.LoanPositionId;
 import com.jerome.slledger.domain.party.CounterpartyId;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
@@ -31,25 +33,33 @@ public class JpaPositionListQuery implements PositionListQuery {
   }
 
   @Override
-  public PositionPage page(int page, int size) {
+  public PositionPage page(Optional<CounterpartyId> counterparty, int page, int size) {
+    // The caller's value is only ever a named parameter, never part of the query text.
+    String where = counterparty.isPresent() ? " where p.counterpartyId = :owner" : "";
+    TypedQuery<PositionRowColumns> select =
+        entityManager.createQuery(
+            "select new com.jerome.slledger.adapter.persistence.loan.PositionRowColumns("
+                + "p.id, p.counterpartyId, p.isin, p.status, p.originalQuantity,"
+                + " p.outstandingQuantity, p.collateralAmount, p.collateralCurrency)"
+                + " from LoanPositionEntity p"
+                + where
+                + " order by p.id",
+            PositionRowColumns.class);
+    TypedQuery<Long> count =
+        entityManager.createQuery("select count(p) from LoanPositionEntity p" + where, Long.class);
+    counterparty.ifPresent(
+        owner -> {
+          select.setParameter("owner", owner.value());
+          count.setParameter("owner", owner.value());
+        });
     List<PositionRow> rows =
-        entityManager
-            .createQuery(
-                "select new com.jerome.slledger.adapter.persistence.loan.PositionRowColumns("
-                    + "p.id, p.counterpartyId, p.isin, p.status, p.originalQuantity,"
-                    + " p.outstandingQuantity, p.collateralAmount, p.collateralCurrency)"
-                    + " from LoanPositionEntity p order by p.id",
-                PositionRowColumns.class)
+        select
             .setFirstResult(page * size)
             .setMaxResults(size)
             .getResultStream()
             .map(JpaPositionListQuery::toRow)
             .toList();
-    long total =
-        entityManager
-            .createQuery("select count(p) from LoanPositionEntity p", Long.class)
-            .getSingleResult();
-    return new PositionPage(rows, page, size, total);
+    return new PositionPage(rows, page, size, count.getSingleResult());
   }
 
   private static PositionRow toRow(PositionRowColumns columns) {

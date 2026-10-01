@@ -1,6 +1,7 @@
 package com.jerome.slledger.application.port;
 
 import com.jerome.slledger.domain.loan.LoanPositionId;
+import com.jerome.slledger.domain.party.CounterpartyId;
 import java.util.Optional;
 
 /**
@@ -10,6 +11,10 @@ import java.util.Optional;
  */
 public interface PositionCursorQuery {
 
-  /** Up to {@code size} rows with an id after {@code after}, or from the start if it is empty. */
-  PositionSlice after(Optional<LoanPositionId> after, int size);
+  /**
+   * Up to {@code size} rows with an id after {@code after}, or from the start if it is empty; of
+   * one counterparty if given. As {@link PositionListQuery}, there is no overload without it.
+   */
+  PositionSlice after(
+      Optional<CounterpartyId> counterparty, Optional<LoanPositionId> after, int size);
 }

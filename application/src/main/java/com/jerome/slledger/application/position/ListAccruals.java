@@ -2,6 +2,7 @@ package com.jerome.slledger.application.position;
 
 import com.jerome.slledger.application.port.AccrualEntryQuery;
 import com.jerome.slledger.application.port.PositionDetailQuery;
+import com.jerome.slledger.application.security.Visibility;
 import com.jerome.slledger.domain.accrual.AccrualEntry;
 import com.jerome.slledger.domain.loan.LoanPositionId;
 import java.time.LocalDate;
@@ -32,11 +33,13 @@ public class ListAccruals {
   /**
    * @throws InvalidQueryException if {@code from} is after {@code to}, or the range, both ends
    *     included, is longer than {@link #MAX_DAYS} days
-   * @throws UnknownReferenceException if there is no such position: an unknown position is not the
-   *     same answer as a position with no entries
+   * @throws UnknownReferenceException if there is no such position, or it is not one the caller may
+   *     see (the same answer for both): an unknown position is not the same answer as a position
+   *     with no entries
    */
   @Transactional(readOnly = true)
-  public List<AccrualEntry> between(LoanPositionId position, LocalDate from, LocalDate to) {
+  public List<AccrualEntry> between(
+      Visibility visibility, LoanPositionId position, LocalDate from, LocalDate to) {
     if (from.isAfter(to)) {
       throw new InvalidQueryException("from %s is after to %s".formatted(from, to));
     }
@@ -45,7 +48,7 @@ public class ListAccruals {
       throw new InvalidQueryException(
           "the range covers %d days; at most %d are answered at once".formatted(days, MAX_DAYS));
     }
-    if (positions.find(position).isEmpty()) {
+    if (positions.find(position).filter(row -> visibility.permits(row.counterparty())).isEmpty()) {
       throw UnknownReferenceException.subject("position", position.value());
     }
     return entries.of(position, from, to);

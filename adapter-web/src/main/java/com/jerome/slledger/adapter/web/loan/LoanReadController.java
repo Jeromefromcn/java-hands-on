@@ -5,7 +5,10 @@ import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.ListAccruals;
 import com.jerome.slledger.application.position.ListPositions;
 import com.jerome.slledger.application.position.ShowPosition;
+import com.jerome.slledger.application.security.Callers;
+import com.jerome.slledger.application.security.Visibility;
 import com.jerome.slledger.domain.loan.LoanPositionId;
+import com.jerome.slledger.domain.party.CounterpartyId;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
@@ -27,11 +30,14 @@ public class LoanReadController {
   private final ListPositions list;
   private final ShowPosition show;
   private final ListAccruals accruals;
+  private final Callers callers;
 
-  LoanReadController(ListPositions list, ShowPosition show, ListAccruals accruals) {
+  LoanReadController(
+      ListPositions list, ShowPosition show, ListAccruals accruals, Callers callers) {
     this.list = list;
     this.show = show;
     this.accruals = accruals;
+    this.callers = callers;
   }
 
   /**
@@ -45,7 +51,13 @@ public class LoanReadController {
   public PositionListView list(
       @RequestParam(required = false) @Min(0) Integer page,
       @RequestParam(required = false) String after,
+      @RequestParam(required = false) String counterparty,
       @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size) {
+    Visibility visibility = callers.current().visibility();
+    Optional<CounterpartyId> requested =
+        counterparty == null || counterparty.isBlank()
+            ? Optional.empty()
+            : Optional.of(new CounterpartyId(counterparty));
     if (after != null) {
       if (page != null) {
         throw new InvalidQueryException("page and after are two ways of paging; send one");
@@ -53,15 +65,15 @@ public class LoanReadController {
       // An empty after= starts a keyset walk from the first row.
       Optional<LoanPositionId> cursor =
           after.isEmpty() ? Optional.empty() : Optional.of(new LoanPositionId(after));
-      return PositionListView.of(list.slice(cursor, size), size);
+      return PositionListView.of(list.slice(visibility, requested, cursor, size), size);
     }
-    return PositionListView.of(list.page(page == null ? 0 : page, size));
+    return PositionListView.of(list.page(visibility, requested, page == null ? 0 : page, size));
   }
 
   @GetMapping("/{id}")
   @Access.ReadPositions
   public PositionView show(@PathVariable String id) {
-    return PositionView.of(show.show(new LoanPositionId(id)));
+    return PositionView.of(show.show(callers.current().visibility(), new LoanPositionId(id)));
   }
 
   @GetMapping("/{id}/accruals")
@@ -70,6 +82,10 @@ public class LoanReadController {
       @PathVariable String id,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-    return AccrualsView.of(id, from, to, accruals.between(new LoanPositionId(id), from, to));
+    return AccrualsView.of(
+        id,
+        from,
+        to,
+        accruals.between(callers.current().visibility(), new LoanPositionId(id), from, to));
   }
 }

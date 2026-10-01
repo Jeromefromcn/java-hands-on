@@ -15,6 +15,7 @@ import com.jerome.slledger.application.position.Outcome;
 import com.jerome.slledger.application.position.ReturnCommand;
 import com.jerome.slledger.application.position.ReturnPosition;
 import com.jerome.slledger.application.position.UnknownReferenceException;
+import com.jerome.slledger.application.security.Visibility;
 import com.jerome.slledger.domain.accrual.FlatRate;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.InsufficientCreditException;
@@ -27,6 +28,7 @@ import com.jerome.slledger.domain.money.Rate;
 import com.jerome.slledger.domain.party.CounterpartyId;
 import java.time.LocalDate;
 import java.util.Currency;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,7 +105,7 @@ class PositionUseCasesIT {
   void anOpenedPositionIsListedWithItsBorrowTrade() {
     LoanPositionId id = open(openHkd("K-1", 1_000, "50000.00"));
 
-    PositionPage page = list.page(0, 10);
+    PositionPage page = list.page(Visibility.ALL, Optional.empty(), 0, 10);
 
     assertThat(page.totalRows()).isEqualTo(1);
     PositionRow row = page.rows().getFirst();
@@ -151,7 +153,12 @@ class PositionUseCasesIT {
     assertThatExceptionOfType(DuplicateRequestException.class)
         .isThrownBy(() -> returns.apply(new ReturnCommand(key("K-1"), id, 100, TRADE_DATE)));
 
-    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(1_000);
+    assertThat(
+            list.page(Visibility.ALL, Optional.empty(), 0, 10)
+                .rows()
+                .getFirst()
+                .outstandingQuantity())
+        .isEqualTo(1_000);
     assertThat(count("loan_trade")).isEqualTo(1);
   }
 
@@ -203,7 +210,7 @@ class PositionUseCasesIT {
     returns.apply(new ReturnCommand(key("K-2"), id, 400, TRADE_DATE));
     returns.apply(new ReturnCommand(key("K-3"), id, 600, TRADE_DATE));
 
-    PositionRow row = list.page(0, 10).rows().getFirst();
+    PositionRow row = list.page(Visibility.ALL, Optional.empty(), 0, 10).rows().getFirst();
     assertThat(row.status()).isEqualTo(LoanStatus.CLOSED);
     assertThat(row.outstandingQuantity()).isZero();
     assertThat(count("loan_trade")).isEqualTo(3);
@@ -250,7 +257,12 @@ class PositionUseCasesIT {
     assertThat(replay.replayed()).isTrue();
     assertThat(replay.trade()).isEqualTo(first.trade());
     assertThat(replay.trade().quantity()).isEqualTo(1_000);
-    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(990);
+    assertThat(
+            list.page(Visibility.ALL, Optional.empty(), 0, 10)
+                .rows()
+                .getFirst()
+                .outstandingQuantity())
+        .isEqualTo(990);
   }
 
   @Test
@@ -263,7 +275,12 @@ class PositionUseCasesIT {
 
     assertThat(second.replayed()).isTrue();
     assertThat(second.trade()).isEqualTo(first.trade());
-    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(900);
+    assertThat(
+            list.page(Visibility.ALL, Optional.empty(), 0, 10)
+                .rows()
+                .getFirst()
+                .outstandingQuantity())
+        .isEqualTo(900);
   }
 
   @Test
@@ -286,7 +303,12 @@ class PositionUseCasesIT {
     assertThatExceptionOfType(IdempotencyKeyReusedException.class)
         .isThrownBy(
             () -> booking.returnQuantity(new ReturnCommand(key("K-1"), id, 1_000, TRADE_DATE)));
-    assertThat(list.page(0, 10).rows().getFirst().outstandingQuantity()).isEqualTo(1_000);
+    assertThat(
+            list.page(Visibility.ALL, Optional.empty(), 0, 10)
+                .rows()
+                .getFirst()
+                .outstandingQuantity())
+        .isEqualTo(1_000);
   }
 
   @Test
