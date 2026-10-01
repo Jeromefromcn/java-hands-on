@@ -1,0 +1,25 @@
+Stage 13 · section 2 — every filter a request passes (FilterChainIT)
+Real Tomcat. Container filters sorted by order, outermost first; the security
+chain's own filters, in order, below.
+
+Container filters (order  name):
+  -2147483648  OrderedCharacterEncodingFilter (characterEncodingFilter)
+  -2147483647  ServerHttpObservationFilter (webMvcObservationFilter)
+  -2147483646  TraceIdFilter (traceIdFilter)
+        -9900  OrderedFormContentFilter (formContentFilter)
+         -105  OrderedRequestContextFilter (requestContextFilter)
+         -100  springSecurityFilterChain (DelegatingFilterProxy -> FilterChainProxy)
+
+Spring Security filters, in order:
+   1  DisableEncodeUrlFilter
+   2  WebAsyncManagerIntegrationFilter
+   3  SecurityContextHolderFilter
+   4  HeaderWriterFilter
+   5  OAuth2ProtectedResourceMetadataFilter
+   6  BearerTokenAuthenticationFilter
+   7  RequestCacheAwareFilter
+   8  SecurityContextHolderAwareRequestFilter
+   9  AnonymousAuthenticationFilter
+  10  SessionManagementFilter
+  11  ExceptionTranslationFilter
+  12  AuthorizationFilter

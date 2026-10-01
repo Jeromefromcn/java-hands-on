@@ -86,7 +86,7 @@ Each is carried to the decision record.
 **Acceptance:** the application rejects a request with no token and serves one
 with a valid token; `./mvnw clean verify` green.
 
-## [ ] 2 · The filter chain, and what a bad token gets
+## [x] 2 · The filter chain, and what a bad token gets
 
 **Change**
 - A test prints `FilterChainProxy`'s filters in order and the position of

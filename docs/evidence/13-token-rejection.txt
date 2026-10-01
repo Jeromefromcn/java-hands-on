@@ -1,0 +1,9 @@
+Stage 13 · section 2 — what a request with a bad token gets (TokenRejectionIT)
+
+not a JWT                          401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"27c3c5d25f4cad2f7444942ce7e1fe55"}
+basic credentials                  401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"a5167356cc1c8d6e8877c3b27bc5ac6a"}
+expired                            401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"cdf284c85cadc78202cb6b205ad9cc33"}
+wrong issuer                       401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"472bc5ef4edef75585086a957e4b207d"}
+wrong audience                     401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"cdc8f00a037e9567a7a9ee033a3116b8"}
+signed by a key the service does not trust 401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"af61a34327e6497c174e1af5cfd5d4e0"}
+no Authorization header            401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"e98e138756773a54e2b9dac2818804db"}

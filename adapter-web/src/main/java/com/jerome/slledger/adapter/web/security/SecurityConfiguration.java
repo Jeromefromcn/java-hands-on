@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -49,6 +51,8 @@ import tools.jackson.databind.json.JsonMapper;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfiguration {
+
+  private static final Logger log = LoggerFactory.getLogger(SecurityConfiguration.class);
 
   @Bean
   SecurityFilterChain ledgerChain(
@@ -110,13 +114,18 @@ public class SecurityConfiguration {
    */
   @Bean
   AuthenticationEntryPoint problemEntryPoint(JsonMapper mapper) {
-    return (request, response, exception) ->
-        write(
-            mapper,
-            request,
-            response,
-            Problems.of(HttpStatus.UNAUTHORIZED, "unauthenticated", "Authentication is required"),
-            "Bearer");
+    return (request, response, exception) -> {
+      // The reason is for the log: the caller is told nothing, the trace id joins the two. The
+      // exception message names the failed check, never the token.
+      log.info(
+          "401 {} {}: {}", request.getMethod(), request.getRequestURI(), exception.getMessage());
+      write(
+          mapper,
+          request,
+          response,
+          Problems.of(HttpStatus.UNAUTHORIZED, "unauthenticated", "Authentication is required"),
+          "Bearer");
+    };
   }
 
   @Bean
