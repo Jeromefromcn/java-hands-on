@@ -1,0 +1,10 @@
+GET /quotes
+  PT30S  edge
+    PT3S  fan-out deadline
+      PT2.5S  market data source (connect PT0.5S + read PT2S)
+GET /securities/{isin}/quote
+  PT30S  edge
+    PT2.5S  market data source (connect PT0.5S + read PT2S)
+ledger reads and writes
+  PT30S  edge
+    PT13S  database (pool acquire PT3S + statement PT10S)

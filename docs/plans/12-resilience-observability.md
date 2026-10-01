@@ -181,7 +181,7 @@ Each is carried to the decision record.
 **Acceptance**
 - Contract test green with the new fields; evidence of a stale response body.
 
-## [ ] 6 · Timeout budget
+## [x] 6 · Timeout budget
 
 **Change**
 - `ledger.timeouts.*` (edge, fan-out, source connect, source read, db
@@ -398,3 +398,22 @@ through the same class).
 - `QuotePrice.quote` returns a `Quote`; `QuoteOutcome.Priced` gained `stale` and `asOf` with the old
   two-argument constructor kept for a live price. `LedgerMetrics` (a port with empty defaults) is
   introduced here because the degradation is the first thing to count; section 7 adds its other methods.
+
+**Section 6.**
+- The budget is a tree, not a list: each layer's worst case on its own, and the layers it calls one after
+  another; the rule is per layer, outer strictly greater than the sum of what it calls. Three chains: the
+  fan-out (`GET /quotes`), a single quote, and ledger reads and writes against the database. The database
+  does not appear inside the fan-out chain: a task's security lookup is bounded by the fan-out deadline as
+  the caller sees it, and the pooled thread may run on past it, which is stage 8's known limit.
+- The default connect timeout was 1 s and is now 500 ms: 1 s + 2 s read equals the 3 s fan-out deadline,
+  and equal is refused. A connect that takes half a second on a healthy network is already a failure.
+- The statement timeout is `SET statement_timeout` as the pool's connection-init SQL, set by a
+  `BeanPostProcessor` on the Hikari bean together with the acquire timeout, so Flyway, JPA, JDBC and Batch
+  all get it. Defaults: acquire 3 s, statement 10 s, edge 30 s. The 10 s is a ceiling, not an estimate of
+  any statement: the longest statement in the test suite is the 50,000-row synthetic seed.
+- `ledger.timeouts.enforce=false` exists for the three stage 7/8 reproductions that run with an unbounded
+  read timeout; they say so in their arguments, and the budget logs each problem as a warning instead.
+- Measured: `pg_sleep(5)` under `db-statement=1s` was cancelled after 1,013 ms; ten callers with a 300 ms
+  timeout and three attempts against a server that works for 1,000 ms made it see 30 requests, 30 in
+  flight, none completed; with a 3 s timeout it saw 10, 10 in flight, all completed
+  (`docs/evidence/12-retry-storm.txt`).

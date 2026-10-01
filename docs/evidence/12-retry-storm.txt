@@ -1,0 +1,3 @@
+10 callers, up to 3 attempts each, server work 1000 ms
+caller timeout 300 ms (shorter than the work): server saw 30 requests, peak 30 in flight, completed 0
+caller timeout 3 s (outlives the work)       : server saw 10 requests, peak 10 in flight, completed 10
