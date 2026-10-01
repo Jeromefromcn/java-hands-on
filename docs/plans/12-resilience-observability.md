@@ -82,7 +82,7 @@ Each is carried to the decision record.
 - Full build green; a secret placed in an env var does not appear on any
   exposed endpoint.
 
-## [ ] 2 · Liveness and readiness
+## [x] 2 · Liveness and readiness
 
 **Change**
 - `management.endpoint.health.probes.enabled=true`; groups: `liveness` =
@@ -354,3 +354,13 @@ Each is carried to the decision record.
   whether or not `ledger.cache.enabled` is set. A context with no Redis answers 503 on the aggregate. The
   aggregate is therefore not usable as a probe; section 2 defines the probe groups and the exposure test
   reads the liveness probe.
+
+
+**Section 2.**
+- Boot already creates the `liveness` and `readiness` groups once probes are enabled; what the section
+  decides is their membership. `readiness` includes `db`, and nothing else outside the process.
+- The aggregate `/actuator/health` stays DOWN in any environment without Redis (the indicator is
+  registered whether or not the cache is on). The test asserts that on purpose: it is the demonstration of
+  why the aggregate is not what an orchestrator should poll.
+- The data source is made to refuse connections by a `BeanPostProcessor` that wraps it in a JDK proxy,
+  not by stopping the shared Postgres container other tests use.

@@ -30,6 +30,18 @@ management:
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      # liveness: restarting the process is the only fix for what it can see, so nothing outside
+      # the process is in it. readiness: what the instance cannot serve without, which is the
+      # database and nothing else. Redis, Kafka and the market data source are degraded around (a
+      # cache miss, an outbox that waits, a stale quote); one of them in this group would take every
+      # instance out of rotation at once. See docs/decisions/12-resilience-observability.md.
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
 
 # Stage 12: on shutdown readiness goes REFUSING_TRAFFIC first, then in-flight requests finish.
 server:
