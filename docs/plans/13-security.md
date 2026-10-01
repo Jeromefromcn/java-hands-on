@@ -156,7 +156,7 @@ with a valid token; `./mvnw clean verify` green.
 - `reproducesAuditRowSurvivingRolledBackBooking`: a test-only booking that
   writes the audit row in a separate transaction, then rolls back.
 
-## [ ] 7 · Injection and mass assignment
+## [x] 7 · Injection and mass assignment
 
 **Change**
 - Unknown JSON properties rejected (`400`).

@@ -1,0 +1,11 @@
+Stage 13 · section 7 — hostile input over HTTP (InputAttacksIT)
+
+Body bound to the entity (test-only endpoint), client-chosen id and status:
+  LP-A1 before: CP-001 | OPEN | 1000
+  POST {"id":"LP-A1","counterpartyId":"CP-002","quantity":1,"status":"CLOSED"}
+  LP-A1 after:  CP-002 | CLOSED | 1
+
+Real POST /loans with "id":"LP-A1" -> 400 {"detail":"The body has a property this operation does not accept","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"id","traceId":"94d651756b1165b7d606a83cc85ad7f6"}
+Real POST /loans with "positionId":"LP-A1" -> 400 {"detail":"The body has a property this operation does not accept","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"positionId","traceId":"3bb2ce353e585e5d2917fc66dbc30171"}
+Real POST /loans with "status":"CLOSED" -> 400 {"detail":"The body has a property this operation does not accept","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"status","traceId":"70269d5f47bc68d51901abd08cb5f4c2"}
+Real POST /loans with "version":99 -> 400 {"detail":"The body has a property this operation does not accept","instance":"/loans","status":400,"title":"Bad Request","type":"urn:sl-ledger:problem:malformed-body","path":"version","traceId":"197e3665cb1060baed498fd2118fcd87"}

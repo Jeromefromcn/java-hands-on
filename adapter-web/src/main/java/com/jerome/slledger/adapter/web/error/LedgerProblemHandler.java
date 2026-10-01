@@ -44,6 +44,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 /**
  * Every error as an RFC 9457 {@code application/problem+json} body with a stable {@code type}.
@@ -266,7 +267,13 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
       HttpStatusCode status,
       WebRequest request) {
     ProblemDetail problem;
-    if (ex.getCause() instanceof DatabindException databind) {
+    if (ex.getCause() instanceof UnrecognizedPropertyException unknown) {
+      // Not Jackson's message: it names the Java class the body was being bound to.
+      problem =
+          Problems.of(
+              status, "malformed-body", "The body has a property this operation does not accept");
+      problem.setProperty("path", jsonPath(unknown));
+    } else if (ex.getCause() instanceof DatabindException databind) {
       problem = Problems.of(status, "malformed-body", databind.getOriginalMessage());
       problem.setProperty("path", jsonPath(databind));
     } else {

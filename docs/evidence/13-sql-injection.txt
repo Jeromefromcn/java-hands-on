@@ -1,0 +1,10 @@
+Stage 13 · section 7 — SQL injection (SqlInjectionIT)
+
+Concatenated query (test-only), counterparty_id = '<input>':
+  input CP-002           -> 2 rows
+  input x' OR '1'='1' -- -> 5 rows (every counterparty's)
+  input '; --              -> error: Multiple ResultSets were returned by the query.
+  input x'; UPDATE loan_position SET status = 'CLOSED'; -- -> positions CLOSED before 0, after 5
+
+Real adapters (JPA and JDBC), same three payloads as counterparty: 0 rows, total 0,
+positions CLOSED afterwards: 0; counterparty CP-002: 2 rows.

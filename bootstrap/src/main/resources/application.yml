@@ -12,6 +12,13 @@ spring:
       resourceserver:
         jwt:
           audiences: sl-ledger
+  # Stage 13. A body with a property the operation does not define is a 400, not silently dropped.
+  # The request records already have no field for an id, a status or a version, so a client cannot
+  # set one; rejecting the unknown name tells the client it tried, and keeps a field added to a
+  # record later from being filled by a client that has been sending it all along.
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   # Stage 7. Spring MVC's own exceptions (unknown path, wrong media type) answer as RFC 9457
   # ProblemDetail, like the ledger's. See docs/decisions/07-web.md.
   mvc:
