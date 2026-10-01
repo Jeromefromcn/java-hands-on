@@ -38,7 +38,7 @@ public final class TimeoutBudget {
 
   private final List<String> chainNames = new ArrayList<>();
   private final List<Layer> roots = new ArrayList<>();
-  private final List<String> extraProblems = new ArrayList<>();
+  private final List<String> warnings = new ArrayList<>();
 
   public TimeoutBudget(
       TimeoutProperties timeouts,
@@ -67,7 +67,7 @@ public final class TimeoutBudget {
     chain("GET /securities/{isin}/quote", Layer.of("edge", timeouts.edge(), sourceCall));
     chain("ledger reads and writes", Layer.of("edge", timeouts.edge(), database));
     if (resilience.enabled() && !resilience.breaker().slowCall().minus(read).isNegative()) {
-      extraProblems.add(
+      warnings.add(
           "breaker slow-call threshold "
               + resilience.breaker().slowCall()
               + " is not below the source read timeout "
@@ -85,9 +85,18 @@ public final class TimeoutBudget {
     return timeout == null || timeout.isZero() ? UNBOUNDED : timeout;
   }
 
+  /**
+   * Settings that do not break the rule but make a protection inert: a breaker slow-call threshold
+   * at or above the read timeout never fires, because the call times out first (and a timeout is
+   * counted as a failure anyway). Logged, not refused.
+   */
+  public List<String> warnings() {
+    return List.copyOf(warnings);
+  }
+
   /** Every way the configuration breaks the rule; empty when it holds. */
   public List<String> problems() {
-    List<String> problems = new ArrayList<>(extraProblems);
+    List<String> problems = new ArrayList<>();
     for (int i = 0; i < roots.size(); i++) {
       check(chainNames.get(i), roots.get(i), problems);
     }

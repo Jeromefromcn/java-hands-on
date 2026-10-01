@@ -26,6 +26,7 @@ public class TimeoutBudgetConfiguration {
       ResilienceProperties resilience) {
     TimeoutBudget budget = new TimeoutBudget(timeouts, source, executor, resilience);
     LOG.info("Timeout budget:\n{}", budget.table());
+    budget.warnings().forEach(warning -> LOG.warn("Timeout budget: {}", warning));
     if (timeouts.enforce()) {
       budget.verify();
     } else {

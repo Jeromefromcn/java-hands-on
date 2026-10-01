@@ -41,7 +41,9 @@ class MarketDataPoolExhaustionIT {
         WebLedger ledger =
             WebLedger.start(
                 "--ledger.marketdata.base-url=" + source.baseUrl(),
-                "--ledger.resilience.marketdata.enabled=false", // stage 7/8 reproduce the
+                "--ledger.resilience.marketdata.enabled=false",
+                "--ledger.timeouts.enforce=false", // read timeout 0 is the unbounded wait // stage
+                // 7/8 reproduce the
                 // unprotected client
                 "--ledger.marketdata.read-timeout=0",
                 "--ledger.marketdata.executor.core=2",

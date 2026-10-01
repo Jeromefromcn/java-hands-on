@@ -436,3 +436,13 @@ through the same class).
   already does.
 - The scrape of the run is in `docs/evidence/12-metrics-scrape.txt`; no `ledger_` series carries a label
   named counterparty, position, isin, id, key or trade.
+
+**Fix after sections 6 and 7** (found by the full build of section 7's commit, which section 6's targeted
+runs had not covered).
+- Nine ITs with a read timeout of 500 ms, 10 s or 0 refused to start. A breaker slow-call threshold at or
+  above the read timeout (1 s against 500 ms) is an inert setting, not a broken budget, so it is now a
+  logged warning. The three stage 7/8 reproductions that run with an unbounded read timeout say
+  `ledger.timeouts.enforce=false`, and the starvation reproduction sets a 15 s fan-out deadline to match
+  its 10 s read timeout instead of switching the check off.
+- The first cause of the miss is process: a section's targeted tests passed and the full build was not run
+  before moving on. The full build of HEAD runs in the background after every commit from here.

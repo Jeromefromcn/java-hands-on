@@ -43,6 +43,7 @@ class SlowSourceStarvationIT {
                 "--server.tomcat.threads.max=" + WORKERS,
                 "--ledger.marketdata.base-url=" + source.baseUrl(),
                 "--ledger.marketdata.read-timeout=10s",
+                "--ledger.marketdata.executor.deadline=15s",
                 "--ledger.resilience.marketdata.enabled=" + bulkhead,
                 "--ledger.resilience.marketdata.bulkhead.max-concurrent=4")) {
       source.slow(HK_EQUITY, SOURCE_DELAY_MS, "41.30", "HKD");

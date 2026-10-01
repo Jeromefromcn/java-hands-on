@@ -107,7 +107,8 @@ class TimeoutBudgetTest {
   }
 
   @Test
-  @DisplayName("a breaker slow-call threshold at or above the read timeout can never fire")
+  @DisplayName(
+      "a breaker slow-call threshold at or above the read timeout is a warning, not a refusal")
   void slowCallThresholdAboveReadTimeout() {
     TimeoutBudget budget =
         budget(
@@ -117,6 +118,7 @@ class TimeoutBudgetTest {
             Duration.ofSeconds(2),
             Duration.ofSeconds(2));
 
-    assertThat(budget.problems()).anyMatch(p -> p.contains("slow-call"));
+    assertThat(budget.warnings()).anyMatch(w -> w.contains("slow-call"));
+    assertThat(budget.problems()).isEmpty();
   }
 }
