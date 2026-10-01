@@ -1,0 +1,6 @@
+Stage 13 · what a token costs per request (SecurityOverheadMeasurementIT)
+Microseconds, this machine, JDK 21, one client, sequential, 5000 calls after 2000 warm-up.
+
+JwtDecoder.decode (RS256 2048, in-process)   mean  144.9  p50   134  p99   197  max  13460
+GET /loans, no token -> 401                  mean 1261.2  p50  1038  p99  4435  max  22160
+GET /loans, valid token -> 200               mean 2806.4  p50  2545  p99  6629  max  31273

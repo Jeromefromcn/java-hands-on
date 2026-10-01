@@ -194,7 +194,32 @@ with a valid token; `./mvnw clean verify` green.
 - `infra/security/scan.sh` (Trivy in Docker), `.trivyignore`.
 - Run it; fix or justify every finding.
 
-## [ ] 11 · Decision record
+## [x] 11 · Decision record
 
 **Change**
 - `docs/decisions/13-security.md`, ROADMAP ticks, plan notes.
+
+## Found while implementing
+
+Each is carried to the decision record; the ones that changed the plan are here.
+
+- **Section 1 needed more than the plan said.** Boot does not combine a key source with `issuer-uri`
+  without OIDC discovery, so the issuer check is its own validator bean. The `@WebMvcTest` slices and
+  `LayerOrderIT` of `adapter-web` got a permit-all test chain (`PermitAll`): they test the filter, the
+  handler and the controllers, and the real chain is tested in `bootstrap` with real tokens. Every HTTP
+  test in `bootstrap` now sends a staff token through `LedgerApp.http` or `TestTokens.request`; none runs
+  with security off. Three stage 12 tests needed a change that was not about their subject (a span
+  filter, a price version, an unquoted placeholder in `ConfigurationPrecedenceIT`); the first and the
+  last are in the section 1 and "fix" commits.
+- **Section 5 has no product change.** The advisors' order was as derived, so the section is a test and
+  an evidence file. The plan said 500 for the pre-authorize advisor; it is 200 (500 is `@PostAuthorize`),
+  which turned out to matter more than the number.
+- **Section 6 split the use case from the transaction rule.** `@Transactional` may live only in
+  `application` (an `ArchitectureIT` rule), so the audit's two propagation rules sit on an `Audit` class
+  there, over an `AuditStore` port, and the JDBC adapter is transaction-agnostic.
+- **Sections 7 and 8 were committed with one build between them.** The full verify of section 8's commit
+  covers section 7 as well.
+- **Section 10's first scan scanned the thin jar.** Replaced by the resolved runtime classpath in a fix
+  commit; the evidence file says so.
+- **Not done, on purpose:** broker authentication and TLS for Kafka, Postgres and Redis (named in the
+  decision record), row-level security, token caching, a pipeline step for the scan (stage 14).

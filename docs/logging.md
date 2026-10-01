@@ -11,7 +11,8 @@ A log line carries **identifiers, counts, currencies, dates and outcomes**. It n
 - a **monetary amount**: a price, collateral, a shortfall, a fee, a credit limit. A currency code is
   allowed; the number is not.
 - a **request or message payload**, whole or in part.
-- a secret of any kind.
+- a secret of any kind, and so a bearer token or any part of an `Authorization` header: a rejected
+  token is logged by its reason ("expired", "malformed"), never by its value.
 
 Everything else in a line is for the person debugging at 3 a.m. and may be as specific as helps: the
 position id, the ISIN, the idempotency key, the message id, the trace id, the job and its business
@@ -33,6 +34,10 @@ wrong, because the id leads back to the row.
   notice that follows, the daily accrual, and a live and a stale quote, with a counterparty name and
   amounts that appear nowhere else in the system, with `com.jerome` at `DEBUG`. It fails if any of
   them is in the captured output. Putting the amount back into the notice's log line makes it fail.
+- **For secrets, by a test.** `SecretsIT` starts the application with sentinel secrets (a Redis
+  password, a Kafka credential, an invalid bearer token) and fails if any appears in the captured log
+  of the start-up, a rejected token, a refused call, a malformed body or an unknown path, or in any
+  exposed actuator endpoint.
 - **Not by scrubbing.** A filter that masks amounts by pattern is a safety net with holes: it cannot
   recognise a name, and it gives the false comfort of a rule that is only partly kept. It was
   considered and left out; see `docs/decisions/12-resilience-observability.md`.

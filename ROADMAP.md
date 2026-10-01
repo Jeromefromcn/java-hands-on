@@ -414,14 +414,15 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 
 **實操練習**
 
-- [ ] **Spring Security 過濾鏈**：打印完整的 filter 列表，理解它與階段 7 的 Filter / Interceptor 的相對位置
-- [ ] **認證**：JWT resource server，用本地 Keycloak（Compose 起）發 token
-- [ ] **授權**：方法級 `@PreAuthorize`——對手方只能看自己的頭寸。**造一次越權**（改 URL 裏的 ID 看到別人資料）再修好
-- [ ] **與事務的順序**：`@PreAuthorize` 與 `@Transactional` 誰先執行？推一遍再驗
-- [ ] **審計**：誰在什麼時候開了哪個倉，寫審計表。驗證審計記錄在主事務回滾時的行為（該不該一起回滾）
-- [ ] **常見漏洞**：故意寫一個字串拼接的 SQL 查詢，用 `'; --` 打穿，再改 prepared statement；驗證一次 mass assignment（請求體直接綁實體，客戶端塞進 `id` 欄位）
-- [ ] **密鑰管理**：所有密鑰走環境變數，驗證它們不會出現在 `/actuator/env` 與日誌裏
-- [ ] **依賴掃描**：OWASP Dependency-Check 或 Trivy 進 CI
+- [x] **Spring Security 過濾鏈**：打印完整的 filter 列表，理解它與階段 7 的 Filter / Interceptor 的相對位置
+- [x] **認證**：JWT resource server，用本地 Keycloak（Compose 起）發 token
+- [x] **授權**：方法級 `@PreAuthorize`——對手方只能看自己的頭寸。**造一次越權**（改 URL 裏的 ID 看到別人資料）再修好
+- [x] **與事務的順序**：`@PreAuthorize` 與 `@Transactional` 誰先執行？推一遍再驗
+- [x] **審計**：誰在什麼時候開了哪個倉，寫審計表。驗證審計記錄在主事務回滾時的行為（該不該一起回滾）
+- [x] **常見漏洞**：故意寫一個字串拼接的 SQL 查詢，用 `'; --` 打穿，再改 prepared statement；驗證一次 mass assignment（請求體直接綁實體，客戶端塞進 `id` 欄位）
+- [x] **密鑰管理**：所有密鑰走環境變數，驗證它們不會出現在 `/actuator/env` 與日誌裏
+- [x] **依賴掃描**：OWASP Dependency-Check 或 Trivy 進 CI（掃描腳本 `infra/security/scan.sh` 已落地並掃出過 9 項；接進 pipeline 是階段 14 的 CI 搭建）
+- [x] **決策文檔**（[`docs/decisions/13-security.md`](docs/decisions/13-security.md)）：《授權模型——誰能對什麼做什麼，落在哪一層》——三層各答一個問題、外來 id 回 404 的理由、審計為何分兩個事務、被拒絕的方案
 
 **口頭驗收**：講清你的授權模型——「誰能對什麼做什麼」，以及它在代碼裏落在哪一層。
 
@@ -506,7 +507,7 @@ Testcontainers 用於自動化測試，Compose 用於手動實驗——兩者不
 | C | 10 訊息 | ☑ | ☑ | ☐ |
 | C | 11 批處理 | ☑ | ☑ | ☐ |
 | D | 12 韌性與可觀測 | ☑ | ☑ | ☐ |
-| D | 13 安全 | ☐ | ☐ | ☐ |
+| D | 13 安全 | ☑ | ☑ | ☐ |
 | D | 14 打包交付 | ☐ | ☐ | ☐ |
 | E | 15 JVM 實操 | ☐ | ☐ | ☐ |
 | E | 16 性能與治理 | ☐ | ☐ | ☐ |
