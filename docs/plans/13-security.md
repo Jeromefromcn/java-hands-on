@@ -188,7 +188,7 @@ with a valid token; `./mvnw clean verify` green.
 - Manual run: token from Keycloak, each role against the running application;
   evidence `13-manual-run.txt`.
 
-## [ ] 10 · Dependency scan
+## [x] 10 · Dependency scan
 
 **Change**
 - `infra/security/scan.sh` (Trivy in Docker), `.trivyignore`.

@@ -39,6 +39,12 @@
          so importing is the only shape that survives contact with reality. -->
     <spring-boot.version>4.1.1</spring-boot.version>
 
+    <!-- Stage 13: security patch releases over the Boot BOM; see the dependencyManagement
+         entries that use them. -->
+    <tomcat.version>11.0.25</tomcat.version>
+    <jackson-bom.version>3.1.7</jackson-bom.version>
+    <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+
     <!-- Every plugin version is pinned here. An unpinned plugin resolves
          RELEASE from central, so the build changes when someone else ships,
          and the recorded jar checksums stop meaning anything. -->
@@ -147,6 +153,42 @@
         <groupId>${project.groupId}</groupId>
         <artifactId>bootstrap</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!-- Stage 13: patch releases of the libraries the Spring Boot BOM pins at versions that
+           infra/security/scan.sh reports with fixed HIGH or CRITICAL vulnerabilities (Tomcat, and
+           Jackson 2 and 3). They sit BEFORE the Boot import: of two imports that manage the same
+           artifact, the first wins, and an override placed after it would change nothing. Drop each
+           when the Boot BOM catches up (the scan says when: a version below the BOM's is a
+           downgrade). See docs/decisions/13-security.md. -->
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson-2-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-core</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-el</artifactId>
+        <version>${tomcat.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-websocket</artifactId>
+        <version>${tomcat.version}</version>
       </dependency>
 
       <dependency>

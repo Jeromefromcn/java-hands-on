@@ -1,0 +1,34 @@
+Stage 13 · section 10 — dependency scan (infra/security/scan.sh, Trivy 0.65.0 in Docker)
+Measured 2026-10-01. Scope: every pom.xml of the build (labs/ excluded: self-contained experiments, not shipped),
+then the runnable jar (bootstrap/target/bootstrap-0.1.0-SNAPSHOT.jar, nested libraries included).
+Filter: HIGH and CRITICAL, with a fixed release available (--ignore-unfixed).
+
+== before: Spring Boot 4.1.1's BOM as imported (tomcat.version 11.0.24, jackson 3.1.5 / 2.21.5)
+HIGH      com.fasterxml.jackson.core:jackson-databind 2.21.5  CVE-2026-68497  fixed in 2.18.10, 2.21.6, 2.22.2
+          com.fasterxml.jackson.core/jackson-databind: tools.jackson.core/jackso
+HIGH      com.fasterxml.jackson.core:jackson-databind 2.21.5  CVE-2026-91776  fixed in 2.18.11, 2.21.7, 2.22.3
+          TypeDeserializerBase._findDeserializer() in FasterXML jackson-databind
+HIGH      com.fasterxml.jackson.core:jackson-databind 2.21.5  CVE-2026-91777  fixed in 2.21.7, 2.18.11, 2.22.3
+          Forward-reference completion for @JsonIdentityInfo object IDs in Faste
+CRITICAL  org.apache.tomcat.embed:tomcat-embed-core 11.0.24  CVE-2026-65182  fixed in 11.0.25, 10.1.58, 9.0.121
+          tomcat: Apache Tomcat: Security constraint bypass due to improper acce
+CRITICAL  org.apache.tomcat.embed:tomcat-embed-core 11.0.24  CVE-2026-65905  fixed in 11.0.25, 10.1.58, 9.0.121
+          tomcat: Apache Tomcat: Authentication bypass via limited replay attack
+CRITICAL  org.apache.tomcat.embed:tomcat-embed-core 11.0.24  CVE-2026-68525  fixed in 11.0.25, 10.1.58, 9.0.121
+          tomcat: Apache Tomcat: Unauthorized resource access via FORM authentic
+HIGH      tools.jackson.core:jackson-databind 3.1.5  CVE-2026-68497  fixed in 3.2.2, 3.1.6
+          com.fasterxml.jackson.core/jackson-databind: tools.jackson.core/jackso
+HIGH      tools.jackson.core:jackson-databind 3.1.5  CVE-2026-91776  fixed in 3.1.7, 3.2.3
+          TypeDeserializerBase._findDeserializer() in FasterXML jackson-databind
+HIGH      tools.jackson.core:jackson-databind 3.1.5  CVE-2026-91777  fixed in 3.1.7, 3.2.3
+          Forward-reference completion for @JsonIdentityInfo object IDs in Faste
+
+9 distinct (package, CVE) pairs, each reported under every pom that reaches it: the Tomcat three are CRITICAL, the Jackson six HIGH.
+
+== after: tomcat 11.0.25, jackson 3.1.7 (tools.jackson) and 2.21.7 (com.fasterxml), imported ahead of the Boot BOM
+pom.xml (8 poms): 0 vulnerabilities each
+bootstrap-0.1.0-SNAPSHOT.jar: 0 vulnerabilities
+exit status of scan.sh jar: 0; .trivyignore holds no entries
+
+== the jar scan sees nested libraries
+A jar holding BOOT-INF/lib/tomcat-embed-core-11.0.24.jar, scanned with the same command: 3 CRITICAL (CVE-2026-65182, -65905, -68525).

@@ -1,0 +1,5 @@
+# Vulnerabilities infra/security/scan.sh does not fail on, one per line, each with the reason it is
+# safe to ship. An entry with no reason, or one that outlives its reason, is a defect. Empty means
+# every finding with a fix was taken by upgrading.
+#
+# Format:   CVE-YYYY-NNNN   # why it does not apply here, and what would make it apply
