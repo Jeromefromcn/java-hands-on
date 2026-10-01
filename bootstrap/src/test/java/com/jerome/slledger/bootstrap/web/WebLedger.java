@@ -10,17 +10,17 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  * The running application, an HTTP client bound to it, and reference data whose ISINs carry valid
  * check digits: the web layer verifies them, unlike {@code domain} and stage 6's fixtures.
  */
-final class WebLedger implements AutoCloseable {
+public final class WebLedger implements AutoCloseable {
 
   /** Check digits computed by the ISIN algorithm; {@code IsinValidatorTest} pins them. */
-  static final String HK_EQUITY = "HK0000000007";
+  public static final String HK_EQUITY = "HK0000000007";
 
-  static final String HK_EQUITY_2 = "HK0000000015";
-  static final String US_EQUITY = "US0000000010";
+  public static final String HK_EQUITY_2 = "HK0000000015";
+  public static final String US_EQUITY = "US0000000010";
 
-  final ConfigurableApplicationContext app;
-  final RestTestClient http;
-  final JdbcClient jdbc;
+  public final ConfigurableApplicationContext app;
+  public final RestTestClient http;
+  public final JdbcClient jdbc;
 
   private WebLedger(ConfigurableApplicationContext app) {
     this.app = app;
@@ -28,11 +28,11 @@ final class WebLedger implements AutoCloseable {
     this.jdbc = app.getBean(JdbcClient.class);
   }
 
-  static WebLedger start(String... args) {
+  public static WebLedger start(String... args) {
     return start(List.of(), args);
   }
 
-  static WebLedger start(List<Class<?>> extraSources, String... args) {
+  public static WebLedger start(List<Class<?>> extraSources, String... args) {
     WebLedger ledger = new WebLedger(LedgerApp.startWeb(extraSources, args));
     ledger
         .jdbc
@@ -53,12 +53,12 @@ final class WebLedger implements AutoCloseable {
     return ledger;
   }
 
-  long count(String table) {
+  public long count(String table) {
     return jdbc.sql("SELECT count(*) FROM " + table).query(Long.class).single();
   }
 
   /** An open request body; {@code tradeDate} 2026-09-01 is a Tuesday, T+2 is 3 September. */
-  static String openBody(String isin, long quantity, String amount, String currency) {
+  public static String openBody(String isin, long quantity, String amount, String currency) {
     return """
         {"counterpartyId":"CP-001","isin":"%s","quantity":%d,
          "collateral":{"amount":"%s","currency":"%s"},
@@ -67,7 +67,7 @@ final class WebLedger implements AutoCloseable {
         .formatted(isin, quantity, amount, currency);
   }
 
-  static String returnBody(long quantity) {
+  public static String returnBody(long quantity) {
     return "{\"quantity\":%d,\"tradeDate\":\"2026-09-01\"}".formatted(quantity);
   }
 

@@ -1,6 +1,7 @@
 package com.jerome.slledger.adapter.web.quote;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.jerome.slledger.adapter.web.security.Access;
 import com.jerome.slledger.adapter.web.validation.ValidIsin;
 import com.jerome.slledger.application.quote.Quote;
 import com.jerome.slledger.application.quote.QuotePrice;
@@ -45,6 +46,7 @@ public class QuoteController {
   }
 
   @GetMapping("/securities/{isin}/quote")
+  @Access.ReadQuotes
   public ResponseEntity<QuoteView> quote(@PathVariable @ValidIsin String isin) {
     Quote quoted = quote.quote(new Isin(isin));
     ResponseEntity.BodyBuilder response = ResponseEntity.ok();

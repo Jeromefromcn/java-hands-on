@@ -2,6 +2,7 @@ package com.jerome.slledger.adapter.web.quote;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.jerome.slledger.adapter.web.error.Problems;
+import com.jerome.slledger.adapter.web.security.Access;
 import com.jerome.slledger.adapter.web.validation.ValidIsin;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.quote.PriceFanOut;
@@ -45,6 +46,7 @@ public class QuotesController {
   public record ItemError(String type) {}
 
   @GetMapping("/quotes")
+  @Access.ReadQuotes
   public QuotesView quotes(@RequestParam("isin") @NotEmpty List<@ValidIsin String> isins) {
     if (isins.size() > maxIsins) {
       throw new InvalidQueryException(

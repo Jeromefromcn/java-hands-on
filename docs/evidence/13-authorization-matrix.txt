@@ -1,0 +1,13 @@
+Stage 13 · section 3 — each endpoint as each role (AuthorizationMatrixIT)
+Status codes observed. 403 is the authorization refusal; any other code is the
+endpoint's own answer once the role is allowed (404 and 504 are the fixture's: no
+accrual rows, no market data source running).
+
+endpoint \ role               none         trader       ops          counterparty auditor      metrics     
+GET /loans                    403          200          200          200          403          403          
+GET /loans/{id}               403          200          200          200          403          403          
+GET /loans/{id}/accruals      403          200          200          200          403          403          
+POST /loans                   403          201          403          403          403          403          
+POST /loans/{id}/returns      403          201          403          403          403          403          
+GET /securities/{isin}/quote  403          504          504          403          403          403          
+GET /quotes                   403          200          200          403          403          403          

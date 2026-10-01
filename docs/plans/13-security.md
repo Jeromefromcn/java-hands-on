@@ -99,7 +99,7 @@ with a valid token; `./mvnw clean verify` green.
 - `FilterChainIT`, `TokenRejectionIT` (each case: status, `application/problem+json`,
   `X-Trace-Id`, `WWW-Authenticate`, no detail naming the reason).
 
-## [ ] 3 · Who may call what
+## [x] 3 · Who may call what
 
 **Change**
 - `@PreAuthorize` on every handler of `LoanReadController`,

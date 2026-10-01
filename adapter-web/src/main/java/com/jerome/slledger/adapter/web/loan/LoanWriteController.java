@@ -1,5 +1,6 @@
 package com.jerome.slledger.adapter.web.loan;
 
+import com.jerome.slledger.adapter.web.security.Access;
 import com.jerome.slledger.adapter.web.validation.IdempotencyKeyHeader;
 import com.jerome.slledger.application.position.IdempotentBooking;
 import com.jerome.slledger.application.position.Outcome;
@@ -34,6 +35,7 @@ public class LoanWriteController {
   }
 
   @PostMapping(consumes = "application/json")
+  @Access.BookPositions
   @ApiResponse(
       responseCode = "201",
       description = "Booked, or the replay of an earlier booking with the same key and request")
@@ -47,6 +49,7 @@ public class LoanWriteController {
 
   /** {@code 201} with no {@code Location}: a return has no resource of its own to point at. */
   @PostMapping(path = "/{id}/returns", consumes = "application/json")
+  @Access.BookPositions
   @ApiResponse(
       responseCode = "201",
       description = "Booked, or the replay of an earlier booking with the same key and request")

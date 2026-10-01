@@ -207,6 +207,25 @@ class ArchitectureIT {
   }
 
   @Test
+  @DisplayName("every controller handler states who may call it")
+  void everyHandlerHasAnAccessRule() {
+    // Stage 13: authentication is the chain's; what a role may do is the handler's. A handler with
+    // no @PreAuthorize (directly or through an Access annotation) would be open to every
+    // authenticated caller, including a counterparty's token, so it fails the build.
+    ArchRule rule =
+        methods()
+            .that()
+            .areDeclaredInClassesThat()
+            .areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
+            .and()
+            .areMetaAnnotatedWith(org.springframework.web.bind.annotation.RequestMapping.class)
+            .should()
+            .beMetaAnnotatedWith(org.springframework.security.access.prepost.PreAuthorize.class);
+
+    rule.check(CLASSES);
+  }
+
+  @Test
   @DisplayName("batch holds no SQL and does not depend on adapter-persistence")
   void batchIsDefinitionsOnly() {
     // Stage 11: readers and writers call ports. The job repository's own SQL is the framework's.

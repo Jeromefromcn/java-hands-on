@@ -5,6 +5,8 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import java.util.List;
 import java.util.Set;
 import org.springdoc.core.customizers.OpenApiCustomizer;
@@ -38,6 +40,16 @@ public class LedgerOpenApi {
         components = new Components();
         openApi.setComponents(components);
       }
+      components.addSecuritySchemes(
+          "bearer",
+          new SecurityScheme()
+              .type(SecurityScheme.Type.HTTP)
+              .scheme("bearer")
+              .bearerFormat("JWT")
+              .description(
+                  "A token from the identity provider. The roles it carries decide which"
+                      + " operations answer; a counterparty token sees only its own positions."));
+      openApi.addSecurityItem(new SecurityRequirement().addList("bearer"));
       components.addSchemas("Money", money());
       components.addSchemas("Rate", rate());
       components.addSchemas(PROBLEM, problem());

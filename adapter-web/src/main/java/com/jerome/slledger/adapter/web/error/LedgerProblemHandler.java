@@ -7,6 +7,7 @@ import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
 import com.jerome.slledger.application.quote.OverloadedException;
+import com.jerome.slledger.application.security.ForbiddenException;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.DomainException;
 import com.jerome.slledger.domain.error.ExcessiveReturnException;
@@ -27,6 +28,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -147,6 +149,17 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
         HttpStatus.CONFLICT,
         "concurrent-update",
         "The position was changed by another request; retry with the same Idempotency-Key");
+  }
+
+  /**
+   * Method security refused the call, or a use case refused the scope. Said once, the same way, and
+   * without a reason: which role would have been enough is not the caller's to learn. Without this
+   * handler the catch-all below would turn a refusal into a 500.
+   */
+  @ExceptionHandler({AccessDeniedException.class, ForbiddenException.class})
+  ProblemDetail forbidden(Exception e, HttpServletRequest request) {
+    log.info("403 {} {}: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
+    return Problems.of(HttpStatus.FORBIDDEN, "forbidden", "The caller may not do this");
   }
 
   @ExceptionHandler(Exception.class)

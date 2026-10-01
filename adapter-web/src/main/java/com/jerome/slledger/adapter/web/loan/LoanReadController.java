@@ -1,5 +1,6 @@
 package com.jerome.slledger.adapter.web.loan;
 
+import com.jerome.slledger.adapter.web.security.Access;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.ListAccruals;
 import com.jerome.slledger.application.position.ListPositions;
@@ -40,6 +41,7 @@ public class LoanReadController {
    * docs/decisions/07-web.md}. Asking for both is a {@code 400}.
    */
   @GetMapping
+  @Access.ReadPositions
   public PositionListView list(
       @RequestParam(required = false) @Min(0) Integer page,
       @RequestParam(required = false) String after,
@@ -57,11 +59,13 @@ public class LoanReadController {
   }
 
   @GetMapping("/{id}")
+  @Access.ReadPositions
   public PositionView show(@PathVariable String id) {
     return PositionView.of(show.show(new LoanPositionId(id)));
   }
 
   @GetMapping("/{id}/accruals")
+  @Access.ReadPositions
   public AccrualsView accruals(
       @PathVariable String id,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
