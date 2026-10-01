@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import java.time.Duration;
 import java.util.List;
@@ -43,8 +44,14 @@ class HttpTraceIT {
   private static SpanData serverSpan() {
     await()
         .atMost(Duration.ofSeconds(10))
-        .until(() -> !TraceSupport.spans().getFinishedSpanItems().isEmpty());
-    return TraceSupport.spans().getFinishedSpanItems().getFirst();
+        .until(
+            () ->
+                TraceSupport.spans().getFinishedSpanItems().stream()
+                    .anyMatch(span -> span.getKind() == SpanKind.SERVER));
+    return TraceSupport.spans().getFinishedSpanItems().stream()
+        .filter(span -> span.getKind() == SpanKind.SERVER)
+        .findFirst()
+        .orElseThrow();
   }
 
   @Test

@@ -103,7 +103,7 @@ class MetricsIT {
                 Instant.now(),
                 new Isin("HK0000000001"),
                 Money.of("60.00", HKD),
-                5_000));
+                System.currentTimeMillis() /* newer than any version the shared topic holds */));
     try {
       ledger.app.getBean(QuotePrice.class).quote(new Isin("HK0000000001"));
     } catch (RuntimeException sourceIsDown) {

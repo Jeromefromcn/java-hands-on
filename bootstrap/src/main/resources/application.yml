@@ -57,6 +57,13 @@ management:
   # Stage 12: tracing. Every request is sampled and nothing is exported by default: spans go to a
   # backend only where an endpoint is configured (the local and prod profiles). prod samples a
   # fraction. Propagation is W3C traceparent only.
+  # Stage 13: Spring Security's per-filter and per-authorization observations are off. One request
+  # would carry a dozen extra spans that say the same thing the server span's status does; the
+  # outcome of authentication and authorization is in the response code and the audit trail.
+  observations:
+    enable:
+      spring:
+        security: false
   tracing:
     sampling:
       probability: 1.0
