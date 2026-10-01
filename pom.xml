@@ -57,6 +57,8 @@
     <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
     <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
     <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+    <!-- Stage 13: copy-dependencies, for infra/security/scan.sh. Not bound to any phase. -->
+    <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
     <!-- Failsafe and Surefire ship from the same Maven Surefire project, in
          lockstep. -->
     <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
@@ -243,6 +245,11 @@
     <directory>${project.basedir}/${build.directory.name}</directory>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven-dependency-plugin.version}</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>

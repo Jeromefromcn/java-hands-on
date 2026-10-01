@@ -4,8 +4,11 @@
 # depend on either; stage 14 puts it in the pipeline. Exit status 1 when anything HIGH or CRITICAL
 # has a fix that is not yet taken and is not suppressed, with a reason, in /.trivyignore.
 #
-#   infra/security/scan.sh            scan every pom.xml of the repository
-#   infra/security/scan.sh jar        also scan the runnable jar (after ./mvnw package)
+# Two passes. The poms, which Trivy resolves against the local Maven repository (a dependency whose
+# version it cannot determine is skipped with a warning, so this pass can miss things); and the
+# libraries the application actually runs on, copied out of the resolved runtime classpath of
+# `bootstrap` and scanned as jars, which is what ships and cannot be skipped. The second is the one
+# that counts; the first is cheap and names the pom to change.
 #
 # --ignore-unfixed: a vulnerability with no fixed release cannot be acted on by upgrading, and
 # failing on it would make the scan red with no way to turn it green; those are read in the table
@@ -20,15 +23,15 @@ mkdir -p "$CACHE"
 trivy() {
   docker run --rm \
     -v "$PWD:/repo:ro" -v "$CACHE:/root/.cache/trivy" -v "$M2:/root/.m2/repository:ro" \
-    -w /repo "$IMAGE" "$@"
+    -w /repo "$IMAGE" "$@" --skip-version-check
 }
 
-# The poms resolve the same dependency set Maven does (BOM imports included), from the local
-# repository mounted above.
-trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-  --skip-dirs target --skip-dirs .git --skip-dirs .idea --skip-dirs labs .
+FLAGS="--scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1"
 
-if [ "${1:-}" = "jar" ]; then
-  trivy rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-    bootstrap/target/
-fi
+echo "== poms"
+trivy fs $FLAGS --skip-dirs target --skip-dirs .git --skip-dirs .idea --skip-dirs labs .
+
+echo "== runtime classpath of bootstrap"
+./mvnw -q -pl bootstrap dependency:copy-dependencies -DincludeScope=runtime \
+  -DoutputDirectory=target/scan-libs
+trivy rootfs $FLAGS bootstrap/target/scan-libs
