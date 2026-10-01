@@ -1,0 +1,4 @@
+searched 72098 log characters at DEBUG for com.jerome
+name: Hygiene Test Counterparty Ltd
+amounts: [54321.09, 99.99, 73.21], shortfall 45668.91, accrued [10.000000]
+found: [45668.91]
