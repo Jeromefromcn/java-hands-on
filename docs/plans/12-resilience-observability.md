@@ -314,7 +314,7 @@ Each is carried to the decision record.
 - Green; mutation check: putting the amount back into the notice log makes it
   fail.
 
-## [ ] 12 · Infra: Prometheus, Grafana, Jaeger, alerts
+## [x] 12 · Infra: Prometheus, Grafana, Jaeger, alerts
 
 **Change**
 - `infra/compose.yaml`: `prometheus`, `grafana` (provisioned data source and one
@@ -509,3 +509,28 @@ runs had not covered).
   shut-down in-memory exporter drops every span it is given. The exporter is now created per context
   (`TraceSupport.spans()` returns the latest). Order dependence between ITs that share a JVM is exactly
   what a filtered run hides.
+
+**Section 12.**
+- The batch meters' tag is `batch_job`, renamed from `job`: Prometheus labels every scraped series with its
+  own `job` (the scrape's name) and renames a clashing label to `exported_job`, which an alert would then
+  have to know about. A change to section 7's code, made here because this is where the clash appears.
+- Prometheus and Grafana run on the host's network, bound to loopback. With the bridge network and
+  `host.docker.internal` the scrape failed with `no route to host` from the container to the host: this
+  machine's firewall refuses traffic between the compose bridge and `docker0`. Linux only; Docker Desktop
+  has no host networking. `PROMETHEUS_CONFIG` selects another scrape file, which the manual run used
+  because port 8080 is taken on this machine.
+- The alert tests needed the series dense (a one-minute interval): with hourly samples the 5-minute
+  staleness window leaves the series absent between them and the rule has nothing to evaluate. Written
+  first with hourly samples, `AccrualNotBooked` did not fire on the fixture that meant it to.
+- `InfraQueriesIT` reads the dashboard's and the rules' expressions, takes a real scrape after driving
+  an open, a price that raises a margin call, a quote, an accrual and an undecodable message, and fails on
+  any queried meter that is not in it. It first failed on two meters (margin calls and notices) because the
+  flow had not raised a margin call: the check works.
+- The manual run is `docs/evidence/12-manual-run.txt`. It ran with the quote cache off: with it on, which
+  is the local profile's default, the 14 quotes of the outage were all answered from the stage 9 cache
+  and the source was never asked, so neither the breaker nor the stale price was exercised. The cache
+  hides a short outage by design; the breaker is for the requests it does not hide.
+- Measured: tracing at sampling 1.0 costs about 150 µs at the median of a `GET /loans` once the JVM is
+  warm (1,419 µs against 1,270 µs at 0.0, runs 4 and 6 of `docs/evidence/12-tracing-overhead.txt`); the
+  first three runs are dominated by JIT warm-up (2,492 µs at 0.0 in run 1), which is why the settings run
+  forwards and then backwards.

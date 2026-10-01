@@ -1,0 +1,5 @@
+Checking alerts.yml
+  SUCCESS: 3 rules found
+
+  SUCCESS
+

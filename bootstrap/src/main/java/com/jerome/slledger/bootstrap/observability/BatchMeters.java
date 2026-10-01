@@ -38,7 +38,7 @@ public final class BatchMeters implements MeterBinder {
               "ledger.batch.last.success.timestamp.seconds",
               () -> cache.get(job, () -> lastSuccess(job)))
           .description("Epoch seconds at which the job last completed; 0 if it never has")
-          .tag("job", job)
+          .tag("batch_job", job)
           .register(registry);
     }
   }

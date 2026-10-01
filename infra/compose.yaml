@@ -1,5 +1,5 @@
-# Postgres (stage 6 onward), a stub market data source (stage 7), Redis (stage 9) and Kafka
-# (stage 10), for manual
+# Postgres (stage 6 onward), a stub market data source (stage 7), Redis (stage 9), Kafka
+# (stage 10), and Prometheus, Grafana and Jaeger (stage 12), for manual
 # experiments. Automated tests never use this; they start their own
 # Testcontainers instance.
 #
@@ -75,6 +75,44 @@ services:
       interval: 3s
       timeout: 10s
       retries: 20
+
+  # Stage 12: scrapes the ledger on the host (127.0.0.1:8080, /actuator/prometheus) and evaluates
+  # infra/prometheus/alerts.yml. UI on http://127.0.0.1:9090. On the host's network, listening on
+  # loopback only: a container on a compose network cannot reach a process on the host through
+  # host.docker.internal when the host's firewall refuses traffic between bridges, which this
+  # machine's does ("no route to host"). Linux only: Docker Desktop has no host networking.
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    network_mode: host
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.listen-address=127.0.0.1:9090
+    volumes:
+      # PROMETHEUS_CONFIG points at another scrape file when the ledger is not on port 8080.
+      - ${PROMETHEUS_CONFIG:-./prometheus/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+
+  # Stage 12: one provisioned data source (Prometheus) and one dashboard (infra/grafana). The admin
+  # password is in infra/.env; there is no anonymous access. UI on http://127.0.0.1:3000. On the
+  # host's network for the same reason as Prometheus, and loopback only.
+  grafana:
+    image: grafana/grafana:12.1.0
+    network_mode: host
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD in infra/.env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+  # Stage 12: traces. The ledger exports OTLP/HTTP to 127.0.0.1:4318 (local profile); the UI is on
+  # http://127.0.0.1:16686. In-memory storage: traces are gone when it stops.
+  jaeger:
+    image: jaegertracing/jaeger:2.9.0
+    ports:
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4318:4318"
 
 volumes:
   ledger-pgdata:

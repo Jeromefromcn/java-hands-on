@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: sl-ledger
+    folder: Securities lending ledger
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

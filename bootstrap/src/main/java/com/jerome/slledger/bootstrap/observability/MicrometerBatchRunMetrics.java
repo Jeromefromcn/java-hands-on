@@ -22,7 +22,7 @@ public final class MicrometerBatchRunMetrics implements BatchRunMetrics {
   public void record(RunSummary summary) {
     Timer.builder("ledger.batch.run.duration")
         .description("Wall-clock time of one job execution")
-        .tag("job", summary.job())
+        .tag("batch_job", summary.job())
         .tag("status", summary.status())
         .register(registry)
         .record(summary.duration());
@@ -33,6 +33,8 @@ public final class MicrometerBatchRunMetrics implements BatchRunMetrics {
   }
 
   private void item(RunSummary summary, String kind, long count) {
-    registry.counter("ledger.batch.items", "job", summary.job(), "kind", kind).increment(count);
+    registry
+        .counter("ledger.batch.items", "batch_job", summary.job(), "kind", kind)
+        .increment(count);
   }
 }

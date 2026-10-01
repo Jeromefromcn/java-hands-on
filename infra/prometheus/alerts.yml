@@ -1,0 +1,47 @@
+# Stage 12. Three alerts, each on an outcome somebody outside the ledger would notice, not on a cause
+# inside it. CPU, pool saturation, breaker state and consumer lag are on the dashboard: they explain
+# an outcome, they are not one, and paging on them wakes someone for a symptom that may be harmless.
+# docs/decisions/12-resilience-observability.md says which causes were considered and left out.
+groups:
+  - name: sl-ledger-outcomes
+    rules:
+      - alert: OutboxEventsNotReachingConsumers
+        # The oldest event the ledger wrote and nobody has sent yet is more than 5 minutes old. Margin
+        # call notices and position events are the ledger's duties to others; this is them not arriving,
+        # whether the relay is down, Kafka is, or the sender keeps failing. 0 means nothing is waiting.
+        expr: max(ledger_outbox_oldest_age_seconds) > 300
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "Events written by the ledger have been waiting {{ $value | humanizeDuration }} to be sent"
+          runbook: "Margin call notices are late. Check the relay's log line for the age of the oldest message, then Kafka, then the sender's last error."
+
+      - alert: AccrualNotBooked
+        # The daily accrual has not completed for 26 hours: a day's fees were not booked. 26 h is the
+        # daily period plus the slack of a late start. A job that has never completed reads 0, so a new
+        # deployment pages until its first run, which is the intent.
+        expr: time() - max(ledger_batch_last_success_timestamp_seconds{batch_job="dailyAccrual"}) > 26 * 3600
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "No daily accrual has completed in {{ $value | humanizeDuration }}: fees are not being booked"
+          runbook: "Look at batch_job_execution for the latest dailyAccrual status; a FAILED run is resumed by launching the same business date again."
+
+      - alert: QuotesNotLive
+        # More than a fifth of price requests, over 5 minutes, were either refused or answered from a
+        # stale price: clients are not getting live prices. The traffic guard keeps a single failed
+        # request on a quiet system from paging.
+        expr: |
+          (
+            sum(rate(ledger_quote_requests_total{result=~"failed|stale"}[5m]))
+            / sum(rate(ledger_quote_requests_total[5m]))
+          ) > 0.2
+          and sum(rate(ledger_quote_requests_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of price requests are failing or stale"
+          runbook: "Open the market data panel: breaker state, bulkhead and rate limit, then the source itself."

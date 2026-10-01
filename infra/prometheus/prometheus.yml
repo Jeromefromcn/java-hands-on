@@ -1,0 +1,14 @@
+# Stage 12. Scrapes the ledger running on the host (./mvnw spring-boot:run with the local profile
+# serves /actuator/prometheus on the application port) and evaluates the three alert rules.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: sl-ledger
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["127.0.0.1:8080"]

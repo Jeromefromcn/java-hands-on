@@ -1,0 +1,107 @@
+# promtool test rules alerts_test.yml. Each alert fires on the series that mean its outcome, and is
+# silent on a healthy one.
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # --- OutboxEventsNotReachingConsumers ---------------------------------------------------------
+  - interval: 1m
+    name: outbox backlog older than five minutes for two minutes fires
+    input_series:
+      - series: 'ledger_outbox_oldest_age_seconds'
+        values: "0 0 0 0 0 400 450 500 550 600 650 700"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: OutboxEventsNotReachingConsumers
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: OutboxEventsNotReachingConsumers
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: "Events written by the ledger have been waiting 10m 0s to be sent"
+              runbook: "Margin call notices are late. Check the relay's log line for the age of the oldest message, then Kafka, then the sender's last error."
+
+  - interval: 1m
+    name: a healthy outbox, even one with a young backlog, is silent
+    input_series:
+      - series: 'ledger_outbox_oldest_age_seconds'
+        values: "0 12 3 0 40 2 0 0 90 0 0 0"
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: OutboxEventsNotReachingConsumers
+        exp_alerts: []
+
+  # --- AccrualNotBooked -------------------------------------------------------------------------
+  - interval: 1m
+    name: no accrual completed for over 26 hours fires
+    input_series:
+      - series: 'ledger_batch_last_success_timestamp_seconds{batch_job="dailyAccrual"}'
+        values: "0x2000"
+    alert_rule_test:
+      - eval_time: 30h
+        alertname: AccrualNotBooked
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: "No daily accrual has completed in 1d 6h 0m 0s: fees are not being booked"
+              runbook: "Look at batch_job_execution for the latest dailyAccrual status; a FAILED run is resumed by launching the same business date again."
+
+  - interval: 1m
+    name: an accrual that completed within the day is silent
+    input_series:
+      - series: 'ledger_batch_last_success_timestamp_seconds{batch_job="dailyAccrual"}'
+        # Never for the first 1,000 minutes, then a completion at 100,000 s (27.8 h) on the clock.
+        values: "0x1000 100000x1000"
+    alert_rule_test:
+      - eval_time: 31h
+        alertname: AccrualNotBooked
+        exp_alerts: []
+
+  # --- QuotesNotLive ----------------------------------------------------------------------------
+  - interval: 1m
+    name: a third of quotes failing for five minutes fires
+    input_series:
+      - series: 'ledger_quote_requests_total{result="live"}'
+        values: "0+40x20"
+      - series: 'ledger_quote_requests_total{result="failed"}'
+        values: "0+10x2 20+30x18"
+      - series: 'ledger_quote_requests_total{result="stale"}'
+        values: "0+0x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: QuotesNotLive
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: "42.86% of price requests are failing or stale"
+              runbook: "Open the market data panel: breaker state, bulkhead and rate limit, then the source itself."
+
+  - interval: 1m
+    name: all live is silent
+    input_series:
+      - series: 'ledger_quote_requests_total{result="live"}'
+        values: "0+40x20"
+      - series: 'ledger_quote_requests_total{result="failed"}'
+        values: "0+0x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: QuotesNotLive
+        exp_alerts: []
+
+  - interval: 1m
+    name: one failure on a quiet system does not page
+    input_series:
+      - series: 'ledger_quote_requests_total{result="live"}'
+        values: "0+0x20"
+      - series: 'ledger_quote_requests_total{result="failed"}'
+        values: "0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: QuotesNotLive
+        exp_alerts: []

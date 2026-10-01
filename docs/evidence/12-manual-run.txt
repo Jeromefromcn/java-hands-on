@@ -1,0 +1,39 @@
+stage 12 manual run: the application (local profile, quote cache off, port 8090) against infra/compose.yaml
+== probes and exposure
+GET /actuator/health/liveness -> 200
+GET /actuator/health/readiness -> 200
+GET /actuator/env -> 404
+== open a position
+HTTP/1.1 201 
+X-Trace-Id 90736cb8ef9948a1eb8ee567b04e475d
+== 12 live quotes, then one
+HTTP/1.1 200  {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}} 
+== market data source stopped; 14 quotes (first 2 and last 2 shown)
+1: HTTP/1.1 200  Warning: 110 - "Response is Stale" {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"},"stale":true,"asOf":"2026-10-01T02:35:57.701213412Z"} 
+2: HTTP/1.1 200  Warning: 110 - "Response is Stale" {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"},"stale":true,"asOf":"2026-10-01T02:35:57.701213412Z"} 
+13: HTTP/1.1 200  Warning: 110 - "Response is Stale" {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"},"stale":true,"asOf":"2026-10-01T02:35:57.701213412Z"} 
+14: HTTP/1.1 200  Warning: 110 - "Response is Stale" {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"},"stale":true,"asOf":"2026-10-01T02:35:57.701213412Z"} 
+== prometheus during the outage
+resilience4j_circuitbreaker_state{name="market-data"} == 1 -> open 1
+sum by (result)(ledger_quote_requests_total) -> live 13
+sum by (result)(ledger_quote_requests_total) -> stale 14
+== market data source back; 14 s wait (open state lasts 10 s), then 6 quotes (first 2 shown)
+1: HTTP/1.1 200  {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}} 
+2: HTTP/1.1 200  {"isin":"HK0000000007","price":{"amount":"41.30","currency":"HKD"}} 
+== breaker transitions in the application log
+2026-10-01T10:35:58.513+08:00  breaker market-data: CLOSED -> OPEN (failure rate 50%, slow call rate 0%, 20 calls in window)
+2026-10-01T10:36:08.513+08:00  breaker market-data: OPEN -> HALF_OPEN (failure rate n/a%, slow call rate n/a%, 0 calls in window)
+2026-10-01T10:36:20.133+08:00  breaker market-data: HALF_OPEN -> CLOSED (failure rate n/a%, slow call rate n/a%, 0 calls in window)
+== prometheus now
+live 19
+stale 14
+breaker state closed
+== prometheus target and rules
+http://127.0.0.1:8090/actuator/prometheus up
+OutboxEventsNotReachingConsumers inactive
+AccrualNotBooked inactive
+QuotesNotLive inactive
+== jaeger: the trace of the open
+trace 90736cb8ef9948a1eb8ee567b04e475d 1 spans: http post /loans
+== grafana
+dashboard: Securities lending ledger sl-ledger

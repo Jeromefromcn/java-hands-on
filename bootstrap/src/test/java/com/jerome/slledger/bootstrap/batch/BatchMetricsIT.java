@@ -24,12 +24,12 @@ class BatchMetricsIT {
       Gauge accrual =
           registry
               .find("ledger.batch.last.success.timestamp.seconds")
-              .tag("job", "dailyAccrual")
+              .tag("batch_job", "dailyAccrual")
               .gauge();
       Gauge reconciliation =
           registry
               .find("ledger.batch.last.success.timestamp.seconds")
-              .tag("job", "reconciliation")
+              .tag("batch_job", "reconciliation")
               .gauge();
       assertThat(accrual.value()).as("never completed reads 0, not NaN").isZero();
 
@@ -39,7 +39,7 @@ class BatchMetricsIT {
       assertThat(
               registry
                   .find("ledger.batch.run.duration")
-                  .tag("job", "dailyAccrual")
+                  .tag("batch_job", "dailyAccrual")
                   .tag("status", "COMPLETED")
                   .timer()
                   .count())
@@ -47,7 +47,7 @@ class BatchMetricsIT {
       assertThat(
               registry
                   .find("ledger.batch.items")
-                  .tag("job", "dailyAccrual")
+                  .tag("batch_job", "dailyAccrual")
                   .tag("kind", "written")
                   .counter()
                   .count())

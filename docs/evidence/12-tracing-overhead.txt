@@ -1,0 +1,7 @@
+GET /loans, 5000 calls after 1000 warm-up, spans created and not exported (microseconds)
+run 1  sampling 0.0: p50 2492  p90 4189  p99 8280  max 55405
+run 2  sampling 0.1: p50 1799  p90 2662  p99 5083  max 24361
+run 3  sampling 1.0: p50 1516  p90 1940  p99 3468  max 24636
+run 4  sampling 1.0: p50 1419  p90 1843  p99 3472  max 32524
+run 5  sampling 0.1: p50 1269  p90 1702  p99 3139  max 10045
+run 6  sampling 0.0: p50 1270  p90 1542  p99 2577  max 29760
