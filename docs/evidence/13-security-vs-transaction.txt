@@ -1,0 +1,31 @@
+Stage 13 · section 5 — authorization before the transaction
+
+The opposite order, built by hand (transaction outside authorization), denied call:
+  transaction begun        (a connection is taken)
+  transaction rolled back
+  result: returned
+
+A denied call (ROLE_ledger-counterparty):
+  authorization decision   transaction active: false
+  result: AuthorizationDeniedException
+
+Advisors in the context, with their order:
+  100          preFilterAuthorizationMethodInterceptor
+  200          preAuthorizeAuthorizationMethodInterceptor
+  500          postAuthorizeAuthorizationMethodInterceptor
+  600          postFilterAuthorizationMethodInterceptor
+  450          authorizeReturnObjectMethodInterceptor
+  100          preFilterAuthorizationAdvisor
+  200          preAuthorizeAuthorizationAdvisor
+  600          postFilterAuthorizationAdvisor
+  500          postAuthorizeAuthorizationAdvisor
+  450          authorizeReturnObjectAdvisor
+  2147483647   org.springframework.transaction.config.internalTransactionAdvisor
+
+A permitted call (ROLE_ledger-trader):
+  authorization decision   transaction active: false
+  transaction begun        (a connection is taken)
+  method body              transaction active: true
+  transaction committed
+  result: returned
+

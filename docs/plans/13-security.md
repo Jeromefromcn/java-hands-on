@@ -128,7 +128,7 @@ with a valid token; `./mvnw clean verify` green.
   id; list total counts only B's; accruals likewise; staff see all.
 - `VisibilityUseCaseTest` on the use cases with fake queries.
 
-## [ ] 5 · Authorization before the transaction
+## [x] 5 · Authorization before the transaction
 
 **Change**
 - None in product code if the advisor orders are as derived; otherwise the fix.
