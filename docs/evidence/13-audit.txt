@@ -1,0 +1,12 @@
+Stage 13 · section 6 — the audit table after the flows of AuditIT
+actor | action | subject | subject_id | result | reason
+
+trader-1 | OPEN | POSITION | 97d32d36-9483-452b-b6ef-86b2979e465c | BOOKED | 
+trader-1 | OPEN | POSITION | 78a7789d-fb3a-49fb-aa8e-a1188714b36f | BOOKED | 
+trader-1 | OPEN | REQUEST | k-2820811a-3b86-4f9a-b0a3-67f6a182c85f | REJECTED | InsufficientCreditException
+trader-1 | OPEN | POSITION | 5e183837-2507-49a6-b4e7-e20d72e2d55b | BOOKED | 
+trader-1 | ACCESS | ENDPOINT | GET /audit | DENIED | 
+probe | OPEN | POSITION | LP-GHOST | BOOKED | 
+borrower-CP-001 | ACCESS | ENDPOINT | POST /loans | DENIED | 
+trader-77 | OPEN | POSITION | e374b5cb-69a2-474b-90cf-6ca9e6ad79df | BOOKED | 
+trader-77 | RETURN | POSITION | e374b5cb-69a2-474b-90cf-6ca9e6ad79df | BOOKED | 

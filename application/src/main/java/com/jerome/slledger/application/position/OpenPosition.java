@@ -1,5 +1,7 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.application.audit.Audit;
+import com.jerome.slledger.application.audit.AuditEvent.Action;
 import com.jerome.slledger.application.messaging.IntegrationEvent.PositionOpened;
 import com.jerome.slledger.application.messaging.Outbox;
 import com.jerome.slledger.application.observability.LedgerMetrics;
@@ -41,6 +43,7 @@ public class OpenPosition {
   private final Outbox outbox;
   private final Clock clock;
   private final LedgerMetrics metrics;
+  private final Audit audit;
 
   public OpenPosition(
       CounterpartyDirectory counterparties,
@@ -76,6 +79,29 @@ public class OpenPosition {
       Outbox outbox,
       Clock clock,
       LedgerMetrics metrics) {
+    this(
+        counterparties,
+        securities,
+        positions,
+        trades,
+        calendar,
+        outbox,
+        clock,
+        metrics,
+        Audit.NONE);
+  }
+
+  /** As above, and each booked open is also audited, in the same transaction. */
+  public OpenPosition(
+      CounterpartyDirectory counterparties,
+      SecurityDirectory securities,
+      LoanPositionRepository positions,
+      TradeLedger trades,
+      HolidayCalendar calendar,
+      Outbox outbox,
+      Clock clock,
+      LedgerMetrics metrics,
+      Audit audit) {
     this.counterparties = counterparties;
     this.securities = securities;
     this.positions = positions;
@@ -84,6 +110,7 @@ public class OpenPosition {
     this.outbox = outbox;
     this.clock = clock;
     this.metrics = metrics;
+    this.audit = audit;
   }
 
   /**
@@ -146,6 +173,7 @@ public class OpenPosition {
             security.isin(),
             command.quantity(),
             requested));
+    audit.booked(Action.OPEN, position.id().value());
     metrics.positionOpened(requested.currency());
     return borrow;
   }

@@ -1,6 +1,7 @@
 package com.jerome.slledger.adapter.web.error;
 
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
+import com.jerome.slledger.application.audit.Audit;
 import com.jerome.slledger.application.port.MarketDataRejectedException;
 import com.jerome.slledger.application.port.MarketDataUnavailableException;
 import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.MethodParameter;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpHeaders;
@@ -59,6 +61,12 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(LedgerProblemHandler.class);
   private static final URI ABOUT_BLANK = URI.create("about:blank");
+
+  private final ObjectProvider<Audit> audit;
+
+  LedgerProblemHandler(ObjectProvider<Audit> audit) {
+    this.audit = audit;
+  }
 
   @ExceptionHandler(UnknownReferenceException.class)
   ProblemDetail unknownReference(UnknownReferenceException e) {
@@ -159,7 +167,17 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler({AccessDeniedException.class, ForbiddenException.class})
   ProblemDetail forbidden(Exception e, HttpServletRequest request) {
     log.info("403 {} {}: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
+    audit(request);
     return Problems.of(HttpStatus.FORBIDDEN, "forbidden", "The caller may not do this");
+  }
+
+  /** Written in its own transaction; a failure to write is logged and never changes the answer. */
+  private void audit(HttpServletRequest request) {
+    try {
+      audit.ifAvailable(a -> a.denied(request.getMethod() + " " + request.getRequestURI()));
+    } catch (RuntimeException failure) {
+      log.error("Could not audit a refused request", failure);
+    }
   }
 
   @ExceptionHandler(Exception.class)

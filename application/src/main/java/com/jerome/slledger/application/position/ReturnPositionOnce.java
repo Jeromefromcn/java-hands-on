@@ -1,5 +1,7 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.application.audit.Audit;
+import com.jerome.slledger.application.audit.AuditEvent.Action;
 import com.jerome.slledger.application.port.SecurityDirectory;
 import com.jerome.slledger.application.port.TradeLedger;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
@@ -24,12 +26,24 @@ public class ReturnPositionOnce {
   private final SecurityDirectory securities;
   private final TradeLedger trades;
   private final HolidayCalendar calendar;
+  private final Audit audit;
 
   public ReturnPositionOnce(
       LoanPositionRepository positions,
       SecurityDirectory securities,
       TradeLedger trades,
       HolidayCalendar calendar) {
+    this(positions, securities, trades, calendar, Audit.NONE);
+  }
+
+  /** As above, and each booked return is also audited, in the same transaction. */
+  public ReturnPositionOnce(
+      LoanPositionRepository positions,
+      SecurityDirectory securities,
+      TradeLedger trades,
+      HolidayCalendar calendar,
+      Audit audit) {
+    this.audit = audit;
     this.positions = positions;
     this.securities = securities;
     this.trades = trades;
@@ -67,6 +81,7 @@ public class ReturnPositionOnce {
             .settlementDate(SettlementDates.settlementDate(command.tradeDate(), calendar))
             .build();
     trades.book(returned, command.fingerprint());
+    audit.booked(Action.RETURN, position.id().value());
     return returned;
   }
 }

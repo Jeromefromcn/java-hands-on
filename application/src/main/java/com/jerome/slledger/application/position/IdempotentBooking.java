@@ -1,5 +1,7 @@
 package com.jerome.slledger.application.position;
 
+import com.jerome.slledger.application.audit.Audit;
+import com.jerome.slledger.application.audit.AuditEvent.Action;
 import com.jerome.slledger.application.port.BookedTrade;
 import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.RequestFingerprint;
@@ -39,22 +41,43 @@ public class IdempotentBooking {
   private final OpenPosition open;
   private final ReturnPosition returns;
   private final FindBookedTrade booked;
+  private final Audit audit;
 
   public IdempotentBooking(OpenPosition open, ReturnPosition returns, FindBookedTrade booked) {
+    this(open, returns, booked, Audit.NONE);
+  }
+
+  /**
+   * As above, and a request that books nothing is audited as refused, in a transaction of its own:
+   * this is the one place that sees the failure after the booking's transaction has rolled back.
+   */
+  public IdempotentBooking(
+      OpenPosition open, ReturnPosition returns, FindBookedTrade booked, Audit audit) {
     this.open = open;
     this.returns = returns;
     this.booked = booked;
+    this.audit = audit;
   }
 
   public Outcome open(OpenPositionCommand command) {
-    return once(command.key(), command.fingerprint(), () -> open.open(command));
+    return once(Action.OPEN, command.key(), command.fingerprint(), () -> open.open(command));
   }
 
   public Outcome returnQuantity(ReturnCommand command) {
-    return once(command.key(), command.fingerprint(), () -> returns.apply(command));
+    return once(Action.RETURN, command.key(), command.fingerprint(), () -> returns.apply(command));
   }
 
-  private Outcome once(IdempotencyKey key, RequestFingerprint request, Supplier<LoanTrade> book) {
+  /** The trail must not turn a refusal into a different error: a failed audit is suppressed. */
+  private void refused(Action action, IdempotencyKey key, RuntimeException failure) {
+    try {
+      audit.refused(action, key.value(), failure.getClass().getSimpleName());
+    } catch (RuntimeException auditFailure) {
+      failure.addSuppressed(auditFailure);
+    }
+  }
+
+  private Outcome once(
+      Action action, IdempotencyKey key, RequestFingerprint request, Supplier<LoanTrade> book) {
     try {
       return new Outcome(book.get(), false);
     } catch (DuplicateRequestException duplicate) {
@@ -68,9 +91,14 @@ public class IdempotentBooking {
                               .formatted(key.value()),
                           duplicate));
       if (!earlier.bookedBy(request)) {
-        throw new IdempotencyKeyReusedException(key);
+        IdempotencyKeyReusedException reused = new IdempotencyKeyReusedException(key);
+        refused(action, key, reused);
+        throw reused;
       }
       return new Outcome(earlier.trade(), true);
+    } catch (RuntimeException failure) {
+      refused(action, key, failure);
+      throw failure;
     }
   }
 }

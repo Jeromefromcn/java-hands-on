@@ -139,7 +139,7 @@ with a valid token; `./mvnw clean verify` green.
   call, transaction open; connection count unchanged by a denied call.
   Evidence `13-security-vs-transaction.txt`.
 
-## [ ] 6 · Audit
+## [x] 6 · Audit
 
 **Change**
 - `V17__audit_event.sql` (table, append-only trigger).

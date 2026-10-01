@@ -64,7 +64,8 @@ class AuthorizationMatrixIT {
               null,
               QUOTERS),
           new Endpoint(
-              "GET /quotes", HttpMethod.GET, "/quotes?isin=" + WebLedger.HK_EQUITY, null, QUOTERS));
+              "GET /quotes", HttpMethod.GET, "/quotes?isin=" + WebLedger.HK_EQUITY, null, QUOTERS),
+          new Endpoint("GET /audit", HttpMethod.GET, "/audit", null, Set.of("auditor")));
 
   private static final Map<String, Supplier<String>> ROLES =
       Map.of(

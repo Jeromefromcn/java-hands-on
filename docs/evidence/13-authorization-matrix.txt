@@ -11,3 +11,4 @@ POST /loans                   403          201          403          403        
 POST /loans/{id}/returns      403          201          403          403          403          403          
 GET /securities/{isin}/quote  403          504          504          403          403          403          
 GET /quotes                   403          200          200          403          403          403          
+GET /audit                    403          403          403          403          200          403          

@@ -2,6 +2,10 @@ package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.adapter.persistence.PersistenceConfiguration;
 import com.jerome.slledger.adapter.web.WebConfiguration;
+import com.jerome.slledger.application.audit.Audit;
+import com.jerome.slledger.application.audit.AuditQuery;
+import com.jerome.slledger.application.audit.AuditStore;
+import com.jerome.slledger.application.audit.ListAudit;
 import com.jerome.slledger.application.collateral.CollateralHolds;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.Outbox;
@@ -32,6 +36,7 @@ import com.jerome.slledger.application.saga.OpenPositionSteps;
 import com.jerome.slledger.application.saga.SagaLog;
 import com.jerome.slledger.application.saga.SagaRecovery;
 import com.jerome.slledger.application.saga.TransactionalOpenPositionSteps;
+import com.jerome.slledger.application.security.Callers;
 import com.jerome.slledger.domain.calendar.HolidayCalendar;
 import com.jerome.slledger.domain.calendar.HongKongHolidays;
 import com.jerome.slledger.domain.loan.LoanPositionRepository;
@@ -85,7 +90,8 @@ public class LedgerConfiguration {
       HolidayCalendar calendar,
       ObjectProvider<Outbox> outbox,
       Clock clock,
-      ObjectProvider<LedgerMetrics> metrics) {
+      ObjectProvider<LedgerMetrics> metrics,
+      Audit audit) {
     // The outbox exists only when messaging is on; without it an open records no event.
     return new OpenPosition(
         counterparties,
@@ -95,7 +101,19 @@ public class LedgerConfiguration {
         calendar,
         outbox.getIfAvailable(() -> Outbox.NONE),
         clock,
-        metrics.getIfAvailable(() -> LedgerMetrics.NONE));
+        metrics.getIfAvailable(() -> LedgerMetrics.NONE),
+        audit);
+  }
+
+  /** Stage 13. Booked lines join the booking's transaction; refusals get their own. */
+  @Bean
+  Audit audit(AuditStore store, ObjectProvider<Callers> callers, Clock clock) {
+    return new Audit(store, callers.getIfAvailable(() -> Callers.SYSTEM_ONLY), clock);
+  }
+
+  @Bean
+  ListAudit listAudit(AuditQuery query) {
+    return new ListAudit(query);
   }
 
   @Bean
@@ -125,8 +143,9 @@ public class LedgerConfiguration {
       LoanPositionRepository positions,
       SecurityDirectory securities,
       TradeLedger trades,
-      HolidayCalendar calendar) {
-    return new ReturnPositionOnce(positions, securities, trades, calendar);
+      HolidayCalendar calendar,
+      Audit audit) {
+    return new ReturnPositionOnce(positions, securities, trades, calendar, audit);
   }
 
   @Bean
@@ -142,8 +161,8 @@ public class LedgerConfiguration {
 
   @Bean
   IdempotentBooking idempotentBooking(
-      OpenPosition open, ReturnPosition returns, FindBookedTrade booked) {
-    return new IdempotentBooking(open, returns, booked);
+      OpenPosition open, ReturnPosition returns, FindBookedTrade booked, Audit audit) {
+    return new IdempotentBooking(open, returns, booked, audit);
   }
 
   @Bean
