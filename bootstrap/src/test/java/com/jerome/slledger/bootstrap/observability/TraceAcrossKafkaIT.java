@@ -88,7 +88,7 @@ class TraceAcrossKafkaIT {
             "--ledger.messaging.relay-interval=100ms",
             "--ledger.messaging.consumers-enabled=true",
             "--ledger.messaging.consumer-group-prefix=trace-" + UUID.randomUUID());
-    http = RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    http = LedgerApp.http(app);
     jdbc = app.getBean(JdbcClient.class);
     tracing = app.getBean(Tracing.class);
     jdbc.sql(

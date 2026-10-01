@@ -6,6 +6,7 @@ import com.jerome.slledger.adapter.web.error.LedgerProblemHandler;
 import com.jerome.slledger.adapter.web.error.TraceIdOnProblems;
 import com.jerome.slledger.adapter.web.json.LedgerJacksonModule;
 import com.jerome.slledger.adapter.web.testing.Evidence;
+import com.jerome.slledger.adapter.web.testing.PermitAll;
 import com.jerome.slledger.adapter.web.testing.ProbeController;
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
 import java.util.List;
@@ -42,7 +43,8 @@ class LayerOrderIT {
     LedgerProblemHandler.class,
     TraceIdOnProblems.class,
     LedgerJacksonModule.class,
-    LayerProbes.class
+    LayerProbes.class,
+    PermitAll.class
   })
   static class ProbeApplication {}
 

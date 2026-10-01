@@ -11,6 +11,17 @@ marketdata:
 ledger:
   marketdata:
     base-url: ${LEDGER_MARKETDATA_URL}
+  security:
+    issuer: ${LEDGER_JWT_ISSUER}
+
+# Stage 13: tokens come from the identity provider the environment names; the issuer claim must
+# equal LEDGER_JWT_ISSUER exactly and the signing keys are fetched from LEDGER_JWK_SET_URI.
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${LEDGER_JWK_SET_URI}
 
 # Stage 12: probes and the scrape are served on their own port, which the edge does not route.
 management:

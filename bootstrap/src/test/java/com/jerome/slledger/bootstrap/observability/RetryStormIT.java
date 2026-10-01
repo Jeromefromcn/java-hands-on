@@ -3,13 +3,13 @@ package com.jerome.slledger.bootstrap.observability;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.adapter.persistence.testing.Evidence;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -79,7 +79,7 @@ class RetryStormIT {
                   for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
                     try {
                       client.send(
-                          HttpRequest.newBuilder(uri).timeout(callerTimeout).build(),
+                          TestTokens.request(uri).timeout(callerTimeout).build(),
                           HttpResponse.BodyHandlers.ofString());
                       return true;
                     } catch (HttpTimeoutException timedOut) {

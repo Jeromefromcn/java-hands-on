@@ -191,6 +191,22 @@ class ArchitectureIT {
   }
 
   @Test
+  @DisplayName("domain and application depend on no security framework")
+  void innerLayersHaveNoSecurityFramework() {
+    // Stage 13: who the caller is comes from a token verified at the edge; application sees a
+    // Caller and a Visibility, plain types, and the roles are checked on the handlers.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.jerome.slledger.domain..", "com.jerome.slledger.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework.security..", "com.nimbusds..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
   @DisplayName("batch holds no SQL and does not depend on adapter-persistence")
   void batchIsDefinitionsOnly() {
     // Stage 11: readers and writers call ports. The job repository's own SQL is the framework's.

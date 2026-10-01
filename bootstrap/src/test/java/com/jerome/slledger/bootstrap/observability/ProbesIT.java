@@ -85,7 +85,7 @@ class ProbesIT {
   }
 
   private static RestTestClient client(ConfigurableApplicationContext app) {
-    return RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    return LedgerApp.http(app);
   }
 
   @Test

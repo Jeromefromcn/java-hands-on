@@ -6,11 +6,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jerome.slledger.bootstrap.config.MarketDataPool;
 import com.jerome.slledger.bootstrap.config.PoolStats;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,7 +85,7 @@ class MarketDataPoolExhaustionIT {
 
   private CompletableFuture<HttpResponse<String>> send(WebLedger ledger) {
     return client.sendAsync(
-        HttpRequest.newBuilder(
+        TestTokens.request(
                 URI.create(
                     "http://localhost:"
                         + com.jerome.slledger.bootstrap.position.LedgerApp.port(ledger.app)

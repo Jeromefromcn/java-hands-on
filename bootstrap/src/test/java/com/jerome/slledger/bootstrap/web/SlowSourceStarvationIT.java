@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.adapter.persistence.testing.Evidence;
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ class SlowSourceStarvationIT {
       for (int i = 0; i < QUOTE_CALLS; i++) {
         quotes.add(
             client.sendAsync(
-                HttpRequest.newBuilder(URI.create(base + "/securities/" + HK_EQUITY + "/quote"))
+                TestTokens.request(URI.create(base + "/securities/" + HK_EQUITY + "/quote"))
                     .build(),
                 HttpResponse.BodyHandlers.ofString()));
       }
@@ -62,7 +62,7 @@ class SlowSourceStarvationIT {
       long start = System.nanoTime();
       HttpResponse<String> unrelated =
           client.send(
-              HttpRequest.newBuilder(URI.create(base + "/loans")).build(),
+              TestTokens.request(URI.create(base + "/loans")).build(),
               HttpResponse.BodyHandlers.ofString());
       long unrelatedMillis = (System.nanoTime() - start) / 1_000_000;
       assertThat(unrelated.statusCode()).isEqualTo(200);

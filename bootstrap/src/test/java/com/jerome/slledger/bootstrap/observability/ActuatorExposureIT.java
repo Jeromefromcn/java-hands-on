@@ -25,7 +25,7 @@ class ActuatorExposureIT {
   @BeforeAll
   static void start() {
     app = LedgerApp.startWeb("--ledger.test.password=" + SECRET);
-    http = RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    http = LedgerApp.http(app);
   }
 
   @AfterAll

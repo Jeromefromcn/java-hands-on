@@ -2,6 +2,7 @@ package com.jerome.slledger.bootstrap.position;
 
 import com.jerome.slledger.adapter.persistence.testing.SharedPostgres;
 import com.jerome.slledger.bootstrap.SlLedgerApplication;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 /**
  * The real application on a fresh database, for the use-case tests.
@@ -45,6 +47,21 @@ public final class LedgerApp {
     return run(WebApplicationType.SERVLET, extraSources, args.toArray(String[]::new));
   }
 
+  /** An HTTP client bound to a context from {@link #startWeb}, sending the staff token. */
+  public static RestTestClient http(ConfigurableApplicationContext context) {
+    return http(context, TestTokens.staff());
+  }
+
+  /** As above, with the given bearer token; {@code null} sends none. */
+  public static RestTestClient http(ConfigurableApplicationContext context, String token) {
+    RestTestClient.Builder<?> builder =
+        RestTestClient.bindToServer().baseUrl("http://localhost:" + port(context));
+    if (token != null) {
+      builder.defaultHeader("Authorization", "Bearer " + token);
+    }
+    return builder.build();
+  }
+
   /** The port a context from {@link #startWeb} is listening on. */
   public static int port(ConfigurableApplicationContext context) {
     return ((org.springframework.boot.web.server.context.WebServerApplicationContext) context)
@@ -58,6 +75,7 @@ public final class LedgerApp {
     for (String property : SharedPostgres.freshDatabase()) {
       args.add("--" + property);
     }
+    args.addAll(TestTokens.applicationArguments());
     args.addAll(Arrays.asList(extraArgs));
     List<Class<?>> sources = new ArrayList<>();
     sources.add(SlLedgerApplication.class);

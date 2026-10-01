@@ -21,7 +21,7 @@ class WebSmokeIT {
   @BeforeAll
   static void start() {
     app = LedgerApp.startWeb();
-    http = RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    http = LedgerApp.http(app);
   }
 
   @AfterAll

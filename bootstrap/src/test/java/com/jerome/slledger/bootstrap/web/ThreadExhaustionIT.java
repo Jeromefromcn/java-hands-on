@@ -8,12 +8,12 @@ import com.jerome.slledger.application.port.MarketDataUnavailableException;
 import com.jerome.slledger.application.port.MarketPriceSource;
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import com.jerome.slledger.domain.instrument.Isin;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -198,7 +198,7 @@ class ThreadExhaustionIT {
     for (int i = 0; i < count; i++) {
       quotes.add(
           client.sendAsync(
-              HttpRequest.newBuilder(uri(ledger, "/securities/" + HK_EQUITY_2 + "/quote")).build(),
+              TestTokens.request(uri(ledger, "/securities/" + HK_EQUITY_2 + "/quote")).build(),
               HttpResponse.BodyHandlers.ofString()));
     }
     return quotes;
@@ -207,7 +207,7 @@ class ThreadExhaustionIT {
   private HttpResponse<String> send(WebLedger ledger, String path, Duration timeout)
       throws Exception {
     return client.send(
-        HttpRequest.newBuilder(uri(ledger, path)).timeout(timeout).build(),
+        TestTokens.request(uri(ledger, path)).timeout(timeout).build(),
         HttpResponse.BodyHandlers.ofString());
   }
 

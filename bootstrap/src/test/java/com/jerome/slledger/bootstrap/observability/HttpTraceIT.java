@@ -27,7 +27,7 @@ class HttpTraceIT {
   @BeforeAll
   static void start() {
     app = LedgerApp.startWeb(List.of(TraceSupport.InMemorySpans.class));
-    http = RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    http = LedgerApp.http(app);
   }
 
   @AfterAll

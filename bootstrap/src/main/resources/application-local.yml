@@ -14,6 +14,12 @@ spring:
     url: ${LEDGER_DB_URL}
     username: ${LEDGER_DB_USER}
     password: ${LEDGER_DB_PASSWORD}
+  # Stage 13: infra/compose.yaml's Keycloak, realm "ledger".
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://127.0.0.1:8180/realms/ledger/protocol/openid-connect/certs
   # Stage 7: synthetic counterparties and securities, so the endpoints can be tried by hand.
   flyway:
     locations: classpath:db/migration,classpath:db/seed-local
@@ -27,6 +33,9 @@ spring:
 
 # infra/compose.yaml's WireMock stub; the timeouts are the defaults from application.yml.
 ledger:
+  # The issuer is what the token's iss says; Keycloak puts the URL the token was requested at.
+  security:
+    issuer: http://127.0.0.1:8180/realms/ledger
   marketdata:
     base-url: http://127.0.0.1:8089
   # Stage 9: the quote cache is on for manual runs.

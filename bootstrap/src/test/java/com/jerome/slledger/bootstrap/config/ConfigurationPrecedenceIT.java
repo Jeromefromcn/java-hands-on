@@ -106,6 +106,9 @@ class ConfigurationPrecedenceIT {
     // default; a placeholder address stands in for it. Nothing here calls the source.
     // Since stage 12 the prod profile takes the trace collector's URL from LEDGER_OTLP_TRACES_URL,
     // also with no default; the same placeholder address stands in. Nothing is exported.
+    // Since stage 13 the prod profile takes the token issuer and its key set from
+    // LEDGER_JWT_ISSUER and LEDGER_JWK_SET_URI, with no default; placeholders stand in. Nothing
+    // here verifies a token, and the key set is fetched lazily, on the first one.
     // Since stage 9 the local profile turns the quote cache on, which needs a Redis; this test is
     // about which source wins, not about the cache, so the cache is switched off.
     String[] withDatabase =
@@ -115,7 +118,9 @@ class ConfigurationPrecedenceIT {
                 Stream.of(
                     "--ledger.marketdata.base-url=http://127.0.0.1:9",
                     "--management.opentelemetry.tracing.export.otlp.endpoint=http://127.0.0.1:9/v1/traces",
-                    "--ledger.cache.enabled=false"))
+                    "--ledger.cache.enabled=false",
+                    "--ledger.security.issuer=http://127.0.0.1:9/realm",
+                    "--spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://127.0.0.1:9/jwks"))
             .flatMap(s -> s)
             .toArray(String[]::new);
     return builder.run(withDatabase);

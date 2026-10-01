@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jerome.slledger.adapter.web.testing.Evidence;
+import com.jerome.slledger.adapter.web.testing.PermitAll;
 import com.jerome.slledger.adapter.web.testing.ProbeController;
 import com.jerome.slledger.adapter.web.trace.TraceIdFilter;
 import com.jerome.slledger.application.position.UnknownReferenceException;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.MediaType;
@@ -36,6 +38,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ProbeController.class)
+@Import(PermitAll.class)
 class LedgerProblemHandlerTest {
 
   private static final Currency HKD = Currency.getInstance("HKD");

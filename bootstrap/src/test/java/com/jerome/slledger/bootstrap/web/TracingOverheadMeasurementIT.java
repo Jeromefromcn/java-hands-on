@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jerome.slledger.adapter.persistence.testing.Evidence;
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,7 +32,7 @@ class TracingOverheadMeasurementIT {
         LedgerApp.startWeb("--management.tracing.sampling.probability=" + sampling)) {
       HttpClient client = HttpClient.newHttpClient();
       HttpRequest request =
-          HttpRequest.newBuilder(URI.create("http://localhost:" + LedgerApp.port(app) + "/loans"))
+          TestTokens.request(URI.create("http://localhost:" + LedgerApp.port(app) + "/loans"))
               .build();
       for (int i = 0; i < WARM_UP; i++) {
         client.send(request, HttpResponse.BodyHandlers.discarding());

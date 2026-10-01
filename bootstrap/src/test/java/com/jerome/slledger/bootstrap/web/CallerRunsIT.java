@@ -6,11 +6,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.jerome.slledger.bootstrap.demo.tx.support.Evidence;
 import com.jerome.slledger.bootstrap.position.LedgerApp;
+import com.jerome.slledger.bootstrap.security.TestTokens;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -155,7 +155,7 @@ class CallerRunsIT {
     for (int i = 0; i < WORKERS; i++) {
       quotes.add(
           client.sendAsync(
-              HttpRequest.newBuilder(uri(ledger, "/quotes?isin=" + HK_EQUITY)).build(),
+              TestTokens.request(uri(ledger, "/quotes?isin=" + HK_EQUITY)).build(),
               HttpResponse.BodyHandlers.ofString()));
     }
     return quotes;
@@ -164,7 +164,7 @@ class CallerRunsIT {
   private HttpResponse<String> send(WebLedger ledger, String path, Duration timeout)
       throws Exception {
     return client.send(
-        HttpRequest.newBuilder(uri(ledger, path)).timeout(timeout).build(),
+        TestTokens.request(uri(ledger, path)).timeout(timeout).build(),
         HttpResponse.BodyHandlers.ofString());
   }
 

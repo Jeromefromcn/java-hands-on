@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
@@ -48,9 +47,7 @@ class StructuredLogIT {
     try (ConfigurableApplicationContext app =
         LedgerApp.startWeb(
             List.of(LogProbe.class), "--logging.structured.format.console=logstash")) {
-      RestTestClient.bindToServer()
-          .baseUrl("http://localhost:" + LedgerApp.port(app))
-          .build()
+      LedgerApp.http(app)
           .get()
           .uri("/probe/log")
           .header("traceparent", "00-" + traceId + "-00f067aa0ba902b7-01")

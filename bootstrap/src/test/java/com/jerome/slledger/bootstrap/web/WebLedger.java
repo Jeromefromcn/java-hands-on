@@ -24,8 +24,7 @@ final class WebLedger implements AutoCloseable {
 
   private WebLedger(ConfigurableApplicationContext app) {
     this.app = app;
-    this.http =
-        RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    this.http = LedgerApp.http(app);
     this.jdbc = app.getBean(JdbcClient.class);
   }
 

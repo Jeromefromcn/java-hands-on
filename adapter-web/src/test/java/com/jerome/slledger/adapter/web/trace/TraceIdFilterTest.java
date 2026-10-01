@@ -3,6 +3,7 @@ package com.jerome.slledger.adapter.web.trace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.jerome.slledger.adapter.web.testing.PermitAll;
 import com.jerome.slledger.adapter.web.testing.ProbeController;
 import com.jerome.slledger.application.context.RequestContext;
 import org.junit.jupiter.api.AfterEach;
@@ -11,9 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ProbeController.class)
+@Import(PermitAll.class)
 class TraceIdFilterTest {
 
   @Autowired MockMvc mvc;

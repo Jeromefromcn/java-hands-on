@@ -57,7 +57,7 @@ Each is carried to the decision record.
 
 ---
 
-## [ ] 1 · Resource server and the caller
+## [x] 1 · Resource server and the caller
 
 **Change**
 - `adapter-web` POM: `spring-boot-starter-security`,

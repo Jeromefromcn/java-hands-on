@@ -18,7 +18,7 @@ class LoanReadIT {
   @BeforeAll
   static void start() {
     app = LedgerApp.startWeb();
-    http = RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+    http = LedgerApp.http(app);
     JdbcClient jdbc = app.getBean(JdbcClient.class);
     LedgerApp.referenceData(jdbc);
     jdbc.sql(

@@ -107,8 +107,7 @@ class InfraQueriesIT {
       jdbc.sql("INSERT INTO security VALUES (?, 'Synthetic HK Equity', 'HKD', 41.26, 'HKD')")
           .param(HK_EQUITY)
           .update();
-      RestTestClient http =
-          RestTestClient.bindToServer().baseUrl("http://localhost:" + LedgerApp.port(app)).build();
+      RestTestClient http = LedgerApp.http(app);
 
       http.post()
           .uri("/loans")
