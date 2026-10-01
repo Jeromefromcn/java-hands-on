@@ -1,6 +1,7 @@
 package com.jerome.slledger.bootstrap.config;
 
 import com.jerome.slledger.application.messaging.Outbox;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.revaluation.MarginCallMarkers;
 import com.jerome.slledger.application.revaluation.RaiseMarginCalls;
 import com.jerome.slledger.application.revaluation.RevaluationDispatcher;
@@ -12,6 +13,7 @@ import com.jerome.slledger.batch.revaluation.RunRevaluation;
 import java.time.Clock;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,8 +40,9 @@ public class RevaluationConfiguration {
   }
 
   @Bean
-  RaiseMarginCalls raiseMarginCalls(MarginCallMarkers markers, Outbox outbox) {
-    return new RaiseMarginCalls(markers, outbox);
+  RaiseMarginCalls raiseMarginCalls(
+      MarginCallMarkers markers, Outbox outbox, ObjectProvider<LedgerMetrics> metrics) {
+    return new RaiseMarginCalls(markers, outbox, metrics.getIfAvailable(() -> LedgerMetrics.NONE));
   }
 
   @Bean

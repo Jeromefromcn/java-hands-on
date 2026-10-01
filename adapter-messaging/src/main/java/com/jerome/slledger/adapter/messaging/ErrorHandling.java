@@ -2,11 +2,13 @@ package com.jerome.slledger.adapter.messaging;
 
 import com.jerome.slledger.application.messaging.MessageDecodeException;
 import com.jerome.slledger.application.messaging.Topics;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.position.UnknownReferenceException;
 import com.jerome.slledger.domain.error.DomainException;
 import java.time.Duration;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.kafka.core.KafkaOperations;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.ExponentialBackOff;
@@ -51,12 +53,23 @@ public final class ErrorHandling {
   }
 
   public static DefaultErrorHandler build(KafkaOperations<String, String> kafka, Retry retry) {
-    DeadLetterPublishingRecoverer recoverer =
+    return build(kafka, retry, LedgerMetrics.NONE);
+  }
+
+  /** As above, and each dead-lettered message is counted by its source topic. */
+  public static DefaultErrorHandler build(
+      KafkaOperations<String, String> kafka, Retry retry, LedgerMetrics metrics) {
+    DeadLetterPublishingRecoverer publisher =
         new DeadLetterPublishingRecoverer(
             kafka,
             // Partition -1: let the producer place it by key, so the dead-letter topic does not
             // have to have as many partitions as the topic it belongs to.
             (record, failure) -> new TopicPartition(Topics.deadLetterOf(record.topic()), -1));
+    ConsumerRecordRecoverer recoverer =
+        (record, failure) -> {
+          publisher.accept(record, failure);
+          metrics.deadLettered(record.topic());
+        };
 
     ExponentialBackOff backOff =
         new ExponentialBackOff(retry.initialInterval().toMillis(), retry.multiplier());

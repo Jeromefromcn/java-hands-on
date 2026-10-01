@@ -2,6 +2,7 @@ package com.jerome.slledger.application.revaluation;
 
 import com.jerome.slledger.application.messaging.IntegrationEvent.MarginCallRaised;
 import com.jerome.slledger.application.messaging.Outbox;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +17,16 @@ public class RaiseMarginCalls {
 
   private final MarginCallMarkers markers;
   private final Outbox outbox;
+  private final LedgerMetrics metrics;
 
   public RaiseMarginCalls(MarginCallMarkers markers, Outbox outbox) {
+    this(markers, outbox, LedgerMetrics.NONE);
+  }
+
+  public RaiseMarginCalls(MarginCallMarkers markers, Outbox outbox, LedgerMetrics metrics) {
     this.markers = markers;
     this.outbox = outbox;
+    this.metrics = metrics;
   }
 
   /**
@@ -34,6 +41,7 @@ public class RaiseMarginCalls {
         raised++;
       }
     }
+    metrics.marginCallsRaised(raised);
     return raised;
   }
 }

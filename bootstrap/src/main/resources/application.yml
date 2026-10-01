@@ -43,9 +43,13 @@ management:
         readiness:
           include: readinessState,db
 
-# Stage 12: on shutdown readiness goes REFUSING_TRAFFIC first, then in-flight requests finish.
+# Stage 12: on shutdown readiness goes REFUSING_TRAFFIC first, then in-flight requests finish. The
+# Tomcat MBean registry feeds the thread and connection meters.
 server:
   shutdown: graceful
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 # Stage 7: TraceIdFilter puts each request's id in the MDC; this prints it on every log line.
 logging:

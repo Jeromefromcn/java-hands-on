@@ -206,7 +206,7 @@ Each is carried to the decision record.
 - Table of timeouts, outermost first, strictly decreasing along each chain;
   storm counts in the record.
 
-## [ ] 7 · Metrics
+## [x] 7 · Metrics
 
 **Change**
 - `application.observability.LedgerMetrics` (port, `NONE`); Micrometer
@@ -417,3 +417,22 @@ through the same class).
   timeout and three attempts against a server that works for 1,000 ms made it see 30 requests, 30 in
   flight, none completed; with a 3 s timeout it saw 10, 10 in flight, all completed
   (`docs/evidence/12-retry-storm.txt`).
+
+**Section 7.**
+- Commit safety is in the implementation of the port, not at the call sites: `MicrometerLedgerMetrics`
+  registers each fact-about-data counter for the commit of the surrounding transaction (and counts at
+  once outside one). The use cases call `LedgerMetrics` from inside their transactions, and
+  `RolledBackOpenCountsNothingIT` shows an open whose caller's transaction fails counts nothing.
+- Consumer lag comes from the Kafka clients' own `records-lag-max`, bound by spring-kafka's
+  `MicrometerConsumerListener` added to the consumer factory (`KafkaConsumers.container` takes factory
+  listeners, so `adapter-messaging` still knows no metrics library). The dead-letter figure is a counter
+  incremented as the recoverer publishes, tagged by source topic, not a gauge of the topic's size.
+- The spec's `ledger.positions.active` gauge was dropped: no port counts open positions across securities,
+  and adding one for a gauge is a query nobody asked for. The opened counter and the outcome gauges cover
+  the roadmap's list.
+- The last-success gauge reads Spring Batch's metadata (max `end_time` of a COMPLETED execution) with a
+  5 s cache, and reads 0 for a job that never completed, so that "now minus last success" alerts for
+  "never". Metadata times are local date-times; they are converted with the JVM's zone, as the run summary
+  already does.
+- The scrape of the run is in `docs/evidence/12-metrics-scrape.txt`; no `ledger_` series carries a label
+  named counterparty, position, isin, id, key or trade.

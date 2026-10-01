@@ -1,5 +1,7 @@
 package com.jerome.slledger.application.observability;
 
+import java.util.Currency;
+
 /**
  * What the use cases tell the outside about what they did, as counts. Every method has an empty
  * default, so a test or a deployment with no metrics registry needs no implementation, and an
@@ -24,4 +26,20 @@ public interface LedgerMetrics {
   }
 
   default void quoteServed(QuoteResult result) {}
+
+  /**
+   * A position was opened. Called from inside the booking's transaction: an implementation that
+   * counts must count when that transaction commits, not when this is called, or a rolled-back open
+   * is counted as an open.
+   */
+  default void positionOpened(Currency collateralCurrency) {}
+
+  /** Margin calls were recorded; same rule about commits as {@link #positionOpened}. */
+  default void marginCallsRaised(int count) {}
+
+  /** A counterparty was told about a margin call. */
+  default void noticeSent() {}
+
+  /** A message was set aside in a dead-letter topic. */
+  default void deadLettered(String topic) {}
 }

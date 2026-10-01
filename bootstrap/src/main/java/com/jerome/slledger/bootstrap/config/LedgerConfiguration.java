@@ -84,7 +84,8 @@ public class LedgerConfiguration {
       TradeLedger trades,
       HolidayCalendar calendar,
       ObjectProvider<Outbox> outbox,
-      Clock clock) {
+      Clock clock,
+      ObjectProvider<LedgerMetrics> metrics) {
     // The outbox exists only when messaging is on; without it an open records no event.
     return new OpenPosition(
         counterparties,
@@ -93,7 +94,8 @@ public class LedgerConfiguration {
         trades,
         calendar,
         outbox.getIfAvailable(() -> Outbox.NONE),
-        clock);
+        clock,
+        metrics.getIfAvailable(() -> LedgerMetrics.NONE));
   }
 
   @Bean

@@ -30,9 +30,16 @@ import com.jerome.slledger.batch.reconciliation.ReconciliationJobConfiguration;
 import com.jerome.slledger.batch.reconciliation.RunReconciliation;
 import com.jerome.slledger.batch.retention.RetentionJobConfiguration;
 import com.jerome.slledger.batch.retention.RunRetentionJob;
+import com.jerome.slledger.batch.revaluation.RevaluationJobConfiguration;
 import com.jerome.slledger.batch.support.FailurePoint;
+import com.jerome.slledger.bootstrap.observability.BatchMeters;
+import com.jerome.slledger.bootstrap.observability.MicrometerBatchRunMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.ZoneId;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -49,6 +56,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * Spring Batch and the ledger's jobs. Only present when {@code ledger.batch.enabled=true}.
@@ -77,21 +85,36 @@ public class BatchConfiguration {
   private static final Logger LOG = LoggerFactory.getLogger("com.jerome.slledger.batch.runs");
 
   @Bean
-  BatchRunMetrics batchRunMetrics() {
-    return (RunSummary summary) ->
-        LOG.info(
-            "job={} status={} parameters={} duration={} read={} written={} filtered={} skipped={}"
-                + " commits={} rollbacks={}",
-            summary.job(),
-            summary.status(),
-            summary.parameters(),
-            summary.duration(),
-            summary.read(),
-            summary.written(),
-            summary.filtered(),
-            summary.skipped(),
-            summary.commits(),
-            summary.rollbacks());
+  BatchRunMetrics batchRunMetrics(MeterRegistry registry) {
+    BatchRunMetrics meters = new MicrometerBatchRunMetrics(registry);
+    return (RunSummary summary) -> {
+      meters.record(summary);
+      LOG.info(
+          "job={} status={} parameters={} duration={} read={} written={} filtered={} skipped={}"
+              + " commits={} rollbacks={}",
+          summary.job(),
+          summary.status(),
+          summary.parameters(),
+          summary.duration(),
+          summary.read(),
+          summary.written(),
+          summary.filtered(),
+          summary.skipped(),
+          summary.commits(),
+          summary.rollbacks());
+    };
+  }
+
+  @Bean
+  MeterBinder batchMeters(JdbcClient jdbc) {
+    return new BatchMeters(
+        jdbc,
+        List.of(
+            AccrualJobConfiguration.JOB,
+            ReconciliationJobConfiguration.JOB,
+            RetentionJobConfiguration.JOB,
+            RevaluationJobConfiguration.JOB),
+        ZoneId.systemDefault());
   }
 
   @Bean

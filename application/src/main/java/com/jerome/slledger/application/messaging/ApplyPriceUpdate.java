@@ -3,6 +3,7 @@ package com.jerome.slledger.application.messaging;
 import com.jerome.slledger.application.event.DomainEvents;
 import com.jerome.slledger.application.messaging.IntegrationEvent.MarginCallRaised;
 import com.jerome.slledger.application.messaging.IntegrationEvent.PriceUpdated;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.revaluation.RevaluationRequests;
 import com.jerome.slledger.domain.error.DomainException;
 import com.jerome.slledger.domain.loan.LoanPosition;
@@ -43,6 +44,7 @@ public class ApplyPriceUpdate {
   private final Clock clock;
   private final long inlineLimit;
   private final RevaluationRequests requests;
+  private final LedgerMetrics metrics;
 
   /** Always revalues inline: what the application did before it had a batch. */
   public ApplyPriceUpdate(
@@ -62,6 +64,18 @@ public class ApplyPriceUpdate {
       Clock clock,
       long inlineLimit,
       RevaluationRequests requests) {
+    this(prices, positions, outbox, events, clock, inlineLimit, requests, LedgerMetrics.NONE);
+  }
+
+  public ApplyPriceUpdate(
+      SecurityPrices prices,
+      SecurityPositions positions,
+      Outbox outbox,
+      DomainEvents events,
+      Clock clock,
+      long inlineLimit,
+      RevaluationRequests requests,
+      LedgerMetrics metrics) {
     this.prices = prices;
     this.positions = positions;
     this.outbox = outbox;
@@ -69,6 +83,7 @@ public class ApplyPriceUpdate {
     this.clock = clock;
     this.inlineLimit = inlineLimit;
     this.requests = requests;
+    this.metrics = metrics;
   }
 
   @Transactional
@@ -107,6 +122,7 @@ public class ApplyPriceUpdate {
         raised++;
       }
     }
+    metrics.marginCallsRaised(raised);
     events.publish(new PriceApplied(update.security(), update.price(), update.version()));
     return new PriceApplication(true, raised, skipped);
   }

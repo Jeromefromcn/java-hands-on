@@ -24,8 +24,12 @@ import com.jerome.slledger.application.messaging.SecurityPositions;
 import com.jerome.slledger.application.messaging.SecurityPrices;
 import com.jerome.slledger.application.messaging.StoredOutbox;
 import com.jerome.slledger.application.messaging.Topics;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.revaluation.RevaluationLauncher;
 import com.jerome.slledger.application.revaluation.RevaluationRequests;
+import com.jerome.slledger.bootstrap.observability.OutboxMeters;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -41,6 +45,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.MicrometerConsumerListener;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
 /** Kafka, the outbox and its relay. Only present when {@code ledger.messaging.enabled=true}. */
@@ -67,6 +72,11 @@ public class MessagingConfiguration {
   }
 
   @Bean
+  MeterBinder outboxMeters(OutboxStore store, Clock clock) {
+    return new OutboxMeters(store, clock);
+  }
+
+  @Bean
   Outbox outbox(EventCodec codec, OutboxStore store) {
     return new StoredOutbox(codec, store);
   }
@@ -86,12 +96,16 @@ public class MessagingConfiguration {
       Clock clock,
       RevaluationRequests requests,
       ObjectProvider<RevaluationLauncher> batch,
+      ObjectProvider<LedgerMetrics> metrics,
       @Value("${ledger.revaluation.inline-limit:1000}") long inlineLimit) {
     // Above the limit the update leaves the revaluation to the batch, which exists only when batch
     // is on. Without it, a security of any size is revalued inline, as before stage 11.
+    LedgerMetrics meters = metrics.getIfAvailable(() -> LedgerMetrics.NONE);
     return batch.getIfAvailable() == null
-        ? new ApplyPriceUpdate(prices, positions, outbox, events, clock)
-        : new ApplyPriceUpdate(prices, positions, outbox, events, clock, inlineLimit, requests);
+        ? new ApplyPriceUpdate(
+            prices, positions, outbox, events, clock, Long.MAX_VALUE, null, meters)
+        : new ApplyPriceUpdate(
+            prices, positions, outbox, events, clock, inlineLimit, requests, meters);
   }
 
   @Bean
@@ -111,8 +125,9 @@ public class MessagingConfiguration {
   }
 
   @Bean
-  MarginCallNotifier marginCallNotifier(IdempotentConsumer guard, NoticeChannel channel) {
-    return new MarginCallNotifier(guard, channel);
+  MarginCallNotifier marginCallNotifier(
+      IdempotentConsumer guard, NoticeChannel channel, ObjectProvider<LedgerMetrics> metrics) {
+    return new MarginCallNotifier(guard, channel, metrics.getIfAvailable(() -> LedgerMetrics.NONE));
   }
 
   @Bean
@@ -170,12 +185,16 @@ public class MessagingConfiguration {
       EventCodec codec,
       ApplyPriceUpdate apply,
       KafkaTemplate<String, String> kafka,
+      ObjectProvider<LedgerMetrics> metrics,
+      MeterRegistry registry,
       MessagingProperties properties) {
     return KafkaConsumers.container(
         consumerSettings(properties, "price-updates"),
         Topics.PRICE_UPDATES,
         new PriceUpdateListener(codec, apply),
-        ErrorHandling.build(kafka, retry(properties)));
+        ErrorHandling.build(
+            kafka, retry(properties), metrics.getIfAvailable(() -> LedgerMetrics.NONE)),
+        List.of(new MicrometerConsumerListener<>(registry)));
   }
 
   @Bean
@@ -188,12 +207,16 @@ public class MessagingConfiguration {
       EventCodec codec,
       MarginCallNotifier notifier,
       KafkaTemplate<String, String> kafka,
+      ObjectProvider<LedgerMetrics> metrics,
+      MeterRegistry registry,
       MessagingProperties properties) {
     return KafkaConsumers.container(
         consumerSettings(properties, "margin-calls"),
         Topics.MARGIN_CALLS,
         new MarginCallListener(codec, notifier),
-        ErrorHandling.build(kafka, retry(properties)));
+        ErrorHandling.build(
+            kafka, retry(properties), metrics.getIfAvailable(() -> LedgerMetrics.NONE)),
+        List.of(new MicrometerConsumerListener<>(registry)));
   }
 
   private static KafkaConsumers.Settings consumerSettings(

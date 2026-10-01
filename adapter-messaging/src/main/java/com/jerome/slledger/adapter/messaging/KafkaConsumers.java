@@ -2,9 +2,11 @@ package com.jerome.slledger.adapter.messaging;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
@@ -51,6 +53,19 @@ public final class KafkaConsumers {
       String topic,
       MessageListener<String, String> listener,
       CommonErrorHandler errorHandler) {
+    return container(settings, topic, listener, errorHandler, List.of());
+  }
+
+  /**
+   * @param factoryListeners told when the factory creates or closes a consumer; how a metrics
+   *     registry gets the consumers' own lag and fetch meters without this module knowing one
+   */
+  public static ConcurrentMessageListenerContainer<String, String> container(
+      Settings settings,
+      String topic,
+      MessageListener<String, String> listener,
+      CommonErrorHandler errorHandler,
+      List<ConsumerFactory.Listener<String, String>> factoryListeners) {
     Map<String, Object> config = new HashMap<>();
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, settings.bootstrapServers());
     config.put(ConsumerConfig.GROUP_ID_CONFIG, settings.groupId());
@@ -71,9 +86,10 @@ public final class KafkaConsumers {
     properties.setAckMode(ContainerProperties.AckMode.RECORD);
     properties.setGroupId(settings.groupId());
 
+    DefaultKafkaConsumerFactory<String, String> factory = new DefaultKafkaConsumerFactory<>(config);
+    factoryListeners.forEach(factory::addListener);
     ConcurrentMessageListenerContainer<String, String> container =
-        new ConcurrentMessageListenerContainer<>(
-            new DefaultKafkaConsumerFactory<>(config), properties);
+        new ConcurrentMessageListenerContainer<>(factory, properties);
     container.setConcurrency(settings.concurrency());
     if (errorHandler != null) {
       container.setCommonErrorHandler(errorHandler);

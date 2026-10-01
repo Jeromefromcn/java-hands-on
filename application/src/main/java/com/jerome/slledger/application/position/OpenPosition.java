@@ -2,6 +2,7 @@ package com.jerome.slledger.application.position;
 
 import com.jerome.slledger.application.messaging.IntegrationEvent.PositionOpened;
 import com.jerome.slledger.application.messaging.Outbox;
+import com.jerome.slledger.application.observability.LedgerMetrics;
 import com.jerome.slledger.application.port.CounterpartyDirectory;
 import com.jerome.slledger.application.port.DuplicateRequestException;
 import com.jerome.slledger.application.port.SecurityDirectory;
@@ -39,6 +40,7 @@ public class OpenPosition {
   private final HolidayCalendar calendar;
   private final Outbox outbox;
   private final Clock clock;
+  private final LedgerMetrics metrics;
 
   public OpenPosition(
       CounterpartyDirectory counterparties,
@@ -61,6 +63,19 @@ public class OpenPosition {
       HolidayCalendar calendar,
       Outbox outbox,
       Clock clock) {
+    this(
+        counterparties, securities, positions, trades, calendar, outbox, clock, LedgerMetrics.NONE);
+  }
+
+  public OpenPosition(
+      CounterpartyDirectory counterparties,
+      SecurityDirectory securities,
+      LoanPositionRepository positions,
+      TradeLedger trades,
+      HolidayCalendar calendar,
+      Outbox outbox,
+      Clock clock,
+      LedgerMetrics metrics) {
     this.counterparties = counterparties;
     this.securities = securities;
     this.positions = positions;
@@ -68,6 +83,7 @@ public class OpenPosition {
     this.calendar = calendar;
     this.outbox = outbox;
     this.clock = clock;
+    this.metrics = metrics;
   }
 
   /**
@@ -130,6 +146,7 @@ public class OpenPosition {
             security.isin(),
             command.quantity(),
             requested));
+    metrics.positionOpened(requested.currency());
     return borrow;
   }
 }
