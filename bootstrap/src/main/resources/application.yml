@@ -19,6 +19,22 @@ spring:
         cache:
           use_second_level_cache: false
 
+# Stage 12. Only what a probe or a scraper needs is exposed. env, beans and configprops are not:
+# they print configuration, and the secrets in it, to anyone who can reach the port. Health details
+# stay hidden until stage 13 puts authentication in front of them.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+# Stage 12: on shutdown readiness goes REFUSING_TRAFFIC first, then in-flight requests finish.
+server:
+  shutdown: graceful
+
 # Stage 7: TraceIdFilter puts each request's id in the MDC; this prints it on every log line.
 logging:
   pattern:

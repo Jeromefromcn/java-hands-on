@@ -174,6 +174,23 @@ class ArchitectureIT {
   }
 
   @Test
+  @DisplayName("domain and application depend on no resilience, metrics or tracing library")
+  void innerLayersHaveNoObservabilityLibrary() {
+    // Stage 12: what is measured, traced and protected is decided at the edges. The use cases see
+    // ports (Tracing, LedgerMetrics) and plain exceptions.
+    ArchRule rule =
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.jerome.slledger.domain..", "com.jerome.slledger.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "io.github.resilience4j..", "io.micrometer..", "io.opentelemetry..");
+
+    rule.check(CLASSES);
+  }
+
+  @Test
   @DisplayName("batch holds no SQL and does not depend on adapter-persistence")
   void batchIsDefinitionsOnly() {
     // Stage 11: readers and writers call ports. The job repository's own SQL is the framework's.

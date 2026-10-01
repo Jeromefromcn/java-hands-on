@@ -40,6 +40,17 @@
       <artifactId>batch</artifactId>
     </dependency>
 
+    <!-- Stage 12: actuator probes and a Prometheus scrape. The core libraries
+         of Micrometer arrive with the starter; only the exporter is named. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
     <!-- The container itself, stage 4. spring-boot-starter-validation adds
          Bean Validation for @ConfigurationProperties + @Validated. -->
     <dependency>

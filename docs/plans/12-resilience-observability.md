@@ -60,7 +60,7 @@ Each is carried to the decision record.
 
 ---
 
-## [ ] 1 · Actuator baseline
+## [x] 1 · Actuator baseline
 
 **Change**
 - `bootstrap` POM: `spring-boot-starter-actuator`, `micrometer-registry-prometheus`.
@@ -349,4 +349,8 @@ Each is carried to the decision record.
 
 ## Found while implementing
 
-(filled in as sections land)
+**Section 1.**
+- Boot's `/actuator/health` aggregate includes Redis as soon as `spring-data-redis` is on the classpath,
+  whether or not `ledger.cache.enabled` is set. A context with no Redis answers 503 on the aggregate. The
+  aggregate is therefore not usable as a probe; section 2 defines the probe groups and the exposure test
+  reads the liveness probe.

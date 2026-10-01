@@ -11,3 +11,8 @@ marketdata:
 ledger:
   marketdata:
     base-url: ${LEDGER_MARKETDATA_URL}
+
+# Stage 12: probes and the scrape are served on their own port, which the edge does not route.
+management:
+  server:
+    port: 8081
