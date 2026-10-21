@@ -145,8 +145,11 @@ class TraceAcrossKafkaIT {
     String requestTrace = opened.getResponseHeaders().getFirst("X-Trace-Id");
     String position = jdbc.sql("SELECT id FROM loan_position").query(String.class).single();
 
+    // By type as well: a price from the shared topic's history can already have raised a margin
+    // call for this position, under the same key.
     String stored =
-        jdbc.sql("SELECT traceparent FROM outbox_event WHERE message_key = ?")
+        jdbc.sql(
+                "SELECT traceparent FROM outbox_event WHERE type = 'PositionOpened' AND message_key = ?")
             .param(position)
             .query(String.class)
             .single();
