@@ -262,7 +262,7 @@ connections).
 
 **Evidence** `14-canary.txt`.
 
-## [ ] 16 · Rollback drill
+## [x] 16 · Rollback drill
 
 **Change**
 - A `drill/*` branch with a bug, built and signed by the pipeline, promoted
@@ -404,3 +404,13 @@ connections).
   the two that 5% selected (CP-K018, CP-K034) are the two the bucket function
   predicted before the run. Spring Batch 6 stores the job execution context
   Java-serialized; `canary.sh` decodes it to show the percentage each run kept.
+- **Section 16.** The bug was chosen to pass every gate: a mistyped upper rate
+  bound in the prod profile, which no test loads. CI built, scanned and signed
+  it, Kyverno admitted it, the probes stayed green, and every booking was
+  refused. The smoke check saw the first refusal 62 s after the promotion was
+  pushed, while the rollout was still running. The drill driver then lost
+  509 s: its revert command carried a flag `git revert` rejects, it logged a
+  revert it had not made, and nobody read the log until the wait looked too
+  long. The revert by hand was back to good bookings in 50 s. The committed
+  `rollback-drill.sh` is the corrected driver and stops on a failed command;
+  it has not been rerun.

@@ -1,0 +1,39 @@
+Rollback drill on K3s, 2026-10-21 (UTC). The release: java-hands-on commit 75dc7d131ad7 on branch drill/rate-bound
+(never merged, branch deleted after the drill), which mistypes the prod profile's upper rate bound as
+0.0150 instead of 0.1500. Tests run under the test profile, so every gate passed: CI run 39614857451
+verify, dependency-scan and image all green, image signed from refs/heads/drill/rate-bound and admitted
+by Kyverno. In production every open at 3.65% is refused (400 validation).
+Release:  ghcr.io/jeromefromcn/sl-ledger@sha256:72d1ee5b5a738ffc0354b4eb2b98ff2c9d3635cc59d1c8561c466566778ffb01
+Previous: ghcr.io/jeromefromcn/sl-ledger@sha256:273f98bdfb4f1f480a70e0aa3c0cf8e43550f5798185078e185dbda4d96a9b4a (3b278854eac9)
+Detection: infra/delivery/smoke.sh, a pod in the namespace booking one position every 5 s.
+
+== timeline (drill driver log)
+14:30:33 T0 promotion pushed: bb7a5a1
+14:30:39     ArgoCD applied the new digest
+14:31:45 T1 rollout complete: 2 of 2 pods on the bug release, ready (probes green)
+14:31:51 T2 detected: smoke line "14:31:51 400 validation"
+14:31:52 T3 revert pushed: bb7a5a1   <- false: the revert command had failed and HEAD was still the promotion
+14:40:20 T3 revert pushed (by hand after the script's revert failed): 31f71d3
+14:40:28     ArgoCD applied the previous digest
+14:41:06 T4 rollback complete: 2 of 2 pods on 3b278854eac9, ready
+14:41:11 T5 first booking after the rollback: 14:41:10 201 booked
+
+== the smoke check's transitions (time, status of the booking)
+  14:30:33 201 booked
+  14:31:35 400 validation
+  14:31:40 201 booked
+  14:31:45 400 validation
+  14:40:59 201 booked
+  14:41:05 400 validation
+  14:41:10 201 booked
+  bookings refused in total: 112, all between 14:31:35 and 14:41:05
+
+== the three times
+  promotion pushed -> first refused booking          62 s (14:30:33 -> 14:31:35; ArgoCD applied it 6 s after the push)
+  first refused booking -> rollback pushed          525 s (14:31:35 -> 14:40:20), of which 16 s to detection by the
+                                                     drill driver (it started watching at rollout completion,
+                                                     14:31:45) and 509 s lost to the driver's own revert command,
+                                                     which failed (`git revert -q` is not an option) and was not
+                                                     noticed until its log was read; the revert was then done by hand
+  rollback pushed -> first good booking              50 s (14:40:20 -> 14:41:10; ArgoCD applied it 8 s after the push)
+Promotion and rollback are both a commit in docker-gitops (bb7a5a1, 31f71d3); nothing was rebuilt to roll back.
