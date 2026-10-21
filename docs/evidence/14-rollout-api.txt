@@ -1,0 +1,27 @@
+Requests (who: request -> status and problem type or percent)
+trader    GET   …                                        -> 403 forbidden
+auditor   GET   …                                        -> 403 forbidden
+ops-a     GET   …                                        -> 200 percent 0
+ops-a     GET   /rollouts/no.such.flag                   -> 404 not-found
+ops-a     POST  …/raises {"toPercent":25}                -> 409 rollout-first-step-too-large
+ops-a     POST  …/raises {"toPercent":5}                 -> 201 change 2
+ops-a     POST  …/raises/2/approval                      -> 409 rollout-same-person
+ops-b     POST  …/raises/2/approval                      -> 200 percent 5
+ops-a     POST  …/raises {"toPercent":50}                -> 201 change 3
+ops-b     POST  …/raises/3/approval                      -> 409 rollout-observation-period
+ops-b     POST  …/raises/3/approval                      -> 200 percent 50
+ops-a     POST  …/raises {"toPercent":100}               -> 201 change 4
+ops-a     POST  …/lowering {"toPercent":0}               -> 200 percent 0
+ops-b     POST  …/raises/4/approval                      -> 409 rollout-stale
+
+audit_event rows (actor | action | subject_id | result | reason)
+ops-a | ROLLOUT | accrual.day-count-by-market | REJECTED | FIRST_STEP_TOO_LARGE
+ops-a | ROLLOUT | accrual.day-count-by-market | PROPOSED | change 2: 0->5
+ops-a | ROLLOUT | accrual.day-count-by-market | REJECTED | SAME_PERSON
+ops-b | ROLLOUT | accrual.day-count-by-market | APPROVED | change 2: 0->5
+ops-a | ROLLOUT | accrual.day-count-by-market | PROPOSED | change 3: 5->50
+ops-b | ROLLOUT | accrual.day-count-by-market | REJECTED | OBSERVATION_PERIOD
+ops-b | ROLLOUT | accrual.day-count-by-market | APPROVED | change 3: 5->50
+ops-a | ROLLOUT | accrual.day-count-by-market | PROPOSED | change 4: 50->100
+ops-a | ROLLOUT | accrual.day-count-by-market | LOWERED | 50->0
+ops-b | ROLLOUT | accrual.day-count-by-market | REJECTED | STALE

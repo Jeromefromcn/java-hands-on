@@ -6,10 +6,12 @@ import com.jerome.slledger.application.accrual.AccrueDay;
 import com.jerome.slledger.application.accrual.BookAccruals;
 import com.jerome.slledger.application.accrual.BookResult;
 import com.jerome.slledger.application.accrual.CorruptPositionException;
+import com.jerome.slledger.application.accrual.DayCountRollout;
 import com.jerome.slledger.application.accrual.PartitionScheme;
 import com.jerome.slledger.application.accrual.RecordSkip;
 import com.jerome.slledger.application.accrual.Slice;
 import com.jerome.slledger.application.batch.BatchRunMetrics;
+import com.jerome.slledger.application.rollout.RolloutStore;
 import com.jerome.slledger.batch.support.FailurePoint;
 import com.jerome.slledger.batch.support.KeysetReader;
 import com.jerome.slledger.batch.support.RunSummaryListener;
@@ -69,12 +71,14 @@ public class AccrualJobConfiguration {
       JobRepository repository,
       @Qualifier("accrualStep") Step accrualStep,
       BatchRunMetrics metrics,
-      BookAccruals book) {
+      BookAccruals book,
+      RolloutStore rollouts) {
     return new JobBuilder(JOB, repository)
         .validator(
             new DefaultJobParametersValidator(
                 new String[] {"businessDate"}, new String[] {"rerun", "fencingToken"}))
         .listener(new FenceClaimListener(book))
+        .listener(new RolloutSnapshotListener(rollouts))
         .listener(new RunSummaryListener(metrics))
         .start(accrualStep)
         .build();
@@ -225,8 +229,12 @@ public class AccrualJobConfiguration {
   @Bean
   @StepScope
   ItemProcessor<AccrualCandidate, AccrualEntry> accrualProcessor(
-      @Value("#{jobParameters['businessDate']}") LocalDate businessDate) {
-    return candidate -> AccrueDay.accrue(candidate, businessDate);
+      @Value("#{jobParameters['businessDate']}") LocalDate businessDate,
+      @Value("#{jobExecutionContext['" + RolloutSnapshotListener.KEY + "']}") Integer percent) {
+    // The value RolloutSnapshotListener took when the run started; absent only for a run started
+    // without that listener, which is the ledger before stage 14.
+    DayCountRollout rollout = percent == null ? DayCountRollout.OFF : new DayCountRollout(percent);
+    return candidate -> AccrueDay.accrue(candidate, businessDate, rollout);
   }
 
   @Bean

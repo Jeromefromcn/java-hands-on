@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
- * Who may call a handler, one annotation per capability, so the authorization model is these four
+ * Who may call a handler, one annotation per capability, so the authorization model is these five
  * lines and a handler says what it needs by name. The role names are the identity provider's, as
  * {@code Role} spells them; method security runs before the transaction a use case opens, so a
  * refused call never takes a connection.
@@ -44,4 +44,14 @@ public final class Access {
   @Documented
   @PreAuthorize("hasRole('ledger-auditor')")
   public @interface ReadAudit {}
+
+  /**
+   * Stage 14: read and change rollouts. Operations staff only; which of them may approve a given
+   * raise (not its maker) is the use case's rule, not a role.
+   */
+  @Target(ElementType.METHOD)
+  @Retention(RetentionPolicy.RUNTIME)
+  @Documented
+  @PreAuthorize("hasRole('ledger-ops')")
+  public @interface ManageRollouts {}
 }

@@ -217,7 +217,7 @@ Each is carried to the decision record.
 - `RolloutRulesTest`, `BucketTest` (stable, uniform enough at 10 000 ids,
   monotone in the percentage), `RolloutStoreIT`.
 
-## [ ] 12 · The flag on the API and in the accrual
+## [x] 12 · The flag on the API and in the accrual
 
 **Change**
 - `POST /rollouts/{flag}/raises`, `POST /rollouts/{flag}/raises/{id}/approval`,
@@ -376,3 +376,8 @@ connections).
   end by section 12's `RolloutApiIT` (every change, refusal and the stale
   approval) and `AccrualRolloutIT`, and the table's own maker-is-not-checker
   constraint is asserted there by an update that bypasses the application.
+- **Section 12.** `RolloutApiIT` first tried to show a stale approval by
+  lowering an already-zero rollout to zero; the rules refused the lowering
+  itself, so the old proposal stayed valid and was approved. The scenario now
+  proposes 50 to 100, kills to 0, and the approval of the old proposal is a
+  `409 rollout-stale`.

@@ -22,6 +22,12 @@ public final class AccrueDay {
    * @throws com.jerome.slledger.domain.error.DomainException the domain refused the value
    */
   public static AccrualEntry accrue(AccrualCandidate candidate, LocalDate businessDate) {
+    return accrue(candidate, businessDate, DayCountRollout.OFF);
+  }
+
+  /** As above, on the day count the rollout gives the position (stage 14). */
+  public static AccrualEntry accrue(
+      AccrualCandidate candidate, LocalDate businessDate, DayCountRollout rollout) {
     return switch (candidate) {
       case AccrualCandidate.Corrupt corrupt ->
           throw new CorruptPositionException(corrupt.positionId(), corrupt.reason());
@@ -35,7 +41,11 @@ public final class AccrueDay {
                     BigDecimal.valueOf(valid.position().outstandingQuantity()),
                     RoundingMode.HALF_UP);
         yield AccrualEntry.accrue(
-            valid.position().id(), value, valid.position().accrualRule(), businessDate);
+            valid.position().id(),
+            value,
+            valid.position().accrualRule(),
+            businessDate,
+            rollout.dayCountFor(valid.position(), value.currency()));
       }
     };
   }

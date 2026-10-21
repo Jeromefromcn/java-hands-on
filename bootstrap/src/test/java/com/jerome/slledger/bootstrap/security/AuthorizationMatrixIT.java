@@ -35,6 +35,8 @@ class AuthorizationMatrixIT {
   private static final Set<String> BOOKERS = Set.of("trader");
   private static final Set<String> QUOTERS = Set.of("trader", "ops");
 
+  private static final String ROLLOUT = "/rollouts/accrual.day-count-by-market";
+
   private static final List<Endpoint> ENDPOINTS =
       List.of(
           new Endpoint("GET /loans", HttpMethod.GET, "/loans", null, READERS),
@@ -65,7 +67,27 @@ class AuthorizationMatrixIT {
               QUOTERS),
           new Endpoint(
               "GET /quotes", HttpMethod.GET, "/quotes?isin=" + WebLedger.HK_EQUITY, null, QUOTERS),
-          new Endpoint("GET /audit", HttpMethod.GET, "/audit", null, Set.of("auditor")));
+          new Endpoint("GET /audit", HttpMethod.GET, "/audit", null, Set.of("auditor")),
+          // Stage 14: rollouts, operations staff only.
+          new Endpoint("GET /rollouts/{flag}", HttpMethod.GET, ROLLOUT, null, Set.of("ops")),
+          new Endpoint(
+              "POST /rollouts/{flag}/raises",
+              HttpMethod.POST,
+              ROLLOUT + "/raises",
+              () -> "{\"toPercent\":5}",
+              Set.of("ops")),
+          new Endpoint(
+              "POST /rollouts/{flag}/raises/{id}/approval",
+              HttpMethod.POST,
+              ROLLOUT + "/raises/999999/approval",
+              () -> "",
+              Set.of("ops")),
+          new Endpoint(
+              "POST /rollouts/{flag}/lowering",
+              HttpMethod.POST,
+              ROLLOUT + "/lowering",
+              () -> "{\"toPercent\":0}",
+              Set.of("ops")));
 
   private static final Map<String, Supplier<String>> ROLES =
       Map.of(

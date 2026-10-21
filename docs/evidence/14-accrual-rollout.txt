@@ -1,0 +1,2 @@
+restart: failed at chunk 3 with 100 entries booked at 5%; rollout set to 100%; the resumed execution kept percent=5 from its context and booked the rest at 5%; rollout set to 0%: the next date booked every USD position 1.00
+rollout 5%: 10 of 200 counterparties selected [CP-R002, CP-R007, CP-R008, CP-R039, CP-R049, CP-R053, CP-R075, CP-R126, CP-R138, CP-R196]; their USD positions booked 1.01 (ACT/360), every other USD position 1.00 (ACT/365F), every HKD position 4.13; the run's context records percent=5

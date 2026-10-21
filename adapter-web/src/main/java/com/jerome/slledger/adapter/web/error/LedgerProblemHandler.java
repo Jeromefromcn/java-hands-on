@@ -8,6 +8,7 @@ import com.jerome.slledger.application.position.IdempotencyKeyReusedException;
 import com.jerome.slledger.application.position.InvalidQueryException;
 import com.jerome.slledger.application.position.UnknownReferenceException;
 import com.jerome.slledger.application.quote.OverloadedException;
+import com.jerome.slledger.application.rollout.RolloutRefusedException;
 import com.jerome.slledger.application.security.ForbiddenException;
 import com.jerome.slledger.domain.error.CurrencyMismatchException;
 import com.jerome.slledger.domain.error.DomainException;
@@ -105,6 +106,15 @@ public class LedgerProblemHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(CurrencyMismatchException.class)
   ProblemDetail currencyMismatch(CurrencyMismatchException e) {
     return Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "currency-mismatch", e.getMessage());
+  }
+
+  /** Stage 14: a rollout change its rules refuse; the type names the rule. */
+  @ExceptionHandler(RolloutRefusedException.class)
+  ProblemDetail rolloutRefused(RolloutRefusedException e) {
+    return Problems.of(
+        HttpStatus.CONFLICT,
+        "rollout-" + e.reason().name().toLowerCase(java.util.Locale.ROOT).replace('_', '-'),
+        e.getMessage());
   }
 
   @ExceptionHandler(IllegalTransitionException.class)
