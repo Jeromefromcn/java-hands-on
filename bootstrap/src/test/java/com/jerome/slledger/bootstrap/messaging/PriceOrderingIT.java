@@ -319,6 +319,8 @@ class PriceOrderingIT {
 
     List<ConsumerRecord<String, String>> onTopic =
         SharedKafka.readAll("sl.price-updates").stream()
+            // The topic is shared, and other tests put records on it without this header.
+            .filter(r -> r.headers().lastHeader("messageId") != null)
             .filter(
                 r ->
                     event

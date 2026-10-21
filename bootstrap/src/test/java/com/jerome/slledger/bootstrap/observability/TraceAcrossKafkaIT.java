@@ -217,13 +217,21 @@ class TraceAcrossKafkaIT {
     assertThat(callConsumer.getParentSpanId())
         .as("the margin call was written inside the price consumer's span")
         .isEqualTo(priceConsumer.getSpanId());
-    String callTraceparent =
+    // Not single(): the price topic is shared, and a new consumer group reads its history, where
+    // another test's price for this ISIN can raise a call for this position too. The call this
+    // trace raised is the one that names the price consumer's span.
+    List<String> callTraceparents =
         jdbc.sql(
                 "SELECT traceparent FROM outbox_event WHERE type = 'MarginCallRaised' AND message_key = ?")
             .param(position)
             .query(String.class)
-            .single();
-    assertThat(callTraceparent).contains(priceConsumer.getSpanId());
+            .list();
+    assertThat(callTraceparents).anyMatch(t -> t.contains(priceConsumer.getSpanId()));
+    String callTraceparent =
+        callTraceparents.stream()
+            .filter(t -> t.contains(priceConsumer.getSpanId()))
+            .findFirst()
+            .orElseThrow();
 
     Evidence.write(
         "12-trace-across-kafka.txt",

@@ -36,8 +36,17 @@ class BatchSchedulersIT {
                   Money.of("41.26", Currency.getInstance("HKD")),
                   3));
 
+      // The request is marked DONE after the job ends, in a transaction of its own: the outbox can
+      // hold all 30 rows a moment before it does (a CI runner caught that moment).
       long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
-      while (ledger.count("outbox_event") < 30) {
+      while (ledger.count("outbox_event") < 30
+          || !"DONE"
+              .equals(
+                  ledger
+                      .jdbc
+                      .sql("SELECT status FROM revaluation_request")
+                      .query(String.class)
+                      .single())) {
         assertThat(System.nanoTime()).as("the dispatcher never ran the job").isLessThan(deadline);
         Thread.sleep(100);
       }
