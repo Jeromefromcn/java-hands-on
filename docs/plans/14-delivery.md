@@ -254,7 +254,7 @@ request).
 **Evidence** `14-rolling-update.txt` (both runs: requests, 5xx, failed
 connections).
 
-## [ ] 15 · Canary
+## [x] 15 · Canary
 
 **Change**
 - None in code. On the cluster: raise to 5% (maker, checker), a raise inside
@@ -398,3 +398,9 @@ connections).
 - **Section 13.** The first ledger pod's startup probe failed while Spring
   started (16.2 s); without a startup probe that would have been a liveness
   failure counting towards a restart.
+- **Section 15.** The local seed has two counterparties, and neither is in a
+  5% bucket (CP-001 is 50, CP-002 is 8), so a canary on them would select
+  nobody. The run added 40 synthetic counterparties to the cluster's database;
+  the two that 5% selected (CP-K018, CP-K034) are the two the bucket function
+  predicted before the run. Spring Batch 6 stores the job execution context
+  Java-serialized; `canary.sh` decodes it to show the percentage each run kept.

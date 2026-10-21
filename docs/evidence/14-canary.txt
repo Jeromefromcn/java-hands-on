@@ -1,0 +1,38 @@
+Day-count rollout on the K3s ledger, 2026-10-21T14:10:57Z. Flag accrual.day-count-by-market; observation period 10 min (LEDGER_ROLLOUT_OBSERVATION).
+
+== 40 synthetic counterparties, one USD position each (US0000000010, 1,000 shares at 10.00, flat 3.65%)
+positions opened: 40
+
+== raising to 5%
+ops-a proposes 5%                  POST  /rollouts/accrual.day-count-by-market/raises   -> 201 change 1
+ops-a approves own change 1        POST  /rollouts/accrual.day-count-by-market/raises/1/approval -> 409 rollout-same-person
+ops-b approves change 1            POST  /rollouts/accrual.day-count-by-market/raises/1/approval -> 200 percent 5
+ops-a proposes 25%                 POST  /rollouts/accrual.day-count-by-market/raises   -> 201 change 2
+ops-b approves change 2 at once    POST  /rollouts/accrual.day-count-by-market/raises/2/approval -> 409 rollout-observation-period
+
+== which counterparties 5% selects: the USD fees booked for 2026-10-21 (1.01 = ACT/360, 1.00 = ACT/365F)
+accrual Job accrual-canary-20261021 for 2026-10-21: job=dailyAccrual status=COMPLETED parameters={businessDate=2026-10-21} duration=PT0.231831471S read=40 written=40 filtered=0 skipped=0 commits=1 rollb
+  CP-K001 USD 1.00 USD
+  CP-K002 USD 1.00 USD
+  CP-K003 USD 1.00 USD
+  CP-K018 USD 1.01 USD
+  CP-K034 USD 1.01 USD
+  (2 at 1.01, 38 at 1.00)
+
+== the kill switch, one person
+ops-a lowers to 0%                 POST  /rollouts/accrual.day-count-by-market/lowering -> 200 percent 0
+accrual Job accrual-canary-20261022 for 2026-10-22: job=dailyAccrual status=COMPLETED parameters={businessDate=2026-10-22} duration=PT0.200727389S read=40 written=40 filtered=0 skipped=0 commits=1 rollb
+  2026-10-22: 0 at 1.01, 40 at 1.00
+  2026-10-21 is unchanged: 2 at 1.01 (booked is booked)
+
+== what each run recorded (job execution context, Java-serialized and base64-encoded by Spring Batch)
+  businessDate 2026-10-21: accrual.dayCountRolloutPercent = 5
+  businessDate 2026-10-22: accrual.dayCountRolloutPercent = 0
+
+== audit trail of the rollout
+ops-a PROPOSED change 1: 0->5
+ops-a REJECTED SAME_PERSON
+ops-b APPROVED change 1: 0->5
+ops-a PROPOSED change 2: 5->25
+ops-b REJECTED OBSERVATION_PERIOD
+ops-a LOWERED 5->0
