@@ -1,0 +1,4 @@
+stopImmediate=true (what KafkaConsumers configures): stop() called while m0 was in hand; returned after 428 ms; handled before the stop returned [m0], committed offset 1; the next member then handled [m1, m2, m3, m4]
+stopImmediate=false (Spring Kafka's default): stop() called while m0 was in hand; returned after 2059 ms; handled before the stop returned [m0, m1, m2, m3, m4], committed offset 5; the next member then handled []
+server.shutdown=immediate: context closed 0.5 s into a 3 s request; close took 301 ms; the client got IOException: HTTP/1.1 header parser received no bytes; a new request during the close got an answer
+server.shutdown=graceful (application.yml): context closed 0.5 s into a 3 s request; close took 2543 ms; the client got 200 "done after 3000 ms"; a new request during the close got ConnectException

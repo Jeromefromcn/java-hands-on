@@ -1,6 +1,12 @@
 spring:
   application:
     name: sl-ledger
+  # Stage 14: how long a graceful shutdown waits for in-flight requests (and each later lifecycle
+  # phase) before it closes anyway. Named, not left at Boot's 30 s, because it is one term of an
+  # inequality with the cluster's numbers: preStop pause 10 s + this 20 s + the rest of the close
+  # must stay inside terminationGracePeriodSeconds 45. See docs/decisions/14-delivery.md.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   # Stage 13. The API is a resource server: it verifies bearer tokens and issues none. The key
   # source is per profile (jwk-set-uri in local and prod) or per test (public-key-location); with
   # neither the application does not start, so a missing setting is never an open API. The audience

@@ -85,6 +85,12 @@ public final class KafkaConsumers {
     properties.setMessageListener(listener);
     properties.setAckMode(ContainerProperties.AckMode.RECORD);
     properties.setGroupId(settings.groupId());
+    // Stage 14: on shutdown, finish the record in hand, commit it, and stop. By default the
+    // container first handles the rest of the last poll, up to max.poll.records of them, which is
+    // a drain whose length nobody chose and which a pod's grace period cuts at an arbitrary record.
+    // The records not handled are not committed and go to the next member of the group.
+    // ConsumerShutdownIT measures both. See docs/decisions/14-delivery.md.
+    properties.setStopImmediate(true);
 
     DefaultKafkaConsumerFactory<String, String> factory = new DefaultKafkaConsumerFactory<>(config);
     factoryListeners.forEach(factory::addListener);

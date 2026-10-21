@@ -149,7 +149,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-three-envs.txt`, `14-config-precedence.txt`.
 
-## [ ] 7 · Shutdown
+## [x] 7 · Shutdown
 
 **Change**
 - `spring.lifecycle.timeout-per-shutdown-phase` set explicitly.
@@ -341,3 +341,9 @@ connections).
   database: the environment variable beat the local profile's
   `spring.datasource.url: ${LEDGER_DB_URL}`, which is the precedence
   `ConfigPrecedenceIT` asserts, met by accident.
+- **Section 7.** Spring Kafka's default stop first handles the rest of the
+  last poll: five records of 400 ms each made `stop()` take 2,059 ms and handle
+  all five. With up to 50 records a poll and a slow database that is a drain
+  longer than the pod's grace period, cut at an arbitrary record. The
+  containers now stop immediately after the record in hand (428 ms, offset 1
+  committed, the other four handled once by the next member).
