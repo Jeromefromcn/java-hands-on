@@ -7,6 +7,7 @@ import java.util.Objects;
 
 /** One rate for the whole outstanding value, every day. */
 public record FlatRate(Rate rate) implements AccrualRule {
+  private static final int   DRILL = 1;
 
   public FlatRate {
     Objects.requireNonNull(rate, "rate");
