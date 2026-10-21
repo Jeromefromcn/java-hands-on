@@ -124,7 +124,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-startup.txt` (table and the cost of each variant).
 
-## [ ] 5 · GraalVM native
+## [x] 5 · GraalVM native
 
 **Change**
 - `native` profile in `bootstrap` (`native-maven-plugin`, AOT), built in a
@@ -321,3 +321,15 @@ connections).
   stops being reproducible from the commit, which stage 1 established for the
   jar, and every release ships that layer. The release target is the image
   without the archive; `--target cds` remains, measured.
+- **Section 5.** No native executable was produced; the section closes on
+  what was measured (`docs/evidence/14-native.txt`). The first two runs were
+  configuration: native-image took the repackaged jar as its classpath and
+  missed the main class (Failsafe's trap again, fixed with
+  `classesDirectory`). Then memory: at a 6 GB heap the analysis step ran 29
+  minutes at the cap with the host swapping; at 10 GB seven of eight steps
+  finished in 15 min 20 s, peaking at 8.55 GB, and the host, which also runs
+  k3s and other services, thrashed until it was rebooted. The build's container
+  had no memory limit, so the kernel never killed it. `native.sh` now runs it
+  under a 12 GB limit with no swap and three CPUs, and refuses to start with
+  less than 14 GB available. Native startup and RSS are not measured; the
+  decision record says so.

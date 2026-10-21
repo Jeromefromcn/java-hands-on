@@ -87,6 +87,9 @@
          deliberately does not inherit. So the plugin gets its own pin, kept
          equal to spring-boot.version since they ship together. -->
     <spring-boot-maven-plugin.version>${spring-boot.version}</spring-boot-maven-plugin.version>
+    <!-- Stage 14: GraalVM's Maven plugin, only in bootstrap's native profile. The version the
+         Boot BOM names in its own (not inherited) pluginManagement. -->
+    <native-maven-plugin.version>1.1.8</native-maven-plugin.version>
 
     <!-- Fixed timestamp for reproducible builds: two clean packages must
          produce byte-identical jars. Verified in section 8. -->
@@ -409,6 +412,12 @@
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${spring-boot-maven-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.graalvm.buildtools</groupId>
+          <artifactId>native-maven-plugin</artifactId>
+          <version>${native-maven-plugin.version}</version>
         </plugin>
 
         <plugin>

@@ -1,0 +1,48 @@
+GraalVM native image of the ledger (infra/delivery/native.sh, bootstrap's native profile), built in
+ghcr.io/graalvm/native-image-community:25 on this host: 4 arm64 CPUs, 24 GB RAM, 4 GB swap, with
+its usual load (k3s and other services, about 11.6 GB resident before the build). 2026-10-21.
+
+No executable was produced. The build never finished on this host, and the second attempt made the
+host unresponsive until it was rebooted. What follows is what was measured on the way; nothing
+below is an estimate.
+
+== Attempt 0 (two runs): configuration, not memory
+  - native-image saw the repackaged jar on its classpath and reported the main class missing
+    (classes are under BOOT-INF/classes there): the same trap as Failsafe in section 1. Fixed with
+    <classesDirectory>${project.build.outputDirectory}</classesDirectory>.
+  - Spring AOT processing (process-aot, local profile) ran and completed before native-image.
+
+== Attempt 1: -J-Xmx6g, the container without a memory limit
+  [1/8] Initializing...            29.6 s @ 0.41 GB
+  [2/8] Performing analysis...     still running after 28 min 56 s; stopped by hand
+  At the stop: the native-image JVM's RSS 6,622,272 kB (its heap at the 6 GB cap), host swap
+  3,624 of 4,095 MB in use, vmstat 88-89% user CPU. A GC-bound analysis on a full heap.
+  At 11:40 the same day, during the first long run, the kernel logged
+  "INFO: task containerd-shim:4490 blocked for more than 122 seconds".
+
+== Attempt 2: -J-Xmx10g, Compose services stopped first (host MemAvailable 12,334 MB at start)
+  [1/8] Initializing...            26.3 s @ 0.41 GB
+  [2/8] Performing analysis...    327.8 s @ 7.01 GB
+  [3/8] Building universe...      158.7 s @ 7.59 GB
+  [4/8] Parsing methods...         31.1 s @ 8.55 GB
+  [5/8] Inlining methods...        23.9 s @ 4.57 GB
+  [6/8] Compiling methods...      247.5 s @ 5.77 GB
+  [7/8] Laying out methods...     105.0 s @ 8.31 GB
+  [8/8] never reached
+  Host at the last reading: 249 MB free, swap 4,095 of 4,095 MB used. Then the journal:
+    15:35:26 systemd-journald: Under memory pressure, flushing caches.
+    15:35:54 systemd-journald: Under memory pressure, flushing caches.
+    15:36:55 systemd-resolved: Under memory pressure, flushing caches.
+    15:38:57 systemd-journald: Under memory pressure, flushing caches.
+  The load average reached about 200 (reported by the operator): processes waiting on swap I/O in
+  uninterruptible sleep, not computation. The kernel's OOM killer never ran, because the build's
+  container had no memory limit and swap remained until the end; the host thrashed instead of
+  killing one process. Rebooted by the operator at 15:40.
+  Seven of eight steps took 920 s (15 min 20 s) of wall time.
+
+The build log of attempt 2 was in /tmp and did not survive the reboot; the step lines above are
+copied from the build's output as it was read during the session, the journal lines from
+`journalctl -b -1`.
+
+Not measured, because no executable exists: native startup time, native RSS, executable size.
+They would come from a host with room for the build (a GitHub arm64 runner, not this machine).
