@@ -270,7 +270,7 @@ connections).
 
 **Evidence** `14-rollback-drill.txt`.
 
-## [ ] 17 · Decision record
+## [x] 17 · Decision record
 
 **Change**
 - `docs/decisions/14-delivery.md`; roadmap ticks and progress table; this
@@ -414,3 +414,11 @@ connections).
   long. The revert by hand was back to good bookings in 50 s. The committed
   `rollback-drill.sh` is the corrected driver and stops on a failed command;
   it has not been rerun.
+- **Section 14 (not done).** The rolling update under continuous load was not
+  run in this stage: it is the one experiment that loads this shared host for
+  minutes, and it was left for a time the operator chooses. The k6 script
+  (`infra/delivery/k6/steady-reads.js`) is committed with this note; the
+  decision record makes no zero-5xx claim, and the roadmap item stays open.
+- **Section 17.** ROADMAP's two references to notes outside this repository
+  (a self-test item, a separate experiments directory) were rewritten as
+  plain statements.
