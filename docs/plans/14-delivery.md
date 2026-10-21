@@ -190,7 +190,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-gate-drills.txt`, `14-branch-protection.txt`.
 
-## [ ] 10 · Day count as a value
+## [x] 10 · Day count as a value
 
 **Change**
 - `domain.accrual.DayCount` (`ACT_365F`, `ACT_360`, convention per

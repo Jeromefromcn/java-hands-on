@@ -48,7 +48,7 @@ public record MarginalTieredRate(NavigableMap<BigDecimal, Rate> tiers) implement
   }
 
   @Override
-  public BigDecimal dailyFee(BigDecimal outstandingValue, LocalDate on) {
+  public BigDecimal annualFee(BigDecimal outstandingValue, LocalDate on) {
     BigDecimal annualFee = BigDecimal.ZERO;
     BigDecimal sliceTop = outstandingValue;
 
@@ -57,11 +57,11 @@ public record MarginalTieredRate(NavigableMap<BigDecimal, Rate> tiers) implement
       if (sliceTop.compareTo(threshold) <= 0) {
         continue;
       }
-      // Multiplication only, so the annual figure is exact. The one division is below.
+      // Multiplication only, so the annual figure is exact. The one division is the day count's.
       annualFee = annualFee.add(sliceTop.subtract(threshold).multiply(tier.getValue().annual()));
       sliceTop = threshold;
     }
 
-    return annualFee.divide(DAY_COUNT_BASIS, PRECISION);
+    return annualFee;
   }
 }

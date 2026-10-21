@@ -13,7 +13,7 @@ public record FlatRate(Rate rate) implements AccrualRule {
   }
 
   @Override
-  public BigDecimal dailyFee(BigDecimal outstandingValue, LocalDate on) {
-    return outstandingValue.multiply(rate.annual()).divide(DAY_COUNT_BASIS, PRECISION);
+  public BigDecimal annualFee(BigDecimal outstandingValue, LocalDate on) {
+    return outstandingValue.multiply(rate.annual());
   }
 }

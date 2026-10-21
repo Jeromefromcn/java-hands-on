@@ -31,13 +31,24 @@ public record AccrualEntry(LoanPositionId position, LocalDate accruedOn, Money f
    */
   public static AccrualEntry accrue(
       LoanPositionId position, Money outstandingValue, AccrualRule rule, LocalDate on) {
+    return accrue(position, outstandingValue, rule, on, DayCount.ACT_365F);
+  }
+
+  /** As {@link #accrue(LoanPositionId, Money, AccrualRule, LocalDate)}, under a day count. */
+  public static AccrualEntry accrue(
+      LoanPositionId position,
+      Money outstandingValue,
+      AccrualRule rule,
+      LocalDate on,
+      DayCount dayCount) {
     Objects.requireNonNull(outstandingValue, "outstandingValue");
     Objects.requireNonNull(rule, "rule");
+    Objects.requireNonNull(dayCount, "dayCount");
     if (outstandingValue.isNegative()) {
       throw new NegativeOutstandingValueException(outstandingValue.amount());
     }
 
-    BigDecimal unrounded = rule.dailyFee(outstandingValue.amount(), on);
+    BigDecimal unrounded = rule.dailyFee(outstandingValue.amount(), on, dayCount);
     return new AccrualEntry(position, on, Money.of(unrounded, outstandingValue.currency()));
   }
 }

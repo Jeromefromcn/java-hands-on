@@ -20,8 +20,8 @@ public record FloatingRate(ReferenceRates reference, Rate spread) implements Acc
   }
 
   @Override
-  public BigDecimal dailyFee(BigDecimal outstandingValue, LocalDate on) {
+  public BigDecimal annualFee(BigDecimal outstandingValue, LocalDate on) {
     Rate effective = reference.on(on).plus(spread);
-    return outstandingValue.multiply(effective.annual()).divide(DAY_COUNT_BASIS, PRECISION);
+    return outstandingValue.multiply(effective.annual());
   }
 }
