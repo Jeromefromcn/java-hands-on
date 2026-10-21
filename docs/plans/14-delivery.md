@@ -73,7 +73,7 @@ Each is carried to the decision record.
 
 ---
 
-## [ ] 1 · Repackaged jar with a ledger layer
+## [x] 1 · Repackaged jar with a ledger layer
 
 **Change**
 - `bootstrap` POM: `spring-boot-maven-plugin` `repackage` and `build-info`

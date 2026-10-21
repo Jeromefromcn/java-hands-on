@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Stage 14. Boot's default layers plus one: this project's own modules. They are SNAPSHOT
+     versions, so by default they land in snapshot-dependencies next to any third-party snapshot,
+     and a one-line edit in domain would rebuild that whole layer. A layer named for them is the one
+     that changes on every commit, and it sits just under the application's own classes.
+     See docs/decisions/14-delivery.md. -->
+<layers xmlns="http://www.springframework.org/schema/boot/layers"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.springframework.org/schema/boot/layers
+                            https://www.springframework.org/schema/boot/layers/layers.xsd">
+  <application>
+    <into layer="spring-boot-loader">
+      <include>org/springframework/boot/loader/**</include>
+    </into>
+    <into layer="application" />
+  </application>
+  <dependencies>
+    <!-- First match wins: the project's modules before the snapshot rule would take them. By
+         coordinates, not <includeModuleDependencies/>: that one knows a module only when it is in
+         the same reactor, so `./mvnw -pl bootstrap package` left this layer empty and put the
+         modules back in snapshot-dependencies. -->
+    <into layer="ledger">
+      <include>com.jerome.slledger:*</include>
+    </into>
+    <into layer="snapshot-dependencies">
+      <include>*:*:*SNAPSHOT</include>
+    </into>
+    <into layer="dependencies" />
+  </dependencies>
+  <layerOrder>
+    <layer>dependencies</layer>
+    <layer>spring-boot-loader</layer>
+    <layer>snapshot-dependencies</layer>
+    <layer>ledger</layer>
+    <layer>application</layer>
+  </layerOrder>
+</layers>

@@ -159,15 +159,41 @@
   <build>
     <plugins>
       <plugin>
-        <!-- The only module with a Failsafe-bound rule in this stage. -->
+        <!-- The only module with a Failsafe-bound rule in this stage.
+             Stage 14: the build repackages this module's jar (below), and Failsafe would otherwise
+             put the repackaged jar on the test classpath, whose classes sit under BOOT-INF/classes
+             where no class loader looks. The tests read the compiled classes directly. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+        </configuration>
       </plugin>
       <plugin>
-        <!-- Default repackage goal only; not invoked by verify in stage 4,
-             used ad hoc via spring-boot:run and wired for real in stage 14. -->
+        <!-- Stage 14: the build produces the runnable jar the image is made from. build-info writes
+             META-INF/build-info.properties, which /actuator/info serves; repackage turns the plain
+             jar into the executable one with the layers from src/main/layers/layers.xml. -->
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <layers>
+            <configuration>${project.basedir}/src/main/layers/layers.xml</configuration>
+          </layers>
+        </configuration>
+        <executions>
+          <execution>
+            <id>build-info</id>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
