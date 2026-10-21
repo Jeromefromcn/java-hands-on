@@ -1,0 +1,23 @@
+Branch rule on main (GitHub branch protection), read back from the API on 2026-10-21:
+  admins_enforced: False
+  checks: ['verify', 'dependency-scan']
+  codeowners: True
+  conversations: True
+  deletions: False
+  dismiss_stale: True
+  force_push: False
+  reviews: 1
+  strict: True
+
+A pull request that breaks a gate and has no review (#1, from gate-drill/format):
+  mergeStateStatus=BEHIND reviewDecision=REVIEW_REQUIRED
+  gh pr merge 1 --merge:
+    X Pull request Jeromefromcn/java-hands-on#1 is not mergeable: the head branch is not up to date with the base branch.
+    To have the pull request merged after all the requirements have been met, add the `--auto` flag.
+    To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+  closed without merging.
+
+The administrator's direct push to main (commit 3bd5cf8) was accepted; git printed:
+  remote: - 2 of 2 required status checks are expected.
+The rule records the bypass and lets it through: enforce_admins is false on purpose, and is
+the gap a one-person repository cannot close (docs/decisions/14-delivery.md).

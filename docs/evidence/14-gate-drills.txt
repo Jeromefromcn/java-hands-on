@@ -1,0 +1,59 @@
+Gate drills: each branch is main plus one change that breaks one gate. Seven were cut from main at 6ed8b54; image-scan was cut again from 3bd5cf8 after its first run stopped at an unrelated flaky test (fixed in 3bd5cf8). Branches deleted after this report.
+
+== format (gate-drill/format): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39606062294
+  job verify: failure at step "Format and build rules (Spotless, enforcer)"; not run: Compile (-Xlint:all -Werror), Unit tests, Integration tests, ArchUnit, coverage floor
+  job dependency-scan: success
+  job image: skipped
+    [ERROR] Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:3.10.2:check (spotless-check) on project domain: The following files had format violations:
+
+== compile (gate-drill/compile): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603679301
+  job dependency-scan: failure at step "Install the modules"; not run: Scan
+  job verify: failure at step "Compile (-Xlint:all -Werror)"; not run: Unit tests, Integration tests, ArchUnit, coverage floor
+  job image: skipped
+    [ERROR] /home/runner/work/java-hands-on/java-hands-on/domain/src/main/java/com/jerome/slledger/domain/accrual/FlatRate.java: warnings found and -Werror specified
+
+== enforcer (gate-drill/enforcer): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603704124
+  job verify: failure at step "Format and build rules (Spotless, enforcer)"; not run: Compile (-Xlint:all -Werror), Unit tests, Integration tests, ArchUnit, coverage floor
+  job dependency-scan: failure at step "Install the modules"; not run: Scan
+  job image: skipped
+    [ERROR] Rule 0: org.apache.maven.enforcer.rules.RequireNoRepositories failed with message:
+
+== unit-test (gate-drill/unit-test): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603710056
+  job verify: failure at step "Unit tests"; not run: Integration tests, ArchUnit, coverage floor
+  job dependency-scan: success
+  job image: skipped
+    [ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.430 s <<< FAILURE! -- in com.jerome.slledger.domain.accrual.FloatingRateOverMockedTest
+    [ERROR] Tests run: 5, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 0.156 s <<< FAILURE! -- in com.jerome.slledger.domain.accrual.AccrualEntryTest
+    [ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.010 s <<< FAILURE! -- in com.jerome.slledger.domain.accrual.FloatingRateTest
+    [ERROR] Tests run: 8, Failures: 6, Errors: 0, Skipped: 0, Time elapsed: 0.188 s <<< FAILURE! -- in com.jerome.slledger.domain.accrual.AccrualRuleTest
+
+== archunit (gate-drill/archunit): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603716490
+  job dependency-scan: success
+  job verify: failure at step "Integration tests, ArchUnit, coverage floor"
+  job image: skipped
+    [INFO] Running com.jerome.slledger.bootstrap.ArchitectureIT
+    [ERROR] Tests run: 14, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 3.569 s <<< FAILURE! -- in com.jerome.slledger.bootstrap.ArchitectureIT
+    [ERROR] com.jerome.slledger.bootstrap.ArchitectureIT.everyHandlerHasAnAccessRule -- Time elapsed: 0.026 s <<< FAILURE!
+    	at com.jerome.slledger.bootstrap.ArchitectureIT.everyHandlerHasAnAccessRule(ArchitectureIT.java:225)
+
+== coverage (gate-drill/coverage): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603734676
+  job dependency-scan: success
+  job verify: failure at step "Integration tests, ArchUnit, coverage floor"
+  job image: skipped
+    [WARNING] Rule violated for bundle domain: lines covered ratio is 0.57, but expected minimum is 0.94
+    [ERROR] Failed to execute goal org.jacoco:jacoco-maven-plugin:0.8.12:check (jacoco-check) on project domain: Coverage checks have not been met. See log for details. -> [Help 1]
+
+== dependency-scan (gate-drill/dependency-scan): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39603738346
+  job verify: success
+  job dependency-scan: failure at step "Scan"
+  job image: skipped
+    Total: 1 (HIGH: 1, CRITICAL: 0)
+    │ at.yawk.lz4:lz4-java │ CVE-2026-106451 │ HIGH     │ fixed  │ 1.10.1            │ 1.11.4        │ org.lz4/lz4-java: lz4-java: Arbitrary code execution via │
+
+== image-scan (drill/image-scan): run failure https://github.com/Jeromefromcn/java-hands-on/actions/runs/39606035892
+  job dependency-scan: success
+  job verify: success
+  job image: failure at step "Scan the image"; not run: Run docker/login-action@v4.6.0, Push, Run sigstore/cosign-installer@v4.1.2, Sign (keyless), Summary
+    Total: 5 (HIGH: 5, CRITICAL: 0)
+    │ gpgv    │ CVE-2025-68973 │ HIGH     │ fixed  │ 2.2.27-3ubuntu2.1 │ 2.2.27-3ubuntu2.5 │ GnuPG: GnuPG: Information disclosure and potential arbitrary │
+

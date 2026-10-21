@@ -179,7 +179,7 @@ Each is carried to the decision record.
 
 **Acceptance:** a green run on `main` with a signed image.
 
-## [ ] 9 · Gates that fail, and the rule on main
+## [x] 9 · Gates that fail, and the rule on main
 
 **Change**
 - One throwaway branch per gate, each with the smallest change that should
@@ -362,3 +362,13 @@ connections).
   sections, because only targeted tests ran between full verifies. Fixed in
   the scanner (command substitutions and `${{ }}` expressions are references),
   proved still to fail on a fixture with literal values.
+- **Section 9.** Each of the eight gates failed once at its own step, and the
+  jobs after it did not run; the image scan stopped the push and the signing,
+  so the vulnerable image never reached the registry. The first image-scan run
+  never got that far: `TraceAcrossKafkaIT` failed first, on a second query that
+  the shared price history could satisfy twice (fixed in 3bd5cf8). A drill that
+  fails for another reason than the one it breaks proves nothing about its gate.
+- **Section 9.** The branch rule went on once the repository was public (a
+  free private repository cannot have one). A pull request with a failing
+  check and no review is refused for merging; the administrator's direct push
+  is let through with "2 of 2 required status checks are expected" on record.
