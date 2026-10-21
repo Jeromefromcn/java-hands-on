@@ -1,0 +1,46 @@
+The ledger on K3s (docker-gitops k3s/apps/sl-ledger), 2026-10-21. Promotion: docker-gitops ec3b252
+"sl-ledger: promote 3b278854eac9", the digest from java-hands-on CI run 39609315365 (signed on main).
+ArgoCD: Synced Healthy at ec3b252c2d4517723696a9a1c9596e8ff90fb544
+
+== pods
+NAME                         READY   RESTARTS   IMAGE
+sl-ledger-6db9798cb4-lcvtx   true    0          ghcr.io/jeromefromcn/sl-ledger@sha256:273f98bdfb4f1f480a70e0aa3c0cf8e43550f5798185078e185dbda4d96a9b4a
+sl-ledger-6db9798cb4-p74gj   true    0          ghcr.io/jeromefromcn/sl-ledger@sha256:273f98bdfb4f1f480a70e0aa3c0cf8e43550f5798185078e185dbda4d96a9b4a
+
+== admission annotation on sl-ledger-6db9798cb4-lcvtx
+{"ghcr.io/jeromefromcn/sl-ledger@sha256:273f98bdfb4f1f480a70e0aa3c0cf8e43550f5798185078e185dbda4d96a9b4a":"pass"}
+
+== security context
+pod: {"runAsGroup":10001,"runAsNonRoot":true,"runAsUser":10001,"seccompProfile":{"type":"RuntimeDefault"}}
+container: {"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true}
+
+== startup (log) and probes (events)
+"message":"Started SlLedgerApplication in 16.201 seconds (process running for 16.892)"
+"message":"The following 1 profile is active: \"
+AGE                    REASON      MSG
+<nil>                  Scheduled   Successfully assigned sl-ledger/sl-ledger-6db9798cb4-lcvtx to instance-20260321-2043
+2026-10-21T14:08:27Z   Pulled      Container image "ghcr.io/jeromefromcn/sl-ledger@sha256:273f98bdfb4f1f480a70e0aa3c0cf8e43550f5798185078e185dbda4d96a9b4a" already present on machi
+2026-10-21T14:08:27Z   Created     Container created
+2026-10-21T14:08:27Z   Started     Container started
+2026-10-21T14:08:42Z   Unhealthy   Startup probe failed: Get "http://10.42.0.226:8081/actuator/health/liveness": dial tcp 10.42.0.226:8081: connect: connection refused
+
+== requests (tokens signed by infra/delivery/token.sh with the key outside the repositories; API through the Service, management on the pod)
+no token: GET /loans                             401 {"detail":"Authentication is required","status":401,"title":"Unauthorized","type":"urn:sl-ledger:problem:unauthenticated","traceId":"be723fc658a3a06370526f6ba7d
+trader: GET /loans                               200 {"rows":[],"page":0,"size":20,"totalRows":0}
+trader: GET /securities/US0000000010/quote       200 {"isin":"US0000000010","price":{"amount":"10.05","currency":"USD"}}
+trader: GET /rollouts/accrual.day-count-by-market 403 {"detail":"The caller may not do this","instance":"/rollouts/accrual.day-count-by-market","status":403,"title":"Forbidden","type":"urn:sl-ledger:problem:forbidd
+ops: GET /rollouts/accrual.day-count-by-market   200 {"flag":"accrual.day-count-by-market","percent":0,"effectiveSince":"2026-10-21T14:08:07.796348Z","changes":[]}
+ops: GET pod:8081/actuator/info                  200 {"app":{"environment":"k3s","revision":"3b278854eac9"},"build":{"artifact":"bootstrap","name":"Bootstrap","time":"2026-09-20T00:00:00Z","version":"0.1.0-SNAPSHO
+no token: GET pod:8081/actuator/health/readiness 200 {"status":"UP"}
+
+== a digest that this repository's workflow never signed, under the sl-ledger name (server-side dry run)
+Error from server: admission webhook "mutate.kyverno.svc-fail" denied the request: 
+
+resource Pod/sl-ledger/fake-ledger was blocked due to the following policies 
+
+restrict-image-registry:
+  verify-ghcr-jeromefromcn-signature: 'failed to verify image ghcr.io/jeromefromcn/sl-ledger@sha256:8f19439e8028429b95add3187d4ba7967e0293935730fcad0150082230e504ac:
+    .attestors[0].entries[0].keyless: failed to fetch bundles: ghcr.io/jeromefromcn/sl-ledger@sha256:8f19439e8028429b95add3187d4ba7967e0293935730fcad0150082230e504ac:
+    HEAD https://ghcr.io/v2/jeromefromcn/sl-ledger/manifests/sha256:8f19439e8028429b95add3187d4ba7967e0293935730fcad0150082230e504ac:
+    unexpected status code 404 Not Found (HEAD responses have no body, use GET for
+    details)'

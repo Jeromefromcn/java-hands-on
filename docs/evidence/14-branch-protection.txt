@@ -17,7 +17,11 @@ A pull request that breaks a gate and has no review (#1, from gate-drill/format)
     To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
   closed without merging.
 
-The administrator's direct push to main (commit 3bd5cf8) was accepted; git printed:
+The administrator's direct pushes to main were accepted. At 3bd5cf8 git printed:
+  remote: - 2 of 2 required status checks are expected.
+and from 20c82be on, once the review rule applied in full:
+  remote: Bypassed rule violations for refs/heads/main:
+  remote: - Changes must be made through a pull request.
   remote: - 2 of 2 required status checks are expected.
 The rule records the bypass and lets it through: enforce_admins is false on purpose, and is
 the gap a one-person repository cannot close (docs/decisions/14-delivery.md).

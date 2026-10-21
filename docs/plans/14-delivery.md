@@ -232,7 +232,7 @@ Each is carried to the decision record.
   `ACT_360`; a restart keeps the first value; after lowering, the next date is
   `ACT_365F`).
 
-## [ ] 13 · On K3s
+## [x] 13 · On K3s
 
 **Change** (GitOps repository)
 - Namespace, Postgres, Redis, Kafka, market-data stub and key-set stub,
@@ -384,3 +384,17 @@ connections).
   itself, so the old proposal stayed valid and was approved. The scenario now
   proposes 50 to 100, kills to 0, and the approval of the old proposal is a
   `409 rollout-stale`.
+- **Section 13.** The manifests reached the GitOps repository before the
+  image existed: a commit there at 16:19, not made by this stage's work, pushed
+  the drafts with a placeholder digest of zeros. ArgoCD deployed Postgres,
+  Redis, Kafka and the stubs, and Kyverno refused every ledger pod: the
+  admission check doing its job on an image nobody signed. The promotion
+  commit (`ec3b252`) replaced the placeholder with the signed digest.
+- **Section 13.** Two manual steps outside the code: the repository had to be
+  made public for a branch rule, and the GHCR package, created private by the
+  first push from CI, had to be made public by hand (GitHub has no API for a
+  user package's visibility). Until then the cluster could not pull the image
+  and Kyverno could not read its signature.
+- **Section 13.** The first ledger pod's startup probe failed while Spring
+  started (16.2 s); without a startup probe that would have been a liveness
+  failure counting towards a restart.
