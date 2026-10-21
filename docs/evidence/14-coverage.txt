@@ -1,0 +1,13 @@
+Line coverage per module, ./mvnw clean verify at 834c082 plus JaCoCo in every module (2026-10-21).
+Each module's own unit and integration tests only: code reached from bootstrap's tests is credited to bootstrap.
+
+domain                97.67%   336 of  344 lines
+application           52.83%   737 of 1395 lines
+adapter-persistence   72.33%   758 of 1048 lines
+adapter-web           47.80%   294 of  615 lines
+adapter-messaging     78.57%   165 of  210 lines
+bootstrap             90.63%   658 of  726 lines
+batch                no execution data: the module has no tests of its own
+
+Floors set from these (rounded down to the next 5%): application 0.50, adapter-persistence 0.70,
+adapter-web 0.45, adapter-messaging 0.75, bootstrap 0.90; domain keeps stage 3's 0.94; batch none.

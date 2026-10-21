@@ -1,0 +1,148 @@
+# Stage 14: the pipeline. Gates run in order and each one stops everything after it:
+#
+#   verify           ./mvnw: format (Spotless) and enforcer, compile with -Werror, unit tests, then
+#                    integration tests and ArchUnit (Testcontainers) and the JaCoCo coverage floor
+#   dependency-scan  infra/security/scan.sh: Trivy over the poms and the runtime classpath
+#   image            on main and drill/* only: package, build on a native arm64 runner (the
+#                    cluster is arm64), Trivy over the image, push to GHCR, Cosign keyless sign
+#
+# The pipeline does not deploy. Promotion is a commit, by digest, to the GitOps repository; the
+# image job writes the digest to the run summary for it. See docs/decisions/14-delivery.md.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # The JDK .sdkmanrc pins, the one the enforcer requires.
+          java-version-file: .sdkmanrc
+          cache: maven
+      # One Maven run per gate, so a red run names the gate in its failed step. Each later run skips
+      # the checks an earlier one passed; the build output carries over in target/.
+      # CI=true (set by the runner) activates the ci profile: no <repositories> in any POM.
+      - name: Format and build rules (Spotless, enforcer)
+        run: ./mvnw -B -ntp clean validate
+      - name: Compile (-Xlint:all -Werror)
+        run: ./mvnw -B -ntp test-compile -Dspotless.check.skip=true -Denforcer.skip=true
+      - name: Unit tests
+        run: ./mvnw -B -ntp test -Dspotless.check.skip=true -Denforcer.skip=true
+      - name: Integration tests, ArchUnit, coverage floor
+        run: >-
+          ./mvnw -B -ntp verify -Dspotless.check.skip=true -Denforcer.skip=true
+          -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+          retention-days: 7
+
+  dependency-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version-file: .sdkmanrc
+          cache: maven
+      # scan.sh copies bootstrap's resolved runtime classpath, which needs the modules installed.
+      - name: Install the modules
+        run: ./mvnw -B -ntp -q install -DskipTests -Dspotless.check.skip=true
+      - name: Scan
+        run: infra/security/scan.sh
+
+  image:
+    needs: [verify, dependency-scan]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/drill/'))
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    # Only this job pushes to GHCR and needs an OIDC token for Cosign.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      IMAGE: ghcr.io/jeromefromcn/sl-ledger
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version-file: .sdkmanrc
+          cache: maven
+      - name: Package
+        run: |
+          ./mvnw -B -ntp -q package -DskipTests -Dspotless.check.skip=true
+          mkdir image-context && cp bootstrap/target/bootstrap-*.jar image-context/
+      - name: Revision
+        id: rev
+        run: echo "short=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4.2.0
+      # Built into the runner's daemon first, so the scan runs before anything is pushed: an image
+      # that fails it never reaches the registry.
+      - name: Build
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: image-context
+          file: bootstrap/Dockerfile
+          platforms: linux/arm64
+          build-args: REVISION=${{ steps.rev.outputs.short }}
+          load: true
+          tags: ${{ env.IMAGE }}:${{ steps.rev.outputs.short }}
+      - name: Scan the image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ steps.rev.outputs.short }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push
+        id: push
+        run: |
+          docker push "$IMAGE:${{ steps.rev.outputs.short }}"
+          digest=$(docker image inspect "$IMAGE:${{ steps.rev.outputs.short }}" \
+            --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep "^$IMAGE@" | head -1)
+          echo "ref=$digest" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v4.1.2
+        with:
+          cosign-release: v3.1.3
+      - name: Sign (keyless)
+        run: cosign sign --yes "${{ steps.push.outputs.ref }}"
+      - name: Summary
+        run: |
+          {
+            echo "### Image"
+            echo "\`${{ steps.push.outputs.ref }}\`"
+            echo
+            echo "Revision \`${{ steps.rev.outputs.short }}\` from \`${{ github.ref_name }}\`, signed by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

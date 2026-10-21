@@ -106,6 +106,9 @@
          minutes, and their numbers are only worth taking on purpose. The
          measure profile below runs them. -->
     <it.excludedGroups>measurement</it.excludedGroups>
+
+    <!-- Stage 14: line-coverage floor; every module overrides it with its own. -->
+    <jacoco.line.minimum>0.00</jacoco.line.minimum>
   </properties>
 
   <!-- The single source of every version, internal and third-party alike.
@@ -335,6 +338,32 @@
                 <goal>report</goal>
               </goals>
             </execution>
+            <!-- Stage 14: the coverage floor of every module, a pipeline gate. Each module sets
+                 jacoco.line.minimum to its measured line coverage, unit and integration tests
+                 together, rounded down to the next 5%: a floor above today's figure fails today,
+                 one far below it never fails. domain keeps its own, stricter rule from stage 3.
+                 See docs/decisions/14-delivery.md. -->
+            <execution>
+              <id>jacoco-check</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <rule>
+                    <element>BUNDLE</element>
+                    <limits>
+                      <limit>
+                        <counter>LINE</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>${jacoco.line.minimum}</minimum>
+                      </limit>
+                    </limits>
+                  </rule>
+                </rules>
+              </configuration>
+            </execution>
           </executions>
         </plugin>
 
@@ -463,6 +492,12 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Stage 14: coverage is measured and gated in every module, not only domain. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

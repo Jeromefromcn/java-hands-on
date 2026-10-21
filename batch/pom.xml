@@ -15,6 +15,13 @@
   <name>Batch</name>
   <description>Batch jobs driving the application's use cases.</description>
 
+  <properties>
+    <!-- Stage 14: no floor. This module has no tests of its own; the batch jobs are exercised by
+         bootstrap's integration tests, which JaCoCo credits to bootstrap's report, not this one.
+         With no execution data the check is skipped, so a floor here would gate nothing. -->
+    <jacoco.line.minimum>0.00</jacoco.line.minimum>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

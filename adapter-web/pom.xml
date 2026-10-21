@@ -15,6 +15,13 @@
   <name>Adapter :: Web</name>
   <description>HTTP endpoints driving the application's use cases.</description>
 
+  <properties>
+    <!-- Stage 14: line-coverage floor, the measured 47.80% (294/615) rounded down to the next 5%.
+         Counts this module's own tests only: code reached from bootstrap's integration tests is
+         credited there. See docs/decisions/14-delivery.md. -->
+    <jacoco.line.minimum>0.45</jacoco.line.minimum>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

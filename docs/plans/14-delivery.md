@@ -167,7 +167,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-shutdown.txt`.
 
-## [ ] 8 · The pipeline
+## [x] 8 · The pipeline
 
 **Change**
 - JaCoCo `check` per module with the floor from planning decision 3.
@@ -347,3 +347,18 @@ connections).
   longer than the pod's grace period, cut at an arbitrary record. The
   containers now stop immediately after the record in hand (428 ms, offset 1
   committed, the other four handled once by the next member).
+- **Section 8.** Planning assumed a coverage figure per module; only `domain`
+  had JaCoCo at all (stage 3's 94% floor). Every module now runs the agent and
+  a floor. The figures are per module's own tests, so code that only
+  bootstrap's integration tests reach counts there: `application` measures
+  52.8% and `adapter-web` 47.8% although most of both is exercised end to end,
+  and `batch`, with no tests of its own, has no execution data and so no
+  floor. A merged report would gate the whole; it is not done here.
+- **Section 8.** The verify job is four Maven runs, one per gate (format and
+  enforcer, compile, unit tests, integration tests with ArchUnit and coverage),
+  so a red run names its gate in the failed step instead of in a log.
+- **Section 8.** Before the pipeline existed, `ConfigurationSecretsScanTest`
+  failed on section 3's scripts (`token=$(...)`) and went unnoticed for four
+  sections, because only targeted tests ran between full verifies. Fixed in
+  the scanner (command substitutions and `${{ }}` expressions are references),
+  proved still to fail on a fixture with literal values.

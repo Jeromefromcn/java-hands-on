@@ -1,0 +1,9 @@
+# Stage 14: every path has an owner whose review a pull request into main needs (the branch rule
+# requires a code-owner review). One owner today, so this names the reviewer the rule waits for;
+# the money paths are listed on their own so that a second reviewer is one line to add.
+*                                   @Jeromefromcn
+/domain/                            @Jeromefromcn
+/application/src/main/java/com/jerome/slledger/application/accrual/   @Jeromefromcn
+/application/src/main/java/com/jerome/slledger/application/rollout/   @Jeromefromcn
+/adapter-persistence/src/main/resources/db/migration/                 @Jeromefromcn
+/.github/                           @Jeromefromcn
