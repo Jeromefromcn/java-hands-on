@@ -32,6 +32,9 @@ echo "== poms"
 trivy fs $FLAGS --skip-dirs target --skip-dirs .git --skip-dirs .idea --skip-dirs labs .
 
 echo "== runtime classpath of bootstrap"
+# Emptied first: copy-dependencies only adds, and a jar left from an earlier classpath (a version
+# since upgraded away) would be scanned as if it still shipped.
+rm -rf bootstrap/target/scan-libs
 ./mvnw -q -pl bootstrap dependency:copy-dependencies -DincludeScope=runtime \
   -DoutputDirectory=target/scan-libs
 trivy rootfs $FLAGS bootstrap/target/scan-libs
