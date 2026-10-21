@@ -1,0 +1,41 @@
+Startup of the ledger image, local profile against infra/compose.yaml, host network.
+4 CPUs (aarch64), Docker 29.6.0, 5 runs per variant; no limit on the container.
+started = Spring's "Started ... in"; process = its "process running for" (JVM start to ready context);
+ready = wall time from docker run to the first 200 from /actuator/health/readiness (100 ms polling).
+
+variant    started s (med min max)  process s (med min max)  ready ms (med min max)   image
+baseline   16.585 15.813 17.174     17.276 16.498 17.928     17865 17286 18369        198 MB
+cds        12.508 12.427 13.912     12.932 12.751 14.455     13410 13284 14980        233 MB
+aot        14.077 12.745 15.539     14.554 13.501 16.147     15071 14216 16607        198 MB
+aot-cds    9.191 7.774 16.429       9.72 8.324 17.337        10081 8778 22529         240 MB
+
+What AOT fixes at build time: each image started with LEDGER_MESSAGING_ENABLED=false (the local
+profile it was built under sets true). Kafka client lines in the log after readiness:
+  baseline  0
+  aot       3
+
+raw (started process ready_ms cds-warnings):
+baseline:
+  15.813 16.498 17689 0
+  16.585 17.276 17865 0
+  15.919 16.736 17286 0
+  17.174 17.928 18369 0
+  16.87 17.439 18024 0
+cds:
+  12.427 12.751 13284 0
+  13.912 14.455 14980 0
+  12.505 12.932 13410 0
+  12.508 12.812 13330 0
+  12.65 13.091 13477 0
+aot:
+  13.446 13.957 14381 0
+  14.082 14.679 15336 0
+  15.539 16.147 16607 0
+  14.077 14.554 15071 0
+  12.745 13.501 14216 0
+aot-cds:
+  9.191 9.72 10081 0
+  9.052 9.531 10010 0
+  7.774 8.324 8778 0
+  12.771 13.37 13891 0
+  16.429 17.337 22529 0

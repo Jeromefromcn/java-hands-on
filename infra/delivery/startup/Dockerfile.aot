@@ -1,0 +1,6 @@
+# Stage 14: an image of a jar built with ./mvnw -Paot package, for infra/delivery/startup.sh. The
+# layers are the same as bootstrap/Dockerfile's; only the flag that makes Spring use the generated
+# bean definitions instead of evaluating the configuration classes is added.
+ARG IMAGE
+FROM ${IMAGE}
+ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -Dspring.aot.enabled=true"

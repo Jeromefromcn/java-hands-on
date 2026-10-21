@@ -1,0 +1,9 @@
+# Stage 14: an image plus a CDS archive trained outside the build, for infra/delivery/startup.sh's
+# AOT variant. bootstrap/Dockerfile trains during the build with the database switched off by
+# properties, and an AOT image ignores those: whether Flyway and the schema validation run was
+# decided when its bean definitions were generated. So the AOT image is trained by running it
+# against the Compose database, and the archive it writes is copied in here.
+ARG IMAGE
+FROM ${IMAGE}
+COPY --chmod=444 application.jsa /app/application.jsa
+ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -XX:SharedArchiveFile=/app/application.jsa"

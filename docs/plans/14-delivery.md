@@ -113,7 +113,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-container-awareness.txt`, `14-oomkilled-vs-oome.txt`.
 
-## [ ] 4 · Startup: baseline, CDS, AOT
+## [x] 4 · Startup: baseline, CDS, AOT
 
 **Change**
 - `infra/delivery/startup.sh`: runs the image N times per variant against the
@@ -305,3 +305,19 @@ connections).
 - **Section 3.** Below 1792 MB the JVM is not "server class" and picks
   SerialGC by itself (measured at 512 MB and 1 GB). The image names G1, so a
   limit change cannot change the collector behind anyone's back.
+- **Section 4.** A CDS training run at build time needs the context to
+  refresh with no database: Flyway off, schema validation off, JDBC metadata
+  off, and so the Hibernate dialect named. An AOT image ignores those
+  properties (whether Flyway runs was fixed when its bean definitions were
+  generated) and its training run failed on the missing database; the AOT
+  variant is trained by running it against Compose instead.
+- **Section 4.** The same AOT image, started with
+  `LEDGER_MESSAGING_ENABLED=false`, still started three Kafka clients; the JVM
+  image started none. That is the price that rules AOT out for an image meant
+  to run as three environments.
+- **Section 4.** CDS was going to ship (readiness 17.9 s to 13.4 s). The
+  layer diff of the CDS image then showed its 138 MB archive layer different
+  on every build, the same commit built twice included: the image digest
+  stops being reproducible from the commit, which stage 1 established for the
+  jar, and every release ships that layer. The release target is the image
+  without the archive; `--target cds` remains, measured.

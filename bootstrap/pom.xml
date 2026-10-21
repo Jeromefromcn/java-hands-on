@@ -198,4 +198,37 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <!-- Stage 14, measured not shipped: Spring AOT. process-aot starts the application context at
+           build time, under the profile named here, and writes the bean definitions it found as
+           code; the jar then starts from that code when run with -Dspring.aot.enabled=true. The
+           bean graph, every @Profile and @Conditional included, is fixed at this build: a
+           different profile or a different ledger.*.enabled at run time does not change which
+           beans exist. See docs/decisions/14-delivery.md. -->
+      <id>aot</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>process-aot</id>
+                <goals>
+                  <goal>process-aot</goal>
+                </goals>
+                <configuration>
+                  <profiles>
+                    <profile>local</profile>
+                  </profiles>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
