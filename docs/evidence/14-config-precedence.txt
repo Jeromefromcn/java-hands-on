@@ -1,0 +1,8 @@
+One property (info.app.environment), the repackaged jar started as its own process,
+sources removed one at a time; the value /actuator/info then reports.
+
+argument  env var  config/  -> served
+yes       yes      yes      -> command-line
+-         yes      yes      -> environment-variable
+-         -        yes      -> mounted-file
+-         -        -        -> unnamed

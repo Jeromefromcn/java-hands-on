@@ -133,7 +133,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-native.txt` (including every failure met).
 
-## [ ] 6 · One image, three environments
+## [x] 6 · One image, three environments
 
 **Change**
 - `infra/delivery/envs/` with three environment files (no secrets: those come
@@ -333,3 +333,11 @@ connections).
   under a 12 GB limit with no swap and three CPUs, and refuses to start with
   less than 14 GB available. Native startup and RSS are not measured; the
   decision record says so.
+- **Section 6.** The three environments first shared one database: dev's
+  local profile had applied its seed migrations, and staging's Flyway (prod
+  profile, no seed location) refused a schema with migrations it did not know.
+  Each environment now has its own database; an image is shared, state never.
+- **Section 6.** Giving dev a `SPRING_DATASOURCE_URL` sent it to staging's
+  database: the environment variable beat the local profile's
+  `spring.datasource.url: ${LEDGER_DB_URL}`, which is the precedence
+  `ConfigPrecedenceIT` asserts, met by accident.

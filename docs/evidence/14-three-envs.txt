@@ -1,0 +1,26 @@
+One image, three environments: sl-ledger:s6 (sha256:07955d6712c5)
+
+== dev (--env-file infra/delivery/envs/dev.env)
+image id:        sha256:07955d6712c5
+/actuator/info:  {"app":{"environment":"dev","revision":"b1d2131ba5ca-dirty"},"build":{"artifact":"bootstrap","name":"Bootstrap","time":"2026-09-20T00:00:00Z","version":"0.1.0-SNAPSHOT","group":"com.jerome.slledger"}}
+profile:         profile is active: local
+API / management port: 8094 / 8094
+log format:      text pattern
+Hikari pool max: 10.0
+
+== staging (--env-file infra/delivery/envs/staging.env)
+image id:        sha256:07955d6712c5
+/actuator/info:  {"app":{"environment":"staging","revision":"b1d2131ba5ca-dirty"},"build":{"artifact":"bootstrap","name":"Bootstrap","time":"2026-09-20T00:00:00Z","version":"0.1.0-SNAPSHOT","group":"com.jerome.slledger"}}
+profile:         profile is active: prod
+API / management port: 8095 / 8195
+log format:      JSON (one object per line)
+Hikari pool max: 10.0
+
+== prod (--env-file infra/delivery/envs/prod.env, config/ mounted)
+image id:        sha256:07955d6712c5
+/actuator/info:  {"app":{"environment":"prod","revision":"b1d2131ba5ca-dirty"},"build":{"artifact":"bootstrap","name":"Bootstrap","time":"2026-09-20T00:00:00Z","version":"0.1.0-SNAPSHOT","group":"com.jerome.slledger"}}
+profile:         profile is active: prod
+API / management port: 8096 / 8196
+log format:      JSON (one object per line)
+Hikari pool max: 20.0
+

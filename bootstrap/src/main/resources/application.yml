@@ -122,7 +122,9 @@ ledger:
     connect-timeout: 500ms
     read-timeout: 2s
 
-# Stage 14: read by the env info contributor above.
+# Stage 14: read by the env info contributor above. The environment names itself
+# (INFO_APP_ENVIRONMENT=staging, or a mounted config/application.yml); the image does not know.
 info:
   app:
     revision: ${LEDGER_REVISION:unknown}
+    environment: unnamed

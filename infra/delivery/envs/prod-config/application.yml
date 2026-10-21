@@ -1,0 +1,10 @@
+# Stage 14: mounted at /app/config/application.yml by infra/delivery/three-envs.sh. Spring Boot reads
+# ./config/ next to the working directory after the packaged files, so this overrides the jar's
+# application.yml and application-prod.yml; an environment variable still overrides it.
+info:
+  app:
+    environment: prod
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 20
