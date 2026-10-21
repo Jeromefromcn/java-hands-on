@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -15,6 +16,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.testcontainers.kafka.KafkaContainer;
@@ -58,11 +60,20 @@ public final class SharedKafka {
   private static void awaitLeaders(Admin admin, String name) throws Exception {
     long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
     while (System.nanoTime() < deadline) {
-      var description =
-          admin.describeTopics(List.of(name)).allTopicNames().get(10, TimeUnit.SECONDS).get(name);
-      if (description.partitions().stream()
-          .allMatch(p -> p.leader() != null && !p.isr().isEmpty())) {
-        return;
+      try {
+        var description =
+            admin.describeTopics(List.of(name)).allTopicNames().get(10, TimeUnit.SECONDS).get(name);
+        if (description.partitions().stream()
+            .allMatch(p -> p.leader() != null && !p.isr().isEmpty())) {
+          return;
+        }
+      } catch (ExecutionException e) {
+        // Right after createTopics the broker that answers may not know the topic yet: on a CI
+        // runner (stage 14) the first describe failed with UnknownTopicOrPartition. Not yet there
+        // is the same as no leader yet; anything else is a real failure.
+        if (!(e.getCause() instanceof UnknownTopicOrPartitionException)) {
+          throw e;
+        }
       }
       Thread.sleep(100);
     }
