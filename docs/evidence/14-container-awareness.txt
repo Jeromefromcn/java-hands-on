@@ -1,0 +1,69 @@
+Image: eclipse-temurin:21.0.12.1_1-jre-noble@sha256:35501d3f93173b420ac9001658eb68157e813316b865087e345c187fca422c4c
+Host: 4 CPUs, 23974 MB; Docker 29.6.0
+
+== --memory=none  JAVA_TOOL_OPTIONS=''
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: Unlimited
+ActiveProcessorCount = -1
+MaxHeapSize = 6287261696
+MaxRAMPercentage = 25.000000
+UseContainerSupport = true
+UseG1GC = true
+
+== --memory=none  JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75'
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: Unlimited
+ActiveProcessorCount = -1
+MaxHeapSize = 18857590784
+MaxRAMPercentage = 75.000000
+UseContainerSupport = true
+UseG1GC = true
+
+== --memory=512m  JAVA_TOOL_OPTIONS=''
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: 512.00M
+ActiveProcessorCount = -1
+MaxHeapSize = 134217728
+MaxRAMPercentage = 25.000000
+UseContainerSupport = true
+UseSerialGC = true
+
+== --memory=512m  JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75'
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: 512.00M
+ActiveProcessorCount = -1
+MaxHeapSize = 402653184
+MaxRAMPercentage = 75.000000
+UseContainerSupport = true
+UseSerialGC = true
+
+== --memory=1g  JAVA_TOOL_OPTIONS=''
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: 1.00G
+ActiveProcessorCount = -1
+MaxHeapSize = 268435456
+MaxRAMPercentage = 25.000000
+UseContainerSupport = true
+UseSerialGC = true
+
+== --memory=1g  JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75'
+    Provider: cgroupv2
+    Effective CPU Count: 4
+    Memory Limit: 1.00G
+ActiveProcessorCount = -1
+MaxHeapSize = 805306368
+MaxRAMPercentage = 75.000000
+UseContainerSupport = true
+UseSerialGC = true
+
+== --memory=1g --cpus=1.5
+    Effective CPU Count: 2
+    Memory Limit: 1.00G
+ActiveProcessorCount = -1
+MaxHeapSize = 805306368
+UseSerialGC = true

@@ -1,0 +1,24 @@
+== fixed-xmx-above-limit: --memory=512m JAVA_TOOL_OPTIONS='-Xmx1g'
+last lines of output:
+  holding 256 MB
+  holding 320 MB
+  holding 384 MB
+  holding 448 MB
+  exit code 137, OOMKilled=true
+
+== percentage-of-limit: --memory=512m JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError'
+last lines of output:
+  holding 192 MB
+  holding 256 MB
+  holding 320 MB
+  Terminating due to java.lang.OutOfMemoryError: Java heap space
+  exit code 3, OOMKilled=false
+
+== percentage-without-exit: --memory=512m JAVA_TOOL_OPTIONS='-XX:MaxRAMPercentage=75'
+last lines of output:
+  holding 192 MB
+  holding 256 MB
+  holding 320 MB
+  Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+  exit code 1, OOMKilled=false
+

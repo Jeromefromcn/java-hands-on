@@ -41,7 +41,13 @@ COPY --from=layers /build/extracted/application/ ./
 # A numeric non-root user: Kubernetes' runAsNonRoot can only verify a number.
 USER 10001:10001
 EXPOSE 8080 8081
+# The heap is a share of the container's limit, never a fixed -Xmx: the same image runs under any
+# limit the orchestrator sets. 70%, not the usual 75%: the ledger's non-heap (metaspace, code cache)
+# measured 205-211 MB, which 25% of a 768 MB limit does not hold. G1 is named because the JVM picks
+# Serial by itself below 1792 MB, so a limit change would silently change the collector.
+# ExitOnOutOfMemoryError: a JVM whose heap ran out is restarted, not left serving with dead threads.
+# All measured in docs/evidence/14-container-awareness.txt and 14-ledger-memory.txt.
 ENV LEDGER_REVISION=${REVISION} \
-    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
 # exec form: java is PID 1 and gets the SIGTERM, which starts Spring's graceful shutdown.
 ENTRYPOINT ["java", "-jar", "application.jar"]

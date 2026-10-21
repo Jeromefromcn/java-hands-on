@@ -103,7 +103,7 @@ Each is carried to the decision record.
 
 **Evidence** `14-layer-diff.txt`.
 
-## [ ] 3 · Heap in a container
+## [x] 3 · Heap in a container
 
 **Change**
 - `labs/14-delivery/heap/`: a self-contained allocator and a script that runs
@@ -297,3 +297,11 @@ connections).
   and `application.jar` with the time of the `RUN`. The Dockerfile now sets
   every extracted file to the build's `outputTimestamp`; two builds are then
   identical. A warm build cache had hidden it.
+- **Section 3.** The spec's 75% does not fit the ledger at a 768 MB limit: its
+  non-heap measured 205-211 MB after start and 500 reads, and 25% of 768 MB is
+  192 MB, so a full heap would end in an OOM kill, the failure the percentage
+  exists to avoid. The image ships 70% and the cluster gets a 1 GiB limit
+  (718 MB heap, about 300 MB for the rest).
+- **Section 3.** Below 1792 MB the JVM is not "server class" and picks
+  SerialGC by itself (measured at 512 MB and 1 GB). The image names G1, so a
+  limit change cannot change the collector behind anyone's back.

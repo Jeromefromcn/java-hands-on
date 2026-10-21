@@ -1,0 +1,36 @@
+The ledger's memory in a container (infra/delivery/footprint.sh), image sl-ledger:a93b3feaac3c-dirty, local profile, after readiness and 500 GET /loans.
+Options after the first are appended to the image's JAVA_TOOL_OPTIONS; the last occurrence of a flag wins.
+
+limit 768m, JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError 
+container (cgroup memory.current): 444 MB
+heap max:        557 MB
+heap committed:  106 MB
+heap used:       85 MB
+non-heap used:   211 MB (metaspace, code cache, compressed class space)
+  of which metaspace 151 MB
+direct buffers:  2 MB
+live threads:    44.0
+collector:       Copy 
+
+limit 768m, JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC
+container (cgroup memory.current): 461 MB
+heap max:        576 MB
+heap committed:  120 MB
+heap used:       105 MB
+non-heap used:   206 MB (metaspace, code cache, compressed class space)
+  of which metaspace 150 MB
+direct buffers:  2 MB
+live threads:    45.0
+collector:       G1 Young Generation 
+
+limit 1g, JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=70 -XX:+UseG1GC
+container (cgroup memory.current): 472 MB
+heap max:        718 MB
+heap committed:  117 MB
+heap used:       76 MB
+non-heap used:   205 MB (metaspace, code cache, compressed class space)
+  of which metaspace 150 MB
+direct buffers:  2 MB
+live threads:    44.0
+collector:       G1 Young Generation 
+
