@@ -1,0 +1,6 @@
+BOOT-INF/layers.idx of bootstrap-0.1.0-SNAPSHOT.jar
+dependencies: 175 entries
+spring-boot-loader: 1 entries
+snapshot-dependencies: 0 entries
+ledger: 6 entries [BOOT-INF/lib/adapter-messaging-0.1.0-SNAPSHOT.jar, BOOT-INF/lib/adapter-persistence-0.1.0-SNAPSHOT.jar, BOOT-INF/lib/adapter-web-0.1.0-SNAPSHOT.jar, BOOT-INF/lib/application-0.1.0-SNAPSHOT.jar, BOOT-INF/lib/batch-0.1.0-SNAPSHOT.jar, BOOT-INF/lib/domain-0.1.0-SNAPSHOT.jar]
+application: 4 entries

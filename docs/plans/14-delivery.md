@@ -87,7 +87,7 @@ Each is carried to the decision record.
   layers in order; every module jar of this project is in `ledger` and nothing
   else is; `build-info.properties` is present.
 
-## [ ] 2 · The image, and what a one-line change rebuilds
+## [x] 2 · The image, and what a one-line change rebuilds
 
 **Change**
 - `bootstrap/Dockerfile`: extract `--layers` in a build stage, one `COPY` per
@@ -279,3 +279,21 @@ connections).
 ---
 
 ## Found while implementing
+
+- **Section 1.** `<includeModuleDependencies/>` knows a module only when it is
+  in the same reactor: `./mvnw -pl bootstrap package` left the `ledger` layer
+  empty. The layer selects by coordinates (`com.jerome.slledger:*`) instead.
+- **Section 1.** `build-info.properties` lands at the jar's root
+  `META-INF/`, not under `BOOT-INF/classes/`; `/actuator/info` reads it there.
+- **Section 2.** Planning decision 1's premise was half wrong: in a full
+  reactor build Boot's default already puts the project's modules in
+  `application`, and a domain edit changes one 688 kB layer either way. They go
+  to `snapshot-dependencies` only when bootstrap is built alone. The `ledger`
+  layer stays for that reason (a layout independent of how Maven was invoked)
+  and saves the 115 kB of bootstrap's own classes per module edit; the decision
+  record says so instead of claiming more.
+- **Section 2.** Two `--no-cache` builds of the same jar differed in three
+  layers, the 109 MB `dependencies` one included: `extract` stamps directories
+  and `application.jar` with the time of the `RUN`. The Dockerfile now sets
+  every extracted file to the build's `outputTimestamp`; two builds are then
+  identical. A warm build cache had hidden it.

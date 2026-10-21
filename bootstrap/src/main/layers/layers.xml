@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Stage 14. Boot's default layers plus one: this project's own modules. They are SNAPSHOT
-     versions, so by default they land in snapshot-dependencies next to any third-party snapshot,
-     and a one-line edit in domain would rebuild that whole layer. A layer named for them is the one
-     that changes on every commit, and it sits just under the application's own classes.
-     See docs/decisions/14-delivery.md. -->
+<!-- Stage 14. Boot's default layers plus one: this project's own modules, just under the
+     application's own classes. Boot's default puts reactor modules in "application" when the whole
+     reactor builds, and in snapshot-dependencies (they are SNAPSHOTs) when only bootstrap does, so
+     the image's layout depended on how Maven was invoked. A layer named for them is the one that
+     changes on every commit, whichever way the jar was built. See docs/decisions/14-delivery.md. -->
 <layers xmlns="http://www.springframework.org/schema/boot/layers"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.springframework.org/schema/boot/layers

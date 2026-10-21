@@ -46,6 +46,11 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+  # Stage 14: /actuator/info answers which build is running: build-info.properties from the jar and
+  # the revision the image was built from (LEDGER_REVISION, set by the image; "unknown" outside one).
+  info:
+    env:
+      enabled: true
   endpoint:
     health:
       show-details: when-authorized
@@ -116,3 +121,8 @@ ledger:
     base-url: http://127.0.0.1:8089
     connect-timeout: 500ms
     read-timeout: 2s
+
+# Stage 14: read by the env info contributor above.
+info:
+  app:
+    revision: ${LEDGER_REVISION:unknown}

@@ -1,0 +1,56 @@
+Commit 6f6a753b4195; one-line edit: MarginalTieredRate's exception message, in domain.
+Docker 29.6.0, aarch64.
+
+== same commit, built twice
+layer  changed  size  instruction
+1      same     110MB  ADD file:41d2e63ceb0b90641106340bc
+2      same     51.4MB RUN /bin/sh -c set -eux;     apt-get update;
+3      same     166MB  RUN /bin/sh -c set -eux;     ARCH="$(dpkg --
+4      same     12.3kB RUN /bin/sh -c set -eux;     echo "Verifying
+5      same     12.3kB COPY --chmod=755 entrypoint.sh
+6      same     8.19kB WORKDIR /app
+7      same     109MB  COPY /build/extracted/dependencies/ ./
+8      same     4.1kB  COPY /build/extracted/spring-boot-loader/ ./
+9      same     4.1kB  COPY /build/extracted/snapshot-dependencies/ ./
+10     same     582kB  COPY /build/extracted/ledger/ ./
+11     same     115kB  COPY /build/extracted/application/ ./
+changed layers: 0 of 11
+
+== one-line edit in domain, ledger layer (layers.xml)
+layer  changed  size  instruction
+1      same     110MB  ADD file:41d2e63ceb0b90641106340bc
+2      same     51.4MB RUN /bin/sh -c set -eux;     apt-get update;
+3      same     166MB  RUN /bin/sh -c set -eux;     ARCH="$(dpkg --
+4      same     12.3kB RUN /bin/sh -c set -eux;     echo "Verifying
+5      same     12.3kB COPY --chmod=755 entrypoint.sh
+6      same     8.19kB WORKDIR /app
+7      same     109MB  COPY /build/extracted/dependencies/ ./
+8      same     4.1kB  COPY /build/extracted/spring-boot-loader/ ./
+9      same     4.1kB  COPY /build/extracted/snapshot-dependencies/ ./
+10     CHANGED  582kB  COPY /build/extracted/ledger/ ./
+11     same     115kB  COPY /build/extracted/application/ ./
+changed layers: 1 of 11
+
+== one-line edit in domain, Boot's default layers (no layers.xml)
+layer  changed  size  instruction
+1      same     110MB  ADD file:41d2e63ceb0b90641106340bc
+2      same     51.4MB RUN /bin/sh -c set -eux;     apt-get update;
+3      same     166MB  RUN /bin/sh -c set -eux;     ARCH="$(dpkg --
+4      same     12.3kB RUN /bin/sh -c set -eux;     echo "Verifying
+5      same     12.3kB COPY --chmod=755 entrypoint.sh
+6      same     8.19kB WORKDIR /app
+7      same     109MB  COPY /build/extracted/dependencies/ ./
+8      same     4.1kB  COPY /build/extracted/spring-boot-loader/ ./
+9      same     4.1kB  COPY /build/extracted/snapshot-dependencies/ ./
+10     CHANGED  688kB  COPY /build/extracted/application/ ./
+changed layers: 1 of 10
+
+== before the Dockerfile fixed the extracted files' times (measured the same day, same jar)
+Two `docker build --no-cache` of one unchanged jar, layer digests compared:
+  layer 7  (dependencies, 109MB)  sha256:985cee58... vs sha256:a7034561...  CHANGED
+  layer 10 (ledger, 582kB)        sha256:54eaadc7... vs sha256:4be86fef...  CHANGED
+  layer 11 (application, 115kB)   sha256:7596eb0c... vs sha256:f81b34fa...  CHANGED
+The jar entries carry the fixed outputTimestamp, but `extract` creates the lib/ directories and
+application.jar at the time of the RUN, and the layer tar records those times. With the build
+cache warm (a developer machine) the COPY was reused and the problem was invisible: the first
+run of this script, with the cache, reported only ledger and application changed.
