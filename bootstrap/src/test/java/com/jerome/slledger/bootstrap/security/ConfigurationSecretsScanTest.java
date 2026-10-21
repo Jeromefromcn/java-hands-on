@@ -35,6 +35,18 @@ class ConfigurationSecretsScanTest {
   private static final Pattern PLACEHOLDER =
       Pattern.compile("^[\"']?(\\$\\{[^}]+\\}|change-me|<[^>]*>|)[\"']?$");
 
+  /**
+   * Stage 14: a value computed when it runs, not written down: a shell command substitution ({@code
+   * token=$(kc-token.sh ops1)}) or a GitHub Actions expression ({@code ${{ secrets.GITHUB_TOKEN
+   * }}}). What it evaluates to is never in the file.
+   */
+  private static final Pattern RUNTIME_VALUE =
+      Pattern.compile("^[\"']?(\\$\\(.*|\\$\\{\\{.*\\}\\})$");
+
+  /** Stage 14: GitHub Actions' {@code id-token} permission scope, a grant and not a credential. */
+  private static final Pattern WORKFLOW_PERMISSION =
+      Pattern.compile("(?i)id-token:\\s*(read|write|none)");
+
   /** A key that names where a secret is (a file, a URL), not what it is. */
   private static final Pattern REFERENCE_KEY =
       Pattern.compile("(?i).*(file|path|location|url|uri)$");
@@ -100,6 +112,8 @@ class ConfigurationSecretsScanTest {
         if (m.matches()
             && !REFERENCE_KEY.matcher(m.group(1)).matches()
             && !PLACEHOLDER.matcher(m.group(2)).matches()
+            && !RUNTIME_VALUE.matcher(m.group(2)).matches()
+            && !WORKFLOW_PERMISSION.matcher(lines.get(i).trim()).matches()
             && !lines.get(i).trim().startsWith("#")
             // A key whose value is a nested block (YAML) or a reference to another property.
             && !m.group(2).startsWith("{")
