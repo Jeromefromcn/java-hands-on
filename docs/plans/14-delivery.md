@@ -202,7 +202,7 @@ Each is carried to the decision record.
 - Every existing accrual test unchanged and green; `DayCountTest` (USD and
   EUR on `ACT_360`, HKD on `ACT_365F`, one known value each).
 
-## [ ] 11 · The rollout flag and its rules
+## [x] 11 · The rollout flag and its rules
 
 **Change**
 - `application.rollout`: `Rollout` (percentage, effective since), `RolloutChange`
@@ -372,3 +372,7 @@ connections).
   free private repository cannot have one). A pull request with a failing
   check and no review is refused for merging; the administrator's direct push
   is let through with "2 of 2 required status checks are expected" on record.
+- **Section 11.** No separate `RolloutStoreIT`: the store is exercised end to
+  end by section 12's `RolloutApiIT` (every change, refusal and the stale
+  approval) and `AccrualRolloutIT`, and the table's own maker-is-not-checker
+  constraint is asserted there by an update that bypasses the application.

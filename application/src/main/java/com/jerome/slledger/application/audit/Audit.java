@@ -54,6 +54,18 @@ public class Audit {
     store.append(event(Action.ACCESS, Subject.ENDPOINT, endpoint, Result.DENIED, ""));
   }
 
+  /** A rollout changed; commits or rolls back with the change. Stage 14. */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void rollout(Result result, String flag, String step) {
+    store.append(event(Action.ROLLOUT, Subject.FLAG, flag, result, step));
+  }
+
+  /** A rollout change was refused by its rules; survives the rollback. Stage 14. */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void rolloutRefused(String flag, String reason) {
+    store.append(event(Action.ROLLOUT, Subject.FLAG, flag, Result.REJECTED, reason));
+  }
+
   private AuditEvent event(
       Action action, Subject subject, String subjectId, Result result, String reason) {
     return new AuditEvent(

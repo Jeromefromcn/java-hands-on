@@ -9,8 +9,9 @@ import java.util.Objects;
  * to, so the trail cannot disagree with the ledger and is not a second copy of what the money
  * invariant protects.
  *
- * @param reason a machine code for a refusal (an exception's simple name), empty when booked; never
- *     a message, which can quote an amount
+ * @param reason a machine code for a refusal (an exception's simple name, a rule's code), empty
+ *     when booked, the step ("change 7: 0->5") for a rollout change; never a message, which can
+ *     quote an amount
  */
 public record AuditEvent(
     Instant at,
@@ -25,7 +26,9 @@ public record AuditEvent(
     OPEN,
     RETURN,
     /** A request refused before it reached a use case. */
-    ACCESS
+    ACCESS,
+    /** Stage 14: a change to a rollout, or a refused attempt at one. */
+    ROLLOUT
   }
 
   public enum Subject {
@@ -34,13 +37,19 @@ public record AuditEvent(
     /** A booking request that booked nothing; the id is its idempotency key. */
     REQUEST,
     /** An endpoint a caller was refused; the id is the method and path. */
-    ENDPOINT
+    ENDPOINT,
+    /** A rollout; the id is the flag's name. */
+    FLAG
   }
 
   public enum Result {
     BOOKED,
     REJECTED,
-    DENIED
+    DENIED,
+    /** Stage 14: a raise proposed (maker), approved (checker), or a rollout lowered. */
+    PROPOSED,
+    APPROVED,
+    LOWERED
   }
 
   public AuditEvent {

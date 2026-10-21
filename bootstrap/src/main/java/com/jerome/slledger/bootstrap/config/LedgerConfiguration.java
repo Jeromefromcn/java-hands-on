@@ -29,6 +29,8 @@ import com.jerome.slledger.application.position.ShowPosition;
 import com.jerome.slledger.application.quote.LastKnownPrices;
 import com.jerome.slledger.application.quote.PriceFanOut;
 import com.jerome.slledger.application.quote.QuotePrice;
+import com.jerome.slledger.application.rollout.ManageRollout;
+import com.jerome.slledger.application.rollout.RolloutStore;
 import com.jerome.slledger.application.saga.CreditReservations;
 import com.jerome.slledger.application.saga.FailurePoint;
 import com.jerome.slledger.application.saga.OpenPositionSaga;
@@ -44,6 +46,7 @@ import java.time.Clock;
 import java.time.Duration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,6 +58,7 @@ import org.springframework.context.annotation.Import;
  * Boot; the container that proxies it is this module's concern.
  */
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(RolloutProperties.class)
 @Import({
   PersistenceConfiguration.class,
   WebConfiguration.class,
@@ -114,6 +118,18 @@ public class LedgerConfiguration {
   @Bean
   ListAudit listAudit(AuditQuery query) {
     return new ListAudit(query);
+  }
+
+  /** Stage 14. Raising a rollout is two people and observed steps; lowering is one person. */
+  @Bean
+  ManageRollout manageRollout(
+      RolloutStore store,
+      RolloutProperties properties,
+      Audit audit,
+      ObjectProvider<Callers> callers,
+      Clock clock) {
+    return new ManageRollout(
+        store, properties.rules(), audit, callers.getIfAvailable(() -> Callers.SYSTEM_ONLY), clock);
   }
 
   @Bean
