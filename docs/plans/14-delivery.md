@@ -372,10 +372,13 @@ connections).
   free private repository cannot have one). A pull request with a failing
   check and no review is refused for merging; the administrator's direct push
   is let through with "2 of 2 required status checks are expected" on record.
-- **Section 11.** No separate `RolloutStoreIT`: the store is exercised end to
-  end by section 12's `RolloutApiIT` (every change, refusal and the stale
-  approval) and `AccrualRolloutIT`, and the table's own maker-is-not-checker
-  constraint is asserted there by an update that bypasses the application.
+- **Section 11.** It was committed without the planned `RolloutStoreIT`, on
+  the reasoning that section 12's tests reach the store end to end. The
+  pipeline's coverage floor disagreed: those tests are bootstrap's, so
+  `adapter-persistence` fell from 72.3% to 0.69 against its 0.70 floor and the
+  first CI run of sections 10-12 failed there. `JdbcRolloutStoreIT` now tests
+  the store in its own module (compare-and-set move, supersede, the
+  maker-is-not-checker and 0-100 constraints).
 - **Section 12.** `RolloutApiIT` first tried to show a stale approval by
   lowering an already-zero rollout to zero; the rules refused the lowering
   itself, so the old proposal stayed valid and was approved. The scenario now
